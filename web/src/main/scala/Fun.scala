@@ -24,7 +24,7 @@ object Fun {
   object api {
     import Base64Serdes._
 
-    val ws = new Websocket(WebsocketConfig(baseUrl = Url(s"wss://${AppConfig.domainWS}")))
+    val ws = new Websocket(WebsocketConfig(baseUrl = Url(s"wss://${AppConfig.domainWS}"), allowUnauthenticated = AppConfig.allowUnauthenticated))
 
     def wsClient[PickleType](implicit
         serializer: Serializer[ClientMessage[PickleType], String],

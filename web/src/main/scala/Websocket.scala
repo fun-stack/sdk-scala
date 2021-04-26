@@ -14,6 +14,7 @@ import funstack.core._
 
 case class WebsocketConfig(
     baseUrl: Url,
+    allowUnauthenticated: Boolean,
 )
 
 class Websocket(val config: WebsocketConfig) {
@@ -35,7 +36,6 @@ class Websocket(val config: WebsocketConfig) {
         },
       )
       private var currentUser: Option[User] = None
-      println("GO?")
       Fun.auth.currentUser
         .scan[(Cancelable, Option[User])]((Cancelable.empty, None)) { (current, user) =>
           currentUser = user
@@ -46,13 +46,21 @@ class Websocket(val config: WebsocketConfig) {
             case (Some(prevUser), Some(user)) if prevUser.info.sub == user.info.sub =>
               cancelable
             case (_, Some(user)) =>
-              println("RUN?")
               cancelable.cancel()
-              client.run { () =>
-                println("GO " + s"${config.baseUrl.value}/?token=${currentUser.get.token.access_token}")
+              val cancel = client.run { () =>
+                println("Opening " + s"${config.baseUrl.value}/?token=${currentUser.get.token.access_token}")
                 s"${config.baseUrl.value}/?token=${currentUser.get.token.access_token}"
               }
-              Cancelable.empty
+              Cancelable(cancel.cancel)
+            case (None, None) if config.allowUnauthenticated =>
+              cancelable
+            case (_, None) if config.allowUnauthenticated =>
+              cancelable.cancel()
+              val cancel = client.run { () =>
+                println("Opening " + config.baseUrl.value)
+                config.baseUrl.value
+              }
+              Cancelable(cancel.cancel)
             case (_, None) =>
               cancelable.cancel()
               Cancelable.empty
