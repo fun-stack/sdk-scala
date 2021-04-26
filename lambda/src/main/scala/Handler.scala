@@ -6,13 +6,16 @@ import scala.scalajs.js
 import mycelium.core.message._
 import sloth._
 import chameleon.{Serializer, Deserializer}
+import scala.scalajs.js.JSConverters._
+import scala.concurrent.Future
 
 object Handler {
+  import scala.concurrent.ExecutionContext.Implicits.global
 
   def handle[T, Event, Failure, F[_]](
       routerF: Router[T, F] => Router[T, F],
       event: APIGatewayWSEvent,
-      convert: F[T] => js.Promise[Either[Failure, T]],
+      convert: F[T] => Future[Either[Failure, T]],
   )(implicit
       deserializer: Deserializer[ClientMessage[T], String],
       serializer: Serializer[ServerMessage[T, Event, Failure], String],
@@ -24,7 +27,7 @@ object Handler {
       case Right(Ping) => js.Promise.resolve[Pong.type](Pong)
       case Right(CallRequest(seqNumber, path, payload)) =>
         router(Request(path, payload)).toEither match {
-          case Right(result) => convert(result).`then`[ServerMessage[T, Event, Failure]](CallResponse(seqNumber, _))
+          case Right(result) => convert(result).toJSPromise.`then`[ServerMessage[T, Event, Failure]](CallResponse(seqNumber, _))
           case Left(error)   => js.Promise.reject(new Exception(error.toString))
         }
     }
