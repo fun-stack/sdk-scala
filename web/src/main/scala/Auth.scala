@@ -3,8 +3,8 @@ package funstack.web
 import funstack.core._
 
 import cats.implicits._
-import cats.effect.{ContextShift, IO}
 import colibri._
+import cats.effect.{Async, Sync, IO}
 
 import org.scalajs.dom
 import org.scalajs.dom.experimental.{BodyInit, Fetch, RequestInit, HttpMethod, Headers, URLSearchParams}
@@ -55,7 +55,7 @@ private object Authentication {
   case class RefreshToken(token: String) extends Authentication
 }
 
-class Auth(val config: AuthConfig) {
+class Auth[F[_]: Async](val config: AuthConfig) {
   private implicit val cs = IO.contextShift(ExecutionContext.global)
 
   private val storageKeyRefreshToken = "auth.refresh_token"
@@ -73,51 +73,28 @@ class Auth(val config: AuthConfig) {
     }
   }
 
-  private var currentUserVariable: Option[User] = None
-
-  // def signUrl(credentials: AWSCredentials, url: Url): Future[String] = {
-  //   credentials
-  //     .refreshPromise()
-  //     .`then`[String] { _ =>
-  //       AWS4
-  //         .sign(
-  //           new AWS4SignOptions {
-  //             val host      = url.value
-  //             val path      = s"?X-Amz-Security-Token=${js.URIUtils.encodeURIComponent(credentials.sessionToken)}"
-  //             val service   = "execute-api"
-  //             val region    = config.region.value
-  //             val signQuery = true
-  //           },
-  //           new AWS4SignParams {
-  //             val accessKeyId     = credentials.accessKeyId
-  //             val secretAccessKey = credentials.secretAccessKey
-  //           },
-  //         )
-  //         .path
-  //     }
-  //     .toFuture
-  // }
-
-  def login: IO[Unit] = IO {
+  def login: F[Unit] = Sync[F].delay {
     val url = s"${config.baseUrl.value}/login?response_type=code&client_id=${config.clientId.value}&redirect_uri=${config.redirectUrl.value}"
     dom.window.location.href = url
   }
 
-  def logout: IO[Unit] = IO {
+  def logout: F[Unit] = Sync[F].delay {
     localStorage.removeItem(storageKeyRefreshToken)
     val url = s"${config.baseUrl.value}/logout?client_id=${config.clientId.value}&logout_uri=${config.redirectUrl.value}"
     dom.window.location.href = url
   }
 
   //TODO headIO colibri
-  val currentUserHead: IO[Option[User]] = IO.cancelable[Option[User]] { cb =>
-    val cancelable = colibri.Cancelable.variable()
-    cancelable() = currentUser.foreach { user =>
-      cancelable.cancel()
-      cb(Right(user))
+  val currentUserHead: F[Option[User]] = IO
+    .cancelable[Option[User]] { cb =>
+      val cancelable = colibri.Cancelable.variable()
+      cancelable() = currentUser.foreach { user =>
+        cancelable.cancel()
+        cb(Right(user))
+      }
+      IO(cancelable.cancel())
     }
-    IO(cancelable.cancel())
-  }
+    .to[F]
 
   val currentUser: Observable[Option[User]] =
     authentication
@@ -142,14 +119,6 @@ class Auth(val config: AuthConfig) {
             None
           }
       }
-      .doOnNext {
-        case Some(user) =>
-          dom.console.log(user.token)
-          dom.console.log(user.info)
-        case None =>
-          dom.console.log("Nope")
-      }
-      .doOnNext(currentUserVariable = _)
       .replay
       .hot
 

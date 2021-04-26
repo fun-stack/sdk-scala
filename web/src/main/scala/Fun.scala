@@ -1,6 +1,6 @@
 package funstack.web
 
-import cats.effect.Async
+import cats.effect.{Async, IO}
 import cats.MonadError
 import sloth.{Client, ClientException}
 import mycelium.js.core.JsMessageBuilder
@@ -11,7 +11,7 @@ import funstack.core._
 import org.scalajs.dom
 
 object Fun {
-  val auth = new Auth(
+  val auth = new Auth[IO](
     AuthConfig(
       baseUrl = Url(s"https://${AppConfig.domainAuth}"),
       redirectUrl = Url(dom.window.location.origin.getOrElse(AppConfig.domain)),

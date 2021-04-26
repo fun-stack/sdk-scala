@@ -14,21 +14,34 @@ object Handler {
 
   type FunctionType = js.Function2[APIGatewayWSEvent, Context, js.Promise[APIGatewayProxyStructuredResultV2]]
 
+  case class RequestContext(
+      auth: Option[APIGatewayAuthorizer],
+  )
+
   def handle[T, Event, Failure, F[_]](
-      routerF: Router[T, F] => Router[T, F],
+      router: Router[T, F],
       convert: F[T] => Future[Either[Failure, T]],
   )(implicit
       deserializer: Deserializer[ClientMessage[T], String],
       serializer: Serializer[ServerMessage[T, Event, Failure], String],
-  ): FunctionType = { (event, _) =>
+  ): FunctionType = handleWithContext[T, Event, Failure, F](router, (f, _) => convert(f))
+
+  def handleWithContext[T, Event, Failure, F[_]](
+      router: Router[T, F],
+      convert: (F[T], RequestContext) => Future[Either[Failure, T]],
+  )(implicit
+      deserializer: Deserializer[ClientMessage[T], String],
+      serializer: Serializer[ServerMessage[T, Event, Failure], String],
+  ): FunctionType = { (event, context) =>
     println(js.JSON.stringify(event))
-    val router = routerF(Router[T, F])
+    println(js.JSON.stringify(context))
     val result: js.Promise[ServerMessage[T, Event, Failure]] = Deserializer[ClientMessage[T], String].deserialize(event.body) match {
       case Left(error) => js.Promise.reject(new Exception(s"Deserializer: $error"))
       case Right(Ping) => js.Promise.resolve[Pong.type](Pong)
       case Right(CallRequest(seqNumber, path, payload)) =>
+        val request = RequestContext(event.requestContext.authorizerWithUser)
         router(Request(path, payload)).toEither match {
-          case Right(result) => convert(result).toJSPromise.`then`[ServerMessage[T, Event, Failure]](CallResponse(seqNumber, _))
+          case Right(result) => convert(result, request).toJSPromise.`then`[ServerMessage[T, Event, Failure]](CallResponse(seqNumber, _))
           case Left(error)   => js.Promise.reject(new Exception(error.toString))
         }
     }
@@ -47,9 +60,4 @@ object Handler {
         result: APIGatewayProxyStructuredResultV2
       }: js.Function1[APIGatewayProxyStructuredResultV2, APIGatewayProxyStructuredResultV2])
   }
-}
-
-trait LambdaHandler {
-
-  val handler: Handler.FunctionType
 }
