@@ -7,7 +7,7 @@ import mycelium.js.core.JsMessageBuilder
 import mycelium.core.client.{SendType, IncidentHandler, WebsocketClientConfig, WebsocketClient}
 import mycelium.core.message.{ServerMessage, ClientMessage}
 import chameleon.{Serializer, Deserializer}
-import cats.effect.IO
+import cats.effect.Async
 import scala.concurrent.duration._
 import colibri.Observable
 import funstack.core._
@@ -19,13 +19,12 @@ case class WebsocketConfig(
 
 class Websocket(val config: WebsocketConfig) {
   import scala.concurrent.ExecutionContext.Implicits.global
-  private implicit val cs = IO.contextShift(global)
 
-  def transport[Event, Failure, PickleType](implicit
+  def transport[Event, Failure, PickleType, F[_]: Async](implicit
       serializer: Serializer[ClientMessage[PickleType], String],
       deserializer: Deserializer[ServerMessage[PickleType, Event, Failure], String],
-  ): RequestTransport[PickleType, IO] =
-    new RequestTransport[PickleType, IO] {
+  ): RequestTransport[PickleType, F] =
+    new RequestTransport[PickleType, F] {
       private val client = WebsocketClient.withPayload[String, PickleType, Event, Failure](
         new JsWebsocketConnection[String],
         WebsocketClientConfig(pingInterval = 7.days),
@@ -70,11 +69,13 @@ class Websocket(val config: WebsocketConfig) {
         }
         .subscribe(colibri.Observer.empty)
 
-      def apply(request: Request[PickleType]): IO[PickleType] =
-        IO.fromFuture(IO(client.send(request.path, request.payload, SendType.WhenConnected, 30.seconds)))
-          .flatMap {
-            case Right(value) => IO.pure(value)
-            case Left(error)  => IO.raiseError(new Exception(s"Request failed: $error"))
-          }
+      def apply(request: Request[PickleType]): F[PickleType] =
+        Async[F].async[PickleType](cb =>
+          client.send(request.path, request.payload, SendType.WhenConnected, 30.seconds).onComplete {
+            case util.Success(Right(value)) => cb(Right(value))
+            case util.Success(Left(error))  => cb(Left(new Exception(s"Request failed: $error")))
+            case util.Failure(ex)           => cb(Left(ex))
+          },
+        )
     }
 }

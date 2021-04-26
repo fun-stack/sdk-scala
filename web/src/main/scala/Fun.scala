@@ -1,6 +1,7 @@
 package funstack.web
 
-import cats.effect.IO
+import cats.effect.Async
+import cats.MonadError
 import sloth.{Client, ClientException}
 import mycelium.js.core.JsMessageBuilder
 import mycelium.core.message._
@@ -26,10 +27,10 @@ object Fun {
 
     val ws = new Websocket(WebsocketConfig(baseUrl = Url(s"wss://${AppConfig.domainWS}"), allowUnauthenticated = AppConfig.allowUnauthenticated))
 
-    def wsClient[PickleType](implicit
+    def wsClient[PickleType, F[_]: Async](implicit
         serializer: Serializer[ClientMessage[PickleType], String],
         deserializer: Deserializer[ServerMessage[PickleType, String, String], String],
     ) =
-      Client[PickleType, IO, ClientException](ws.transport[String, String, PickleType])
+      Client[PickleType, F, ClientException](ws.transport[String, String, PickleType, F])
   }
 }
