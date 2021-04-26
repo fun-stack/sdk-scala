@@ -12,14 +12,15 @@ import scala.concurrent.Future
 object Handler {
   import scala.concurrent.ExecutionContext.Implicits.global
 
+  type FunctionType = js.Function2[APIGatewayWSEvent, Context, js.Promise[APIGatewayProxyStructuredResultV2]]
+
   def handle[T, Event, Failure, F[_]](
       routerF: Router[T, F] => Router[T, F],
-      event: APIGatewayWSEvent,
       convert: F[T] => Future[Either[Failure, T]],
   )(implicit
       deserializer: Deserializer[ClientMessage[T], String],
       serializer: Serializer[ServerMessage[T, Event, Failure], String],
-  ) = {
+  ): FunctionType = { (event, _) =>
     println(js.JSON.stringify(event))
     val router = routerF(Router[T, F])
     val result: js.Promise[ServerMessage[T, Event, Failure]] = Deserializer[ClientMessage[T], String].deserialize(event.body) match {
@@ -46,4 +47,9 @@ object Handler {
         result: APIGatewayProxyStructuredResultV2
       }: js.Function1[APIGatewayProxyStructuredResultV2, APIGatewayProxyStructuredResultV2])
   }
+}
+
+trait LambdaHandler {
+
+  val handler: Handler.FunctionType
 }
