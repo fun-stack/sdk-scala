@@ -51,8 +51,6 @@ class Websocket(val config: WebsocketConfig) {
                 s"${config.baseUrl.value}/?token=${currentUser.get.token.access_token}"
               }
               Cancelable(cancel.cancel)
-            case (None, None) if config.allowUnauthenticated =>
-              cancelable
             case (_, None) if config.allowUnauthenticated =>
               cancelable.cancel()
               val cancel = client.run { () =>
