@@ -35,37 +35,33 @@ class Websocket(val config: WebsocketConfig) {
         },
       )
       private var currentUser: Option[User] = None
-      Fun.auth.currentUser
-        .scan[(Cancelable, Option[User])]((Cancelable.empty, None)) { (current, user) =>
-          currentUser = user
-          val (cancelable, prevUser) = current
-          println(prevUser.toString)
-          println(user.toString)
-          val newCancelable = (prevUser, user) match {
-            case (Some(prevUser), Some(user)) if prevUser.info.sub == user.info.sub =>
-              cancelable
-            case (_, Some(user)) =>
-              cancelable.cancel()
-              val cancel = client.run { () =>
-                println("Opening " + s"${config.baseUrl.value}/?token=${currentUser.get.token.access_token}")
-                s"${config.baseUrl.value}/?token=${currentUser.get.token.access_token}"
-              }
-              Cancelable(cancel.cancel)
-            case (_, None) if config.allowUnauthenticated =>
-              cancelable.cancel()
-              val cancel = client.run { () =>
-                println("Opening " + s"${config.baseUrl.value}/?token=anon")
-                s"${config.baseUrl.value}/?token=anon"
-              }
-              Cancelable(cancel.cancel)
-            case (_, None) =>
-              cancelable.cancel()
-              Cancelable.empty
-          }
+      Fun.auth.fold(Cancelable(client.run(s"${config.baseUrl.value}/?token=anon").cancel))(
+        _.currentUser
+          .scan[(Cancelable, Option[User])]((Cancelable.empty, None)) { (current, user) =>
+            currentUser = user
+            val (cancelable, prevUser) = current
+            val newCancelable = (prevUser, user) match {
+              case (Some(prevUser), Some(user)) if prevUser.info.sub == user.info.sub =>
+                cancelable
+              case (_, Some(user)) =>
+                cancelable.cancel()
+                val cancel = client.run { () =>
+                  s"${config.baseUrl.value}/?token=${currentUser.get.token.access_token}"
+                }
+                Cancelable(cancel.cancel)
+              case (_, None) if config.allowUnauthenticated =>
+                cancelable.cancel()
+                val cancel = client.run(s"${config.baseUrl.value}/?token=anon")
+                Cancelable(cancel.cancel)
+              case (_, None) =>
+                cancelable.cancel()
+                Cancelable.empty
+            }
 
-          (newCancelable, user)
-        }
-        .subscribe(colibri.Observer.empty)
+            (newCancelable, user)
+          }
+          .subscribe(colibri.Observer.empty),
+      )
 
       def apply(request: Request[PickleType]): F[PickleType] =
         Async[F].async[PickleType](cb =>
