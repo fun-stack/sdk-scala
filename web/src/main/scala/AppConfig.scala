@@ -25,9 +25,10 @@ trait ApiAppConfig extends js.Object {
 @js.native
 @JSGlobal
 object AppConfig extends js.Object {
-  def environment: String             = js.native
-  def region: String                  = js.native
-  def website: WebsiteAppConfig       = js.native
-  def auth: js.UndefOr[AuthAppConfig] = js.native
-  def api: js.UndefOr[ApiAppConfig]   = js.native
+  def stage: String                      = js.native
+  def region: String                     = js.native
+  def website: WebsiteAppConfig          = js.native
+  def auth: js.UndefOr[AuthAppConfig]    = js.native
+  def api: js.UndefOr[ApiAppConfig]      = js.native
+  def environment: js.Dictionary[String] = js.native
 }
