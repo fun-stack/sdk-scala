@@ -1,4 +1,4 @@
-package funstack.lambda
+package funstack.lambda.ws
 
 import net.exoego.facade.aws_lambda._
 

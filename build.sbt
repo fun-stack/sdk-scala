@@ -42,13 +42,38 @@ lazy val core = project
       Nil,
     )
 
-lazy val lambda = project
+lazy val lambdaHttp = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(core)
-  .in(file("lambda"))
+  .in(file("lambdaHttp"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-lambda",
+    name := "fun-stack-lambda-http",
+    libraryDependencies ++=
+      Deps.cats.effect.value ::
+      Deps.awsSdkJS.lambda.value ::
+      Deps.awsLambdaJS.value ::
+      Deps.sttp.core.value ::
+      Deps.sttp.circe.value ::
+      /* Deps.sttp.openApi.value :: */
+      /* Deps.sttp.circeOpenApi.value :: */
+      Nil,
+
+    // The aws-sdk is provided in lambda environment.
+    // Not depending on it explicitly makes the bundle size smaller.
+    // But we do not know whether our facades are on the correct version.
+    /* Compile / npmDependencies ++= */
+    /*   NpmDeps.awsSdk :: */
+    /*   Nil */
+  )
+
+lazy val lambdaWs = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(core)
+  .in(file("lambdaWs"))
+  .settings(commonSettings, jsSettings)
+  .settings(
+    name := "fun-stack-lambda-ws",
     libraryDependencies ++=
       Deps.sloth.value ::
       Deps.mycelium.core.value ::
@@ -90,4 +115,4 @@ lazy val root = project
   .settings(
     publish / skip := true,
   )
-  .aggregate(core, lambda, web)
+  .aggregate(core, lambdaWs, lambdaHttp, web)
