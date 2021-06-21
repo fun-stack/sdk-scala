@@ -14,6 +14,5 @@ class Api(api: ApiAppConfig) {
   def wsClient[PickleType, F[_]: Async](implicit
       serializer: Serializer[ClientMessage[PickleType], String],
       deserializer: Deserializer[ServerMessage[PickleType, String, String], String],
-  ) =
-    Client[PickleType, F, ClientException](ws.transport[String, String, PickleType, F])
+  ) = Client[PickleType, F, ClientException](ws.transport[String, String, PickleType, F])
 }
