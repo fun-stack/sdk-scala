@@ -107,6 +107,7 @@ lazy val web = project
 
     Compile / npmDependencies ++=
       NpmDeps.awsSdk ::
+      NpmDeps.stripe ::
       Nil
   )
 

@@ -50,5 +50,6 @@ object Deps {
 
 object NpmDeps {
   val awsSdkVersion = "2.798.0"
-  val awsSdk        = "aws-sdk" -> awsSdkVersion
+  val awsSdk        = "aws-sdk"           -> awsSdkVersion
+  val stripe        = "@stripe/stripe-js" -> "1.15.0"
 }

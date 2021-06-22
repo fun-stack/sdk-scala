@@ -9,6 +9,7 @@ import funstack.core._
 import org.scalajs.dom
 
 object Fun {
-  val auth = AppConfig.auth.map(Auth.apply)
-  val api  = AppConfig.api.map(new Api(_))
+  val auth    = AppConfig.auth.map(Auth.apply)
+  val api     = AppConfig.api.map(new Api(_))
+  val payment = AppConfig.payment.map(new Payment(_))
 }
