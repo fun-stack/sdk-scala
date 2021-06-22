@@ -12,7 +12,7 @@ class Payment(payment: PaymentAppConfig) {
 
   private val loadedStripe = {
     // load stripe as side effect
-    val stripe = Stripe.loadStripe(payment.publishableKey).toFuture
+    val stripe = Stripe.loadStripe(payment.publishableKey, new StripeConstructorOptions {}).toFuture
     IO.fromFuture(IO(stripe))
   }
 

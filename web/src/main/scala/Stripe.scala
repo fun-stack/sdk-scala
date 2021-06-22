@@ -6,7 +6,7 @@ import scala.scalajs.js.annotation._
 object Stripe {
   @js.native
   @JSImport("@stripe/stripe-js", "loadStripe")
-  def loadStripe(pk: String, options: StripeConstructorOptions = ???): js.Promise[Stripe] = js.native
+  def loadStripe(pk: String, options: StripeConstructorOptions): js.Promise[Stripe] = js.native
 }
 
 trait StripeConstructorOptions extends js.Object {
