@@ -14,7 +14,7 @@ object Deps {
   }
 
   // frp
-  val colibri = s("com.github.cornerman.colibri" %%% "colibri" % "6000107")
+  val colibri = s("com.github.cornerman.colibri" %%% "colibri" % "3976102")
 
   // rpc
   val sloth = s("com.github.cornerman.sloth" %%% "sloth" % "c0c6ef0")
