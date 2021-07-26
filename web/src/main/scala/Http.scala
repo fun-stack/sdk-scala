@@ -12,5 +12,5 @@ class Http(http: HttpAppConfig) {
   private val backend     = FetchCatsBackend[IO]()
 
   def client[I, E, O](endpoint: Endpoint[I, E, O, Any]): I => IO[Either[E, O]] =
-    SttpClientInterpreter.toClientThrowDecodeFailures[IO, I, E, O, Any](endpoint, Some(Uri.unsafeApply(http.domain)), backend)
+    SttpClientInterpreter.toClientThrowDecodeFailures[IO, I, E, O, Any](endpoint, Some(Uri.unsafeApply(s"https://${http.domain}")), backend)
 }
