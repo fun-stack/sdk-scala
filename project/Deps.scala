@@ -29,6 +29,9 @@ object Deps {
   // utils
   val base64 = s("com.github.marklister" %%% "base64" % "0.3.0")
 
+  // js utils
+  val jsTime = s("io.github.cquiroz" %%% "scala-java-time" % "2.2.0")
+
   // sttp
   val sttp = new {
     val version      = "0.18.0-M15"
@@ -36,6 +39,8 @@ object Deps {
     val circe        = s("com.softwaremill.sttp.tapir" %%% "tapir-json-circe" % version)
     val openApi      = s("com.softwaremill.sttp.tapir" %% "tapir-openapi-docs" % version)
     val circeOpenApi = s("com.softwaremill.sttp.tapir" %% "tapir-openapi-circe-yaml" % version)
+    val jsClient     = s("com.softwaremill.sttp.tapir" %%% "tapir-sttp-client" % version)
+    val catsClient   = s("com.softwaremill.sttp.client3" %%% "catsce2" % "3.3.11")
   }
 
   // aws-sdk-js

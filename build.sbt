@@ -100,6 +100,9 @@ lazy val web = project
       Deps.sloth.value ::
       Deps.cats.effect.value ::
       Deps.colibri.value ::
+      Deps.jsTime.value ::
+      Deps.sttp.jsClient.value ::
+      Deps.sttp.catsClient.value ::
       Deps.mycelium.clientJs.value ::
       Deps.awsSdkJS.sts.value ::
       Deps.awsSdkJS.cognitoidentity.value ::
