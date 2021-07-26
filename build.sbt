@@ -1,4 +1,3 @@
-import Options._
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
 inThisBuild(Seq(
@@ -20,10 +19,7 @@ lazy val commonSettings = Seq(
     Deps.scalatest.value ::
     Nil,
 
-  scalacOptions ++= CrossVersion.partialVersion(scalaVersion.value).map(v =>
-    allOptionsForVersion(s"${v._1}.${v._2}", true)
-  ).getOrElse(Nil),
-  console / scalacOptions ~= (_.diff(badConsoleFlags))
+  scalacOptions --= Seq("-Xfatal-warnings"),
 )
 
 lazy val jsSettings = Seq(
