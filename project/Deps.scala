@@ -30,7 +30,7 @@ object Deps {
   val base64 = s("com.github.marklister" %%% "base64" % "0.3.0")
 
   // js utils
-  val jsTime = s("io.github.cquiroz" %%% "scala-java-time" % "2.2.0")
+  val jsTime = s("io.github.cquiroz" %%% "scala-java-time" % "2.2.2")
 
   // sttp
   val sttp = new {
