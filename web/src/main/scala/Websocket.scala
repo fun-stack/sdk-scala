@@ -64,7 +64,7 @@ class Websocket(val config: WebsocketConfig) {
       )
 
       def apply(request: Request[PickleType]): F[PickleType] =
-        Async[F].async[PickleType](cb =>
+        Async[F].async_[PickleType](cb =>
           client.send(request.path, request.payload, SendType.WhenConnected, 30.seconds).onComplete {
             case util.Success(Right(value)) => cb(Right(value))
             case util.Success(Left(error))  => cb(Left(new Exception(s"Request failed: $error")))
