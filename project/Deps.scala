@@ -5,7 +5,7 @@ object Deps {
   import Def.{setting => s}
 
   // testing
-  val scalatest = s("org.scalatest" %%% "scalatest" % "3.2.9")
+  val scalatest = s("org.scalatest" %%% "scalatest" % "3.2.10")
 
   // core libraries
   val cats = new {
