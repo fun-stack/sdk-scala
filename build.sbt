@@ -24,6 +24,12 @@ lazy val commonSettings = Seq(
 
 lazy val jsSettings = Seq(
   useYarn := true,
+
+  scalacOptions += {
+    val local = baseDirectory.value.toURI
+    val remote = s"https://raw.githubusercontent.com/fun-stack-org/fun-stack-scala/${git.gitHeadCommit.value.get}/"
+    s"-P:scalajs:mapSourceURI:$local->$remote"
+  },
 )
 
 lazy val core = project
