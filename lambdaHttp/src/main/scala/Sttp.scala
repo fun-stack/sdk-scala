@@ -88,5 +88,5 @@ class LambdaServerRequest(event: APIGatewayProxyEventV2) extends ServerRequest {
 
   def headers: Seq[Header] = event.headers.map { case (key, value) => Header(key, value) }.toSeq
   def method: Method       = Method(event.requestContext.http.method)
-  def uri: Uri             = Uri.unsafeApply(scheme = "https", host = event.requestContext.domainName, path = event.requestContext.stage +: pathSegments)
+  def uri: Uri = Uri.unsafeApply(scheme = "https", host = event.requestContext.domainName, path = event.requestContext.stage +: pathSegments)
 }
