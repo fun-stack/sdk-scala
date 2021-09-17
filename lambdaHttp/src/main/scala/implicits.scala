@@ -19,7 +19,7 @@ import scala.scalajs.js.JSConverters._
 
 object implicits {
   implicit def catsSttpBodyListener[F[_]: Sync, B]: BodyListener[F, B] = new BodyListener[F, B] {
-    def onComplete(body: B)(cb: util.Try[Unit] => F[Unit]): F[B] = Sync[F].suspend(cb(util.Success(()))).as(body)
+    def onComplete(body: B)(cb: util.Try[Unit] => F[Unit]): F[B] = Sync[F].defer(cb(util.Success(()))).as(body)
   }
 
   implicit def catsSttpMonadError[F[_]: Sync]: SttpMonadError[F] = new SttpMonadError[F] {
