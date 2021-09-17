@@ -5,7 +5,7 @@ object Deps {
   import Def.{setting => s}
 
   // testing
-  val scalatest = s("org.scalatest" %%% "scalatest" % "3.2.0")
+  val scalatest = s("org.scalatest" %%% "scalatest" % "3.2.9")
 
   // core libraries
   val cats = new {
@@ -17,7 +17,7 @@ object Deps {
   val colibri = s("com.github.cornerman.colibri" %%% "colibri" % "f118a37")
 
   // rpc
-  val sloth = s("com.github.cornerman.sloth" %%% "sloth" % "c0c6ef0")
+  val sloth = s("com.github.cornerman.sloth" %%% "sloth" % "0.3.0")
 
   // websocket connecitivity
   val mycelium = new {
