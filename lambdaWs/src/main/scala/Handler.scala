@@ -14,10 +14,6 @@ object Handler {
 
   type FunctionType = js.Function2[APIGatewayWSEvent, Context, js.Promise[APIGatewayProxyStructuredResultV2]]
 
-  case class RequestContext(
-      auth: Option[APIGatewayAuthorizer],
-  )
-
   def handle[T, Event, Failure, F[_]](
       router: Router[T, F],
       convert: F[T] => Future[Either[Failure, T]],
@@ -28,7 +24,7 @@ object Handler {
 
   def handleWithContext[T, Event, Failure, F[_]](
       router: Router[T, F],
-      convert: (F[T], RequestContext) => Future[Either[Failure, T]],
+      convert: (F[T], APIGatewayWSRequestContext) => Future[Either[Failure, T]],
   )(implicit
       deserializer: Deserializer[ClientMessage[T], String],
       serializer: Serializer[ServerMessage[T, Event, Failure], String],
@@ -39,9 +35,8 @@ object Handler {
       case Left(error) => js.Promise.reject(new Exception(s"Deserializer: $error"))
       case Right(Ping) => js.Promise.resolve[Pong.type](Pong)
       case Right(CallRequest(seqNumber, path, payload)) =>
-        val request = RequestContext(event.requestContext.authorizerWithUser)
         router(Request(path, payload)).toEither match {
-          case Right(result) => convert(result, request).toJSPromise.`then`[ServerMessage[T, Event, Failure]](CallResponse(seqNumber, _))
+          case Right(result) => convert(result, event.requestContext).toJSPromise.`then`[ServerMessage[T, Event, Failure]](CallResponse(seqNumber, _))
           case Left(error)   => js.Promise.reject(new Exception(error.toString))
         }
     }
