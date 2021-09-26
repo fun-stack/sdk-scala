@@ -5,19 +5,19 @@ object Deps {
   import Def.{setting => s}
 
   // testing
-  val scalatest = s("org.scalatest" %%% "scalatest" % "3.2.0")
+  val scalatest = s("org.scalatest" %%% "scalatest" % "3.2.10")
 
   // core libraries
   val cats = new {
     val core   = s("org.typelevel" %%% "cats-core" % "2.1.1")
-    val effect = s("org.typelevel" %%% "cats-effect" % "2.3.3")
+    val effect = s("org.typelevel" %%% "cats-effect" % "2.5.4")
   }
 
   // frp
   val colibri = s("com.github.cornerman.colibri" %%% "colibri" % "f118a37")
 
   // rpc
-  val sloth = s("com.github.cornerman.sloth" %%% "sloth" % "c0c6ef0")
+  val sloth = s("com.github.cornerman.sloth" %%% "sloth" % "0.3.0")
 
   // websocket connecitivity
   val mycelium = new {
@@ -30,7 +30,7 @@ object Deps {
   val base64 = s("com.github.marklister" %%% "base64" % "0.3.0")
 
   // js utils
-  val jsTime = s("io.github.cquiroz" %%% "scala-java-time" % "2.2.0")
+  val jsTime = s("io.github.cquiroz" %%% "scala-java-time" % "2.3.0")
 
   // sttp
   val sttp = new {

@@ -187,13 +187,13 @@ class Auth[F[_]: Async](val config: AuthConfig) {
 }
 object Auth {
   def apply(auth: AuthAppConfig): Auth[IO] = new Auth[IO](
-      AuthConfig(
-        baseUrl = Url(s"https://${auth.domain}"),
-        redirectUrl = Url(dom.window.location.origin.getOrElse(AppConfig.website.domain)),
-        clientId = ClientId(auth.clientIdAuth),
-        region = Region(AppConfig.region),
-        identityPoolId = IdentityPoolId(auth.identityPoolId),
-        cognitoEndpoint = Url(auth.cognitoEndpoint),
-      ),
-    )
+    AuthConfig(
+      baseUrl = Url(s"https://${auth.domain}"),
+      redirectUrl = Url(dom.window.location.origin.getOrElse(AppConfig.website.domain)),
+      clientId = ClientId(auth.clientIdAuth),
+      region = Region(AppConfig.region),
+      identityPoolId = IdentityPoolId(auth.identityPoolId),
+      cognitoEndpoint = Url(auth.cognitoEndpoint),
+    ),
+  )
 }
