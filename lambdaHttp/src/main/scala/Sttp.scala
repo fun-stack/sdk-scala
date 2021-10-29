@@ -48,10 +48,10 @@ object LambdaToResponseBody extends ToResponseBody[APIGatewayProxyStructuredResu
           body = new String(v.getBytes(charset)),
           headers = headers.headers.map(header => header.name -> (header.value: Boolean | Double | String)).toMap.toJSDictionary,
         )
-      case RawBodyType.ByteArrayBody       => APIGatewayProxyStructuredResultV2(statusCode = 500) //TODO base64
-      case RawBodyType.ByteBufferBody      => APIGatewayProxyStructuredResultV2(statusCode = 500) //TODO base64
-      case RawBodyType.InputStreamBody     => APIGatewayProxyStructuredResultV2(statusCode = 500) //TODO base64
-      case RawBodyType.FileBody            => APIGatewayProxyStructuredResultV2(statusCode = 500) //TODO base64
+      case RawBodyType.ByteArrayBody       => APIGatewayProxyStructuredResultV2(statusCode = 500) // TODO base64
+      case RawBodyType.ByteBufferBody      => APIGatewayProxyStructuredResultV2(statusCode = 500) // TODO base64
+      case RawBodyType.InputStreamBody     => APIGatewayProxyStructuredResultV2(statusCode = 500) // TODO base64
+      case RawBodyType.FileBody            => APIGatewayProxyStructuredResultV2(statusCode = 500) // TODO base64
       case RawBodyType.MultipartBody(_, _) => APIGatewayProxyStructuredResultV2(statusCode = 500, body = "Not implemented")
     }
   }
@@ -80,7 +80,7 @@ object LambdaServerInterpreter {
 
 class LambdaServerRequest(event: APIGatewayProxyEventV2) extends ServerRequest {
   def protocol: String               = event.requestContext.http.protocol
-  def connectionInfo: ConnectionInfo = ConnectionInfo(local = None, remote = None, secure = None) //TODO?
+  def connectionInfo: ConnectionInfo = ConnectionInfo(local = None, remote = None, secure = None) // TODO?
   def underlying: Any                = event
 
   def pathSegments: List[String]   = event.requestContext.http.path.split("/").toList.tail.tail
