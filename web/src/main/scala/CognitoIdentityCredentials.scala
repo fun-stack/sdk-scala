@@ -23,7 +23,7 @@ object CognitoIdentityCredentials {
   def apply(params: CognitoIdentityCredentialsParams, config: CognitoIdentityCredentialsClientConfig): CognitoIdentityCredentials = {
     val credentials = new CognitoIdentityCredentials(params, config)
 
-    //TODO: this is needed because if cognito field is not set, it tries to initialize the cognito field internally, but that fails with a `is not a constructor error` at runtime.
+    // TODO: this is needed because if cognito field is not set, it tries to initialize the cognito field internally, but that fails with a `is not a constructor error` at runtime.
     val cognitoConfig = js.Object.assign(js.Object(), config)
     cognitoConfig.asInstanceOf[js.Dynamic].params = params
     credentials.asInstanceOf[js.Dynamic].cognito = new CognitoIdentity(cognitoConfig.asInstanceOf[AWSConfig])

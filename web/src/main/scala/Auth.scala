@@ -84,7 +84,7 @@ class Auth[F[_]: Async](val config: AuthConfig) {
     dom.window.location.href = url
   }
 
-  //TODO headIO colibri
+  // TODO headIO colibri
   val currentUserHead: F[Option[User]] = IO
     .cancelable[Option[User]] { cb =>
       val cancelable = colibri.Cancelable.variable()
