@@ -7,7 +7,7 @@ import colibri._
 import cats.effect.{Async, Sync, IO}
 
 import org.scalajs.dom
-import org.scalajs.dom.experimental.{BodyInit, Fetch, RequestInit, HttpMethod, Headers, URLSearchParams}
+import org.scalajs.dom.experimental.{BodyInit, Fetch, RequestInit, HttpMethod, Headers, URLSearchParams, Response}
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import facade.amazonaws.{AWSConfig, AWSCredentials}
@@ -116,6 +116,7 @@ class Auth[F[_]: Async](val config: AuthConfig) {
           }
           .recover { case t =>
             dom.console.error("Error in user handling: " + t)
+            localStorage.removeItem(storageKeyRefreshToken)
             None
           }
       }
@@ -132,6 +133,10 @@ class Auth[F[_]: Async](val config: AuthConfig) {
   //   },
   // )
 
+  private def handleResponse(response: Response): IO[js.Any] =
+    if (response.status == 200) IO.fromFuture(IO(response.json().toFuture))
+    else IO.raiseError(new Exception(s"Got Error Response: ${response.status}"))
+
   private def getUserInfo(token: TokenResponse): IO[UserInfoResponse] = IO
     .fromFuture(IO {
       val url = s"${config.baseUrl.value}/oauth2/userInfo"
@@ -146,10 +151,10 @@ class Auth[F[_]: Async](val config: AuthConfig) {
             )
           },
         )
-        .`then`[js.Promise[js.Any]](_.json())
         .toFuture
     })
-    .map(_.asInstanceOf[UserInfoResponse])
+    .flatMap(handleResponse)
+    .flatMap(r => IO(r.asInstanceOf[UserInfoResponse]))
 
   private def getToken(authCode: String): IO[TokenResponse] = IO
     .fromFuture(IO {
@@ -163,10 +168,10 @@ class Auth[F[_]: Async](val config: AuthConfig) {
             headers = js.Array(js.Array("Content-Type", "application/x-www-form-urlencoded"))
           },
         )
-        .`then`[js.Promise[js.Any]](_.json())
         .toFuture
     })
-    .map(_.asInstanceOf[TokenResponse])
+    .flatMap(handleResponse)
+    .flatMap(r => IO(r.asInstanceOf[TokenResponse]))
 
   private def refreshToken(refreshToken: String): IO[TokenResponse] = IO
     .fromFuture(IO {
@@ -180,10 +185,10 @@ class Auth[F[_]: Async](val config: AuthConfig) {
             headers = js.Array(js.Array("Content-Type", "application/x-www-form-urlencoded"))
           },
         )
-        .`then`[js.Promise[js.Any]](_.json())
         .toFuture
     })
-    .map(r => js.Object.assign(js.Dynamic.literal(refresh_token = refreshToken), r).asInstanceOf[TokenResponse])
+    .flatMap(handleResponse)
+    .flatMap(r => IO(js.Object.assign(js.Dynamic.literal(refresh_token = refreshToken), r.asInstanceOf[js.Object]).asInstanceOf[TokenResponse]))
 }
 object Auth {
   def apply(auth: AuthAppConfig): Auth[IO] = new Auth[IO](
