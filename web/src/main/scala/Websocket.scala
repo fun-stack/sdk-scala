@@ -3,13 +3,11 @@ package funstack.web
 import colibri.Cancelable
 import sloth.{Request, RequestTransport}
 import mycelium.js.client.JsWebsocketConnection
-import mycelium.js.core.JsMessageBuilder
 import mycelium.core.client.{SendType, IncidentHandler, WebsocketClientConfig, WebsocketClient}
 import mycelium.core.message.{ServerMessage, ClientMessage}
 import chameleon.{Serializer, Deserializer}
 import cats.effect.Async
 import scala.concurrent.duration._
-import colibri.Observable
 import funstack.core._
 
 case class WebsocketConfig(
@@ -43,7 +41,7 @@ class Websocket(val config: WebsocketConfig) {
             val newCancelable = (prevUser, user) match {
               case (Some(prevUser), Some(user)) if prevUser.info.sub == user.info.sub =>
                 cancelable
-              case (_, Some(user)) =>
+              case (_, Some(_)) =>
                 cancelable.cancel()
                 val cancel = client.run { () =>
                   s"${config.baseUrl.value}/?token=${currentUser.get.token.access_token}"
