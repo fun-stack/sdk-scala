@@ -5,6 +5,7 @@ import cats.effect.{IO, Effect}
 import cats.data.Kleisli
 import cats.implicits._
 import sttp.tapir.server.ServerEndpoint
+import sttp.tapir.server.interceptor.RequestResult
 
 import scala.scalajs.js
 import scala.concurrent.Future
@@ -16,7 +17,7 @@ object Handler {
   type FunctionType = js.Function2[APIGatewayProxyEventV2, Context, js.Promise[APIGatewayProxyStructuredResultV2]]
 
   def handle[F[_]: Effect](
-      endpoints: List[ServerEndpoint[_, _, _, _, F]],
+      endpoints: List[ServerEndpoint[_, F]],
   ): FunctionType = { (event, context) =>
     println(js.JSON.stringify(event))
     println(js.JSON.stringify(context))
@@ -24,11 +25,11 @@ object Handler {
     val interpreter = LambdaServerInterpreter[F](event)
 
     val run = interpreter(new LambdaServerRequest(event), endpoints).map {
-      case Some(response) =>
+      case RequestResult.Response(response) =>
         println(response)
         response.body.getOrElse(APIGatewayProxyStructuredResultV2(statusCode = 404))
-      case None =>
-        println("No Response")
+      case RequestResult.Failure(errors) =>
+        println(s"No response, errors: ${errors.mkString(", ")}")
         APIGatewayProxyStructuredResultV2(statusCode = 404)
     }
 

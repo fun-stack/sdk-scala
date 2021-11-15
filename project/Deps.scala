@@ -14,14 +14,14 @@ object Deps {
   }
 
   // frp
-  val colibri = s("com.github.cornerman.colibri" %%% "colibri" % "f118a37")
+  val colibri = s("com.github.cornerman.colibri" %%% "colibri" % "7e95f8a")
 
   // rpc
   val sloth = s("com.github.cornerman.sloth" %%% "sloth" % "0.3.0")
 
   // websocket connecitivity
   val mycelium = new {
-    val version  = "2a7a14c"
+    val version  = "e9f73f0"
     val core     = s("com.github.cornerman.mycelium" %%% "mycelium-core" % version)
     val clientJs = s("com.github.cornerman.mycelium" %%% "mycelium-client-js" % version)
   }
@@ -34,7 +34,7 @@ object Deps {
 
   // sttp
   val sttp = new {
-    val version      = "0.18.3"
+    val version      = "0.19.0-M16"
     val core         = s("com.softwaremill.sttp.tapir" %%% "tapir-core" % version)
     val circe        = s("com.softwaremill.sttp.tapir" %%% "tapir-json-circe" % version)
     val openApi      = s("com.softwaremill.sttp.tapir" %% "tapir-openapi-docs" % version)
