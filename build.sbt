@@ -3,7 +3,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 inThisBuild(
   Seq(
     version                       := "0.1.0-SNAPSHOT",
-    scalaVersion                  := "2.13.7",
+    scalaVersion                  := "2.13.6",
     Global / onChangedBuildSource := ReloadOnSourceChanges,
   ),
 )
@@ -100,7 +100,7 @@ lazy val web = project
       Deps.sloth.value ::
         Deps.cats.effect.value ::
         Deps.colibri.value ::
-        Deps.jsTime.value ::
+        /* Deps.jsTime.value :: */
         Deps.sttp.jsClient.value ::
         Deps.sttp.catsClient.value ::
         Deps.mycelium.clientJs.value ::
