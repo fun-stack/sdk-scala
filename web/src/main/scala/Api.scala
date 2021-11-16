@@ -7,7 +7,9 @@ import chameleon.{Serializer, Deserializer}
 import funstack.core._
 
 class Api(api: ApiAppConfig) {
-  val ws = new Websocket(WebsocketConfig(baseUrl = Url(s"wss://${api.domain}"), allowUnauthenticated = api.allowUnauthenticated))
+  private val isLocalhost = api.domain.startsWith("localhost:") || api.domain == "localhost"
+  private val protocol = if(isLocalhost) "ws" else "wss"
+  val ws = new Websocket(WebsocketConfig(baseUrl = Url(s"${protocol}://${api.domain}"), allowUnauthenticated = api.allowUnauthenticated))
 
   def wsClient[PickleType, F[_]: Async](implicit
       serializer: Serializer[ClientMessage[PickleType], String],
