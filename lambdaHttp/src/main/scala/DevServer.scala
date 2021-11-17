@@ -3,12 +3,19 @@ package funstack.lambda.http
 import typings.node.httpMod.createServer
 import typings.node.httpMod.IncomingMessage
 import typings.node.httpMod.ServerResponse
+import typings.node.{Buffer => JsBuffer}
 import net.exoego.facade.aws_lambda.APIGatewayProxyEventV2
 import net.exoego.facade.aws_lambda
 import org.scalajs.dom.console
 import collection.mutable
+import scala.scalajs.js
+import scala.util.{Failure, Success}
+import java.net.URI
+import js.JSConverters._
 
 object DevServer {
+  private implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
+
   def startHttpLambdaDevServer(lambdaHandler: Handler.FunctionType, port: Int) = {
     val requestListener = { (req: IncomingMessage, res: ServerResponse) =>
 
@@ -44,7 +51,7 @@ object DevServer {
     }
 
     val server = createServer(requestListener)
-    server.listen(8000)
+    server.listen(port)
     server
   }
 
@@ -108,13 +115,13 @@ object DevServer {
     val lambdaContext = js.Dynamic
       .literal(
         callbackWaitsForEmptyEventLoop = true,
-        functionName = LambdaHttpEndpoint.handlerName,
+        functionName = "function",
         functionVersion = "$LATEST",
         invokedFunctionArn = "arn:aws:lambda:ap-southeast-2:[AWS_ACCOUNT_ID]:function:restapi",
         memoryLimitInMB = "128",
         awsRequestId = "1d9ccf1c-0f09-427e-b2f8-ffc961d25904",
         logGroupName = "",
-        logStreamName = s"/aws/lambda/${LambdaHttpEndpoint.handlerName}",
+        logStreamName = s"/aws/lambda/function",
         // var identity: js.UndefOr[aws_lambda.CognitoIdentity]    = js.undefined
         // var clientContext: js.UndefOr[aws_lambda.ClientContext] = js.undefined
       )

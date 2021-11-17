@@ -34,7 +34,7 @@ lazy val commonSettings = Seq(
   libraryDependencies ++=
     Deps.scalatest.value % Test ::
       Nil,
-  /* scalacOptions --= Seq("-Xfatal-warnings"), */
+  scalacOptions --= Seq(/*"-Xfatal-warnings",*/ "-Wconf:any&src=src_managed/.*"),
 )
 
 lazy val jsSettings = Seq(
@@ -66,7 +66,7 @@ lazy val lambdaHttp = project
   .in(file("lambdaHttp"))
   .settings(commonSettings, jsSettings)
   .settings(
-    stOutputPackage := "funStackLambdaHttp",
+    stOutputPackage := "funstack.lambda.http.typings",
     name := "fun-stack-lambda-http",
     libraryDependencies ++=
       Deps.cats.effect.value ::
@@ -78,7 +78,9 @@ lazy val lambdaHttp = project
         /* Deps.sttp.circeOpenApi.value :: */
         Nil,
 
-    Compile / npmDependencies += "@types/node" -> "14.14.31",
+    Compile / npmDependencies ++= Seq(
+      "@types/node" -> "14.14.31",
+    ),
     // The aws-sdk is provided in lambda environment.
     // Not depending on it explicitly makes the bundle size smaller.
     // But we do not know whether our facades are on the correct version.
@@ -88,11 +90,12 @@ lazy val lambdaHttp = project
   )
 
 lazy val lambdaWs = project
-  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin, ScalablyTypedConverterGenSourcePlugin)
   .dependsOn(core)
   .in(file("lambdaWs"))
   .settings(commonSettings, jsSettings)
   .settings(
+    stOutputPackage := "funstack.lambda.ws.typings",
     name := "fun-stack-lambda-ws",
     libraryDependencies ++=
       Deps.sloth.value ::
@@ -101,6 +104,12 @@ lazy val lambdaWs = project
         Deps.awsLambdaJS.value ::
         Nil,
 
+    Compile / npmDependencies ++= Seq(
+      "@types/node" -> "14.14.31",
+      "ws"            -> "8.2.3",
+      "@types/ws"     -> "8.2.0",
+      "jwt-decode"    -> "3.1.2",
+    ),
     // The aws-sdk is provided in lambda environment.
     // Not depending on it explicitly makes the bundle size smaller.
     // But we do not know whether our facades are on the correct version.
