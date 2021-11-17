@@ -14,8 +14,8 @@ object Handler {
   def handle[F[_]: Effect](
       endpoints: List[ServerEndpoint[_, F]],
   ): FunctionType = { (event, context) =>
-    println(js.JSON.stringify(event))
-    println(js.JSON.stringify(context))
+    // println(js.JSON.stringify(event))
+    // println(js.JSON.stringify(context))
 
     val interpreter = LambdaServerInterpreter[F](event)
 
