@@ -61,11 +61,12 @@ lazy val core = project
   )
 
 lazy val lambdaHttp = project
-  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin, ScalablyTypedConverterGenSourcePlugin)
   .dependsOn(core)
   .in(file("lambdaHttp"))
   .settings(commonSettings, jsSettings)
   .settings(
+    stOutputPackage := "funStackLambdaHttp",
     name := "fun-stack-lambda-http",
     libraryDependencies ++=
       Deps.cats.effect.value ::
@@ -77,6 +78,7 @@ lazy val lambdaHttp = project
         /* Deps.sttp.circeOpenApi.value :: */
         Nil,
 
+    Compile / npmDependencies += "@types/node" -> "14.14.31",
     // The aws-sdk is provided in lambda environment.
     // Not depending on it explicitly makes the bundle size smaller.
     // But we do not know whether our facades are on the correct version.
