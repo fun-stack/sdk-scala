@@ -16,7 +16,7 @@ import js.JSConverters._
 object DevServer {
   private implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
 
-  def startHttpLambdaDevServer(lambdaHandler: Handler.FunctionType, port: Int) = {
+  def start(lambdaHandler: Handler.FunctionType, port: Int) = {
     val requestListener = { (req: IncomingMessage, res: ServerResponse) =>
 
       val body = StringBuilder.newBuilder
@@ -129,46 +129,5 @@ object DevServer {
 
     (gateWayEvent, lambdaContext)
   }
-
-  // def main(args: Array[String]): Unit = {
-  //   println("server started...")
-  //   // https://nodejs.org/es/docs/guides/anatomy-of-an-http-transaction/
-  //   val requestListener = { (req: IncomingMessage, res: ServerResponse) =>
-  //     // res.res.writeHead(200)
-
-  //     val body = StringBuilder.newBuilder
-  //     req.on(
-  //       "data",
-  //       (chunk) => {
-  //         val buffer = chunk.asInstanceOf[JsBuffer];
-  //         body ++= buffer.toString()
-  //         ()
-  //       },
-  //     )
-  //     req.on(
-  //       "end",
-  //       (_) => {
-  //         val bodyStr                       = body.result()
-  //         val (gatewayEvent, lambdaContext) = transform(req, bodyStr)
-
-  //         println("-" * 20)
-  //         LambdaHttpEndpoint.handler(gatewayEvent, lambdaContext).toFuture.onComplete {
-  //           case Success(result) =>
-  //             result.statusCode.foreach(res.statusCode = _)
-  //             res.end(result.body)
-  //           case Failure(error)  =>
-  //             res.statusCode = 500 // internal server error
-  //             error.printStackTrace()
-  //             res.end()
-  //         }
-  //       },
-  //     )
-
-  //     ()
-  //   }
-
-  //   val server = createServer(requestListener)
-  //   server.listen(8000)
-  // }
 }
 

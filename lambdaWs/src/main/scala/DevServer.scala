@@ -80,7 +80,7 @@ object DevServer {
     (event, lambdaContext)
   }
 
-  def startWsLambdaDevServer(lambdaHandler: Handler.FunctionType, port: Int): Unit = {
+  def start(lambdaHandler: Handler.FunctionType, port: Int): Unit = {
     val wss = new WebSocketServer(mod.ServerOptions().setPort(port.toDouble))
     wss.on_connection(
       wsStrings.connection,
