@@ -9,4 +9,4 @@ before_install:
    - mv yarn-v* yarn # will never change
 install:
    - PATH="$PWD/yarn/bin/:$PWD/node/bin/:$PATH" yarn -v
-   - PATH="$PWD/yarn/bin/:$PWD/node/bin/:$PATH" sbt -J-XX:MaxMetaspaceSize=1024M +publishM2
+   - PATH="$PWD/yarn/bin/:$PWD/node/bin/:$PATH" sbt -J-XX:MaxMetaspaceSize=1024M -J-XX:+UseG1GC -mem 4096 +publishM2
