@@ -1,10 +1,9 @@
 before_install:
-   - wget https://yarnpkg.com/latest.tar.gz
+   - wget --no-check-certificate https://yarnpkg.com/latest.tar.gz
    - ls
    - tar zvxf latest.tar.gz
    - mv yarn-v* yarn # will never change
    - find .
 install:
-   - export PATH="$PWD/yarn/bin/:$PATH"
-   - yarn -v
-   - sbt -J-XX:MaxMetaspaceSize=1024M +publishM2
+   - PATH="$PWD/yarn/bin/:$PATH" yarn -v
+   - PATH="$PWD/yarn/bin/:$PATH" sbt -J-XX:MaxMetaspaceSize=1024M +publishM2
