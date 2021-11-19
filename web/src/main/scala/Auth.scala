@@ -7,11 +7,8 @@ import colibri._
 import cats.effect.{Async, Sync, IO}
 
 import org.scalajs.dom
-import org.scalajs.dom.experimental.{BodyInit, Fetch, RequestInit, HttpMethod, Headers, URLSearchParams, Response}
+import org.scalajs.dom.{Fetch, RequestInit, HttpMethod, URLSearchParams, Response}
 import scala.scalajs.js
-import scala.scalajs.js.JSConverters._
-import facade.amazonaws.{AWSConfig, AWSCredentials}
-import facade.amazonaws.services.sts._
 import org.scalajs.dom.window.localStorage
 
 import scala.concurrent.duration._
@@ -37,16 +34,12 @@ trait UserInfoResponse extends js.Object {
 case class User(
     info: UserInfoResponse,
     token: TokenResponse,
-    // credentials: AWSCredentials,
 )
 
 case class AuthConfig(
     baseUrl: Url,
     redirectUrl: Url,
-    cognitoEndpoint: Url,
-    identityPoolId: IdentityPoolId,
     clientId: ClientId,
-    region: Region,
 )
 
 private sealed trait Authentication
@@ -123,16 +116,6 @@ class Auth[F[_]: Async](val config: AuthConfig) {
       .replay
       .hot
 
-  // private def credentials(token: TokenResponse) = CognitoIdentityCredentials(
-  //   new CognitoIdentityCredentialsParams {
-  //     IdentityPoolId = config.identityPoolId.value
-  //     Logins = js.Dynamic.literal(config.cognitoEndpoint.value -> token.id_token)
-  //   },
-  //   new CognitoIdentityCredentialsClientConfig {
-  //     region = config.region.value
-  //   },
-  // )
-
   private def handleResponse(response: Response): IO[js.Any] =
     if (response.status == 200) IO.fromFuture(IO(response.json().toFuture))
     else IO.raiseError(new Exception(s"Got Error Response: ${response.status}"))
@@ -196,9 +179,6 @@ object Auth {
       baseUrl = Url(s"https://${auth.domain}"),
       redirectUrl = Url(dom.window.location.origin.getOrElse(AppConfig.website.domain)),
       clientId = ClientId(auth.clientIdAuth),
-      region = Region(AppConfig.region),
-      identityPoolId = IdentityPoolId(auth.identityPoolId),
-      cognitoEndpoint = Url(auth.cognitoEndpoint),
     ),
   )
 }

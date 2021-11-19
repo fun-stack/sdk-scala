@@ -12,8 +12,6 @@ trait WebsiteAppConfig extends js.Object {
 trait AuthAppConfig extends js.Object {
   def domain: String          = js.native
   def clientIdAuth: String    = js.native
-  def cognitoEndpoint: String = js.native
-  def identityPoolId: String  = js.native
 }
 
 @js.native

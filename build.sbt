@@ -104,11 +104,8 @@ lazy val web = project
         Deps.sttp.jsClient.value ::
         Deps.sttp.catsClient.value ::
         Deps.mycelium.clientJs.value ::
-        Deps.awsSdkJS.sts.value ::
-        Deps.awsSdkJS.cognitoidentity.value ::
         Nil,
     Compile / npmDependencies ++=
-      NpmDeps.awsSdk ::
         Nil,
   )
 
