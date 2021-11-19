@@ -14,16 +14,17 @@ object Deps {
   }
 
   // frp
-  val colibri = s("com.github.cornerman.colibri" %%% "colibri" % "7e95f8a")
+  val colibri = s("com.github.cornerman" %%% "colibri" % "0.1.0")
 
   // rpc
-  val sloth = s("com.github.cornerman.sloth" %%% "sloth" % "0.4.0")
+  val sloth = s("com.github.cornerman" %%% "sloth" % "0.4.0")
+  val chameleon = s("com.github.cornerman" %%% "chameleon" % "0.3.1")
 
   // websocket connecitivity
   val mycelium = new {
-    val version  = "e9f73f0"
-    val core     = s("com.github.cornerman.mycelium" %%% "mycelium-core" % version)
-    val clientJs = s("com.github.cornerman.mycelium" %%% "mycelium-client-js" % version)
+    val version  = "0.1.0"
+    val core     = s("com.github.cornerman" %%% "mycelium-core" % version)
+    val clientJs = s("com.github.cornerman" %%% "mycelium-client-js" % version)
   }
 
   // utils

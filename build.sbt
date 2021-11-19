@@ -6,15 +6,12 @@ inThisBuild(
     scalaVersion                  := "2.13.6",
     Global / onChangedBuildSource := ReloadOnSourceChanges,
   ),
-)
+  )
 
 lazy val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full),
-  resolvers ++=
-    ("jitpack" at "https://jitpack.io") ::
-      Nil,
   libraryDependencies ++=
-    Deps.scalatest.value ::
+    Deps.scalatest.value % Test ::
       Nil,
   /* scalacOptions --= Seq("-Xfatal-warnings"), */
 )
@@ -38,7 +35,7 @@ lazy val core = project
     name := "fun-stack-core",
     libraryDependencies ++=
       Deps.base64.value ::
-        "com.github.cornerman.chameleon" %%% "chameleon" % "01426c2" ::
+        Deps.chameleon.value ::
         Nil,
   )
 
