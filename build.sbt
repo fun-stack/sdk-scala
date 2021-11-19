@@ -14,7 +14,16 @@ inThisBuild(Seq(
     url("https://github.com/fun-stack-org/fun-stack-scala"),
     "scm:git:git@github.com:fun-stack-org/fun-stack-scala.git",
     Some("scm:git:git@github.com:fun-stack-org/fun-stack-scala.git"))
-  )
+  ),
+
+  pomExtra :=
+    <developers>
+      <developer>
+        <id>jkaroff</id>
+        <name>Johannes Karoff</name>
+        <url>https://github.com/cornerman</url>
+      </developer>
+    </developers>
 ))
 
 lazy val commonSettings = Seq(
