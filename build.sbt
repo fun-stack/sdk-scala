@@ -1,12 +1,21 @@
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
-inThisBuild(
-  Seq(
-    version                       := "0.1.0-SNAPSHOT",
-    scalaVersion                  := "2.13.6",
-    Global / onChangedBuildSource := ReloadOnSourceChanges,
-  ),
+Global / onChangedBuildSource := ReloadOnSourceChanges
+
+inThisBuild(Seq(
+  organization := "com.github.cornerman",
+  scalaVersion := "2.13.7",
+
+  licenses := Seq("MIT License" -> url("https://opensource.org/licenses/MIT")),
+
+  homepage := Some(url("https://github.com/fun-stack-org/fun-stack-scala")),
+
+  scmInfo := Some(ScmInfo(
+    url("https://github.com/fun-stack-org/fun-stack-scala"),
+    "scm:git:git@github.com:fun-stack-org/fun-stack-scala.git",
+    Some("scm:git:git@github.com:fun-stack-org/fun-stack-scala.git"))
   )
+))
 
 lazy val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full),
