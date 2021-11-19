@@ -16,7 +16,7 @@ lazy val commonSettings = Seq(
   libraryDependencies ++=
     Deps.scalatest.value ::
       Nil,
-  scalacOptions --= Seq("-Xfatal-warnings"),
+  /* scalacOptions --= Seq("-Xfatal-warnings"), */
 )
 
 lazy val jsSettings = Seq(

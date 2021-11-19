@@ -2,18 +2,13 @@ package funstack.lambda.http
 
 import net.exoego.facade.aws_lambda._
 import cats.effect.{IO, Effect}
-import cats.data.Kleisli
 import cats.implicits._
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.interceptor.RequestResult
 
 import scala.scalajs.js
-import scala.concurrent.Future
-import scala.scalajs.js.JSConverters._
 
 object Handler {
-  import scala.concurrent.ExecutionContext.Implicits.global
-
   type FunctionType = js.Function2[APIGatewayProxyEventV2, Context, js.Promise[APIGatewayProxyStructuredResultV2]]
 
   def handle[F[_]: Effect](
@@ -35,7 +30,7 @@ object Handler {
 
     new js.Promise[APIGatewayProxyStructuredResultV2]((resolve, reject) =>
       Effect[F]
-        .runAsync(run)(_.fold(error => IO(reject(error)), value => IO(resolve(value))))
+        .runAsync(run)(_.fold(error => IO(reject(error)).void, value => IO(resolve(value)).void))
         .unsafeRunSync(),
     )
   }

@@ -3,19 +3,7 @@ package funstack.lambda.http
 import sttp.monad.{MonadError => SttpMonadError}
 import cats.effect.Sync
 import cats.implicits._
-import sttp.tapir._
 import sttp.tapir.server.interpreter._
-import sttp.capabilities.Streams
-import sttp.tapir.model.{ServerRequest, ConnectionInfo}
-import sttp.model.{QueryParams, HasHeaders, Header, Method, Uri}
-import net.exoego.facade.aws_lambda._
-
-import java.nio.charset.Charset
-import java.nio.ByteBuffer
-import java.io.{File, ByteArrayInputStream}
-
-import scala.scalajs.js.|
-import scala.scalajs.js.JSConverters._
 
 object implicits {
   implicit def catsSttpBodyListener[F[_]: Sync, B]: BodyListener[F, B] = new BodyListener[F, B] {

@@ -1,6 +1,5 @@
 package funstack.lambda.http
 
-import sttp.monad.{MonadError => SttpMonadError}
 import cats.effect.Sync
 import cats.implicits._
 import sttp.tapir._
@@ -12,7 +11,7 @@ import net.exoego.facade.aws_lambda._
 
 import java.nio.charset.Charset
 import java.nio.ByteBuffer
-import java.io.{File, ByteArrayInputStream}
+import java.io.ByteArrayInputStream
 
 import scala.scalajs.js.|
 import scala.scalajs.js.JSConverters._
