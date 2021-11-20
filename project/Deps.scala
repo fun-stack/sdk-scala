@@ -41,7 +41,7 @@ object Deps {
     val openApi      = s("com.softwaremill.sttp.tapir" %% "tapir-openapi-docs" % version)
     val circeOpenApi = s("com.softwaremill.sttp.tapir" %% "tapir-openapi-circe-yaml" % version)
     val jsClient     = s("com.softwaremill.sttp.tapir" %%% "tapir-sttp-client" % version)
-    val catsClient   = s("com.softwaremill.sttp.client3" %%% "catsce2" % "3.3.15")
+    val catsClient   = s("com.softwaremill.sttp.client3" %%% "catsce2" % "3.3.17")
   }
 
   // aws-sdk-js
