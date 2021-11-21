@@ -74,8 +74,10 @@ object DevServer {
     // more examples: https://github.com/search?l=JSON&q=pathparameters+requestContext+isbase64encoded&type=Code
     val routeKey        = "ANY /nodejs-apig-function-1G3XMPLZXVXYI"
     val now             = new js.Date()
-    val host            = Option(url.getHost()).getOrElse("") // TODO: includes port number, but it shouldn't
+    val host            = Option(url.getHost()).getOrElse("") // TODO: includes port number, but it shouldn't?
     val path            = s"/latest${url.getPath()}"          //TODO: why latest?
+
+    val randomRequestId = util.Random.alphanumeric.take(20).mkString
     val gateWayEvent    = APIGatewayProxyEventV2(
       version = "2.0",
       routeKey = routeKey,
@@ -88,7 +90,7 @@ object DevServer {
       requestContext = APIGatewayProxyEventV2.RequestContext(
         accountId = "123456789012",
         apiId = "r3pmxmplak",
-        authorizer = js.undefined,      // TODO: js.UndefOr[RequestContext.Authorizer]
+        authorizer = js.undefined,      // TODO: extract from accesstoken like in ws
         domainName = host,
         domainPrefix = host.split(".").headOption.getOrElse(url.getHost()),
         http = APIGatewayProxyEventV2.RequestContext.Http(
@@ -98,7 +100,7 @@ object DevServer {
           sourceIp = "127.0.0.1",
           userAgent = req.headers.`user-agent`.getOrElse(""),
         ),                              // RequestContext.Http
-        requestId = "WYAk6i4ZjoEEJSQ=", // TODO: random
+        requestId = randomRequestId,
         routeKey = routeKey,
         stage = "$default",
         time =
