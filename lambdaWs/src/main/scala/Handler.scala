@@ -29,8 +29,8 @@ object Handler {
       deserializer: Deserializer[ClientMessage[T], String],
       serializer: Serializer[ServerMessage[T, Event, Failure], String],
   ): FunctionType = { (event, context) =>
-    println(js.JSON.stringify(event))
-    println(js.JSON.stringify(context))
+    // println(js.JSON.stringify(event))
+    // println(js.JSON.stringify(context))
     val result: js.Promise[ServerMessage[T, Event, Failure]] = Deserializer[ClientMessage[T], String].deserialize(event.body) match {
       case Left(error) => js.Promise.reject(new Exception(s"Deserializer: $error"))
       case Right(Ping) => js.Promise.resolve[Pong.type](Pong)
