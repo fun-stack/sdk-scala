@@ -3,12 +3,12 @@ package funstack.lambda.ws
 import scala.scalajs.js
 
 import net.exoego.facade.aws_lambda
-import funstack.lambda.typings
-import typings.ws.mod.WebSocketServer
-import typings.ws.mod.ServerOptions
-import typings.ws.wsStrings
-import typings.jwtDecode.mod.{default => jwt_decode}
-import typings.jwtDecode.mod.JwtPayload
+import funstack.lambda.ws.facades
+import facades.ws.mod.WebSocketServer
+import facades.ws.mod.ServerOptions
+import facades.ws.wsStrings
+import facades.jwtDecode.mod.{default => jwt_decode}
+import facades.jwtDecode.mod.JwtPayload
 import scala.util.{Success, Failure}
 
 object DevServer {
@@ -92,7 +92,6 @@ object DevServer {
           wsStrings.message,
           { (_, data, _) =>
             val body = data.toString
-            println(s"new message: $body")
             val (event, context) = transform(body, token)
             lambdaHandler(event, context).toFuture.onComplete {
               case Success(result) =>

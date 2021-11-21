@@ -66,7 +66,7 @@ lazy val lambdaHttp = project
   .in(file("lambdaHttp"))
   .settings(commonSettings, jsSettings)
   .settings(
-    stOutputPackage := "funstack.lambda.typings",
+    stOutputPackage := "funstack.lambda.http.facades",
     stUseScalaJsDom := true,
   /* say we want to minimize all */
     stMinimize := Selection.All,
@@ -105,7 +105,7 @@ lazy val lambdaWs = project
   .in(file("lambdaWs"))
   .settings(commonSettings, jsSettings)
   .settings(
-    stOutputPackage := "funstack.lambda.typings",
+    stOutputPackage := "funstack.lambda.ws.facades",
     stUseScalaJsDom := true,
   /* say we want to minimize all */
     stMinimize := Selection.All,
