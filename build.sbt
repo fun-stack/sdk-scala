@@ -67,6 +67,7 @@ lazy val lambdaHttp = project
   .settings(commonSettings, jsSettings)
   .settings(
     stOutputPackage := "funstack.lambda.http.typings",
+    stMinimize := Selection.AllExcept("node"),
     name := "fun-stack-lambda-http",
     libraryDependencies ++=
       Deps.cats.effect.value ::
@@ -96,6 +97,7 @@ lazy val lambdaWs = project
   .settings(commonSettings, jsSettings)
   .settings(
     stOutputPackage := "funstack.lambda.ws.typings",
+    stMinimize := Selection.AllExcept("jwt-decode", "ws", "node"),
     name := "fun-stack-lambda-ws",
     libraryDependencies ++=
       Deps.sloth.value ::
