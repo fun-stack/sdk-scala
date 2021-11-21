@@ -20,9 +20,8 @@ jobs:
       - uses: actions/cache@v2
         name: Cache node_modules
         with:
-          path: | 
-            "**/node_modules"
-          key: ${{ runner.os }}-${{ hashFiles('**/main/yarn.lock') }}
+          path: "**/main/node_modules"
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/main/yarn.lock') }}
 
       - name: Test
         run: sbt ++${{matrix.scalaVersion}} test
@@ -56,9 +55,8 @@ jobs:
       - uses: actions/cache@v2
         name: Cache node_modules
         with:
-          path: | 
-            "**/node_modules"
-          key: ${{ runner.os }}-${{ hashFiles('**/main/yarn.lock') }}
+          path: "**/main/node_modules"
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/main/yarn.lock') }}
 
       - uses: olafurpg/setup-gpg@v3
       - name: Publish
