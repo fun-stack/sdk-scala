@@ -10,12 +10,19 @@ jobs:
     strategy:
       matrix:
         scalaVersion: ["2.13.7"]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
       - uses: actions/checkout@v2
       - uses: coursier/cache-action@v6
       - uses: olafurpg/setup-scala@v12
+
+      - uses: actions/cache@v2
+        name: Cache node_modules
+        with:
+          path: | 
+            "**/node_modules"
+          key: ${{ runner.os }}-${{ hashFiles('**/main/yarn.lock') }}
 
       - name: Test
         run: sbt ++${{matrix.scalaVersion}} test
@@ -42,8 +49,17 @@ jobs:
       - uses: olafurpg/setup-scala@v12
         with:
           java-version: 8
+
       - name: Cache SBT
         uses: coursier/cache-action@v6
+
+      - uses: actions/cache@v2
+        name: Cache node_modules
+        with:
+          path: | 
+            "**/node_modules"
+          key: ${{ runner.os }}-${{ hashFiles('**/main/yarn.lock') }}
+
       - uses: olafurpg/setup-gpg@v3
       - name: Publish
         run: sbt version "git status" ci-release "git status"
