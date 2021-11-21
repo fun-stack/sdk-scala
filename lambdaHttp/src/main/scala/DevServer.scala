@@ -1,5 +1,6 @@
 package funstack.lambda.http
 
+import funstack.lambda.typings
 import typings.node.httpMod.createServer
 import typings.node.httpMod.IncomingMessage
 import typings.node.httpMod.ServerResponse

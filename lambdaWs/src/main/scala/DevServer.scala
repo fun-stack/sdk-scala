@@ -3,8 +3,9 @@ package funstack.lambda.ws
 import scala.scalajs.js
 
 import net.exoego.facade.aws_lambda
+import funstack.lambda.typings
 import typings.ws.mod.WebSocketServer
-import typings.ws.mod
+import typings.ws.mod.ServerOptions
 import typings.ws.wsStrings
 import typings.jwtDecode.mod.{default => jwt_decode}
 import typings.jwtDecode.mod.JwtPayload
@@ -81,7 +82,7 @@ object DevServer {
   }
 
   def start(lambdaHandler: Handler.FunctionType, port: Int): Unit = {
-    val wss = new WebSocketServer(mod.ServerOptions().setPort(port.toDouble))
+    val wss = new WebSocketServer(ServerOptions().setPort(port.toDouble))
     wss.on_connection(
       wsStrings.connection,
       { (_, ws, msg) =>

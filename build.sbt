@@ -66,8 +66,17 @@ lazy val lambdaHttp = project
   .in(file("lambdaHttp"))
   .settings(commonSettings, jsSettings)
   .settings(
-    stOutputPackage := "funstack.lambda.http.typings",
-    stMinimize := Selection.AllExcept("node"),
+    stOutputPackage := "funstack.lambda.typings",
+    stUseScalaJsDom := true,
+  /* say we want to minimize all */
+    stMinimize := Selection.All,
+    /* but keep these very specific things*/
+    stMinimizeKeep ++= List(
+      "node.httpMod.^",
+      "node.httpMod.createServer",
+      "node.httpMod.IncomingMessage",
+      "node.httpMod.ServerResponse",
+    ),
     name := "fun-stack-lambda-http",
     libraryDependencies ++=
       Deps.cats.effect.value ::
@@ -96,8 +105,19 @@ lazy val lambdaWs = project
   .in(file("lambdaWs"))
   .settings(commonSettings, jsSettings)
   .settings(
-    stOutputPackage := "funstack.lambda.ws.typings",
-    stMinimize := Selection.AllExcept("jwt-decode", "ws", "node"),
+    stOutputPackage := "funstack.lambda.typings",
+    stUseScalaJsDom := true,
+  /* say we want to minimize all */
+    stMinimize := Selection.All,
+    /* but keep these very specific things*/
+    stMinimizeKeep ++= List(
+      "ws.mod.WebSocketServer",
+      "ws.mod.ServerOptions",
+      "ws.wsStrings",
+      "jwtDecode.mod.^",
+      "jwtDecode.mod.default",
+      "jwtDecode.mod.JwtPayload",
+    ),
     name := "fun-stack-lambda-ws",
     libraryDependencies ++=
       Deps.sloth.value ::
@@ -107,7 +127,6 @@ lazy val lambdaWs = project
         Nil,
 
     Compile / npmDependencies ++= Seq(
-      "@types/node" -> "14.14.31",
       "ws"            -> "8.2.3",
       "@types/ws"     -> "8.2.0",
       "jwt-decode"    -> "3.1.2",
