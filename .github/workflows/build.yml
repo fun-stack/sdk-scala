@@ -53,6 +53,11 @@ jobs:
         java: [adopt@1.8]
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Debug over SSH (tmate)
+        # if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
@@ -84,3 +89,8 @@ jobs:
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+      - name: Debug over SSH 2 (tmate)
+        # if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
