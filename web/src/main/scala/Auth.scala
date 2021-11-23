@@ -77,18 +77,6 @@ class Auth[F[_]: Async](val config: AuthConfig) {
     dom.window.location.href = url
   }
 
-  // TODO headIO colibri
-  val currentUserHead: F[Option[User]] = IO
-    .cancelable[Option[User]] { cb =>
-      val cancelable = colibri.Cancelable.variable()
-      cancelable() = currentUser.foreach { user =>
-        cancelable.cancel()
-        cb(Right(user))
-      }
-      IO(cancelable.cancel())
-    }
-    .to[F]
-
   val currentUser: Observable[Option[User]] =
     authentication
       .fold[Observable[Option[User]]](Observable(None)) { authentication =>

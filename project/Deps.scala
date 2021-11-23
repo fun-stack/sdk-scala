@@ -14,7 +14,7 @@ object Deps {
   }
 
   // frp
-  val colibri = s("com.github.cornerman" %%% "colibri" % "0.1.0")
+  val colibri = s("com.github.cornerman" %%% "colibri" % "0.1.1")
 
   // rpc
   val sloth = s("com.github.cornerman" %%% "sloth" % "0.4.0")
@@ -48,8 +48,6 @@ object Deps {
   val awsSdkJS = new {
     val version         = s"0.32.0-v${NpmDeps.awsSdkVersion}"
     val lambda          = s("net.exoego" %%% "aws-sdk-scalajs-facade-lambda" % version)
-    val sts             = s("net.exoego" %%% "aws-sdk-scalajs-facade-sts" % version)
-    val cognitoidentity = s("net.exoego" %%% "aws-sdk-scalajs-facade-cognitoidentity" % version)
   }
   val awsLambdaJS = s("net.exoego" %%% "aws-lambda-scalajs-facade" % "0.11.0")
 }
