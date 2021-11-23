@@ -7,9 +7,10 @@ import sttp.tapir.PublicEndpoint
 import sttp.model.Uri
 import scala.concurrent.ExecutionContext
 
-class Http(http: HttpAppConfig) {
+class Http(http: HttpAppConfig, auth: Option[Auth[IO]]) {
+  //TODO: would be better to use that in an IO per request. We could use currentUser.headIO.flatMap(...)
   private var currentToken = Option.empty[String]
-  Fun.auth.foreach { auth =>
+  auth.foreach { auth =>
     auth.currentUser.foreach { user =>
       currentToken = user.map(_.token.access_token)
     }
