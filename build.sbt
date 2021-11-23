@@ -3,17 +3,17 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
 inThisBuild(Seq(
-  organization := "com.github.cornerman",
+  organization := "io.github.fun-stack",
   scalaVersion := "2.13.7",
 
   licenses := Seq("MIT License" -> url("https://opensource.org/licenses/MIT")),
 
-  homepage := Some(url("https://github.com/fun-stack-org/fun-stack-scala")),
+  homepage := Some(url("https://github.com/fun-stack/fun-stack-scala")),
 
   scmInfo := Some(ScmInfo(
-    url("https://github.com/fun-stack-org/fun-stack-scala"),
-    "scm:git:git@github.com:fun-stack-org/fun-stack-scala.git",
-    Some("scm:git:git@github.com:fun-stack-org/fun-stack-scala.git"))
+    url("https://github.com/fun-stack/fun-stack-scala"),
+    "scm:git:git@github.com:fun-stack/fun-stack-scala.git",
+    Some("scm:git:git@github.com:fun-stack/fun-stack-scala.git"))
   ),
 
   pomExtra :=
@@ -37,7 +37,7 @@ lazy val commonSettings = Seq(
 lazy val jsSettings = Seq(
   useYarn := true,
   scalacOptions += {
-    val githubRepo    = "fun-stack-org/fun-stack-scala"
+    val githubRepo    = "fun-stack/fun-stack-scala"
     val local         = baseDirectory.value.toURI
     val subProjectDir = baseDirectory.value.getName
     val remote        = s"https://raw.githubusercontent.com/${githubRepo}/${git.gitHeadCommit.value.get}"
