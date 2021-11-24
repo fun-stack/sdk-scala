@@ -23,7 +23,10 @@ inThisBuild(Seq(
         <name>Johannes Karoff</name>
         <url>https://github.com/cornerman</url>
       </developer>
-    </developers>
+    </developers>,
+
+  sonatypeCredentialHost := "s01.oss.sonatype.org",
+  sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
 ))
 
 lazy val commonSettings = Seq(
