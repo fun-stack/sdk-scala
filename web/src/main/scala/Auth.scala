@@ -66,6 +66,11 @@ class Auth[F[_]: Async](val config: AuthConfig) {
     }
   }
 
+  def signup: F[Unit] = Sync[F].delay {
+    val url = s"${config.baseUrl.value}/signup?response_type=code&client_id=${config.clientId.value}&redirect_uri=${config.redirectUrl.value}"
+    dom.window.location.href = url
+  }
+
   def login: F[Unit] = Sync[F].delay {
     val url = s"${config.baseUrl.value}/login?response_type=code&client_id=${config.clientId.value}&redirect_uri=${config.redirectUrl.value}"
     dom.window.location.href = url
