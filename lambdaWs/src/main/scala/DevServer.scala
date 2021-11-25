@@ -14,6 +14,32 @@ import scala.util.{Success, Failure}
 object DevServer {
   implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
 
+  def start(lambdaHandler: Handler.FunctionType, port: Int): WebSocketServer = {
+    val wss = new WebSocketServer(ServerOptions().setPort(port.toDouble))
+    wss.on_connection(
+      wsStrings.connection,
+      { (_, ws, msg) =>
+        println("new connection")
+        val token = msg.url.get.split("=")(1)
+        ws.on_message(
+          wsStrings.message,
+          { (_, data, _) =>
+            val body = data.toString
+            val (event, context) = transform(body, token)
+            lambdaHandler(event, context).toFuture.onComplete {
+              case Success(result) =>
+                ws.send(result.body)
+              case Failure(error)  =>
+                error.printStackTrace()
+            }
+          },
+        )
+      },
+    )
+
+    wss
+  }
+
   def transform(body: String, accessToken: String): (APIGatewayWSEvent, aws_lambda.Context) = {
 
     val decodedToken = jwt_decode[JwtPayload](accessToken)
@@ -81,27 +107,4 @@ object DevServer {
     (event, lambdaContext)
   }
 
-  def start(lambdaHandler: Handler.FunctionType, port: Int): Unit = {
-    val wss = new WebSocketServer(ServerOptions().setPort(port.toDouble))
-    wss.on_connection(
-      wsStrings.connection,
-      { (_, ws, msg) =>
-        println("new connection")
-        val token = msg.url.get.split("=")(1)
-        ws.on_message(
-          wsStrings.message,
-          { (_, data, _) =>
-            val body = data.toString
-            val (event, context) = transform(body, token)
-            lambdaHandler(event, context).toFuture.onComplete {
-              case Success(result) =>
-                ws.send(result.body)
-              case Failure(error)  =>
-                error.printStackTrace()
-            }
-          },
-        )
-      },
-    )
-  }
 }

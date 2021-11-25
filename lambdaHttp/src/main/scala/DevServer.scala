@@ -4,6 +4,7 @@ import funstack.lambda.http.facades
 import facades.node.httpMod.createServer
 import facades.node.httpMod.IncomingMessage
 import facades.node.httpMod.ServerResponse
+import facades.node.httpMod.Server
 import facades.node.{Buffer => JsBuffer}
 import net.exoego.facade.aws_lambda.APIGatewayProxyEventV2
 import net.exoego.facade.aws_lambda
@@ -15,10 +16,10 @@ import js.JSConverters._
 object DevServer {
   private implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
 
-  def start(lambdaHandler: Handler.FunctionType, port: Int) = {
+  def start(lambdaHandler: Handler.FunctionType, port: Int):Server = {
     val requestListener = { (req: IncomingMessage, res: ServerResponse) =>
 
-      val body = StringBuilder.newBuilder
+      val body = new StringBuilder()
       req.on(
         "data",
         (chunk) => {
@@ -50,7 +51,7 @@ object DevServer {
     }
 
     val server = createServer(requestListener)
-    server.listen(port)
+    server.listen(port.toDouble)
     server
   }
 
