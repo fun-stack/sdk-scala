@@ -32,7 +32,7 @@ object DevServer {
         "end",
         (_) => {
           val bodyStr                       = body.result()
-          val (gatewayEvent, lambdaContext) = transform(req, bodyStr)
+          val (gatewayEvent, lambdaContext) = transform(s"http://localhost:$port", req, bodyStr)
 
           println("-" * 20)
           lambdaHandler(gatewayEvent, lambdaContext).toFuture.onComplete {
@@ -60,9 +60,9 @@ object DevServer {
 
 
 
-  def transform(req: IncomingMessage, body: String): (APIGatewayProxyEventV2, aws_lambda.Context) = {
+  def transform(baseUrl: String, req: IncomingMessage, body: String): (APIGatewayProxyEventV2, aws_lambda.Context) = {
 
-    val url             = new URI(req.url.getOrElse("https://"))
+    val url             = new URI(s"$baseUrl/${req.url.getOrElse("")}")
     val queryParameters = Option(url.getQuery)
       .fold(Map.empty[String, String])(
         _.split("&|=")
@@ -70,6 +70,7 @@ object DevServer {
           .map(a => (a(0) -> a(1)))
           .toMap,
       )
+
     // https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-example-event
     // example json: https://github.com/awsdocs/aws-lambda-developer-guide/blob/main/sample-apps/nodejs-apig/event-v2.json
     // more examples: https://github.com/search?l=JSON&q=pathparameters+requestContext+isbase64encoded&type=Code
