@@ -61,22 +61,11 @@ lazy val core = project
   )
 
 lazy val lambdaHttp = project
-  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin, ScalablyTypedConverterGenSourcePlugin)
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(core)
   .in(file("lambdaHttp"))
   .settings(commonSettings, jsSettings)
   .settings(
-    stOutputPackage := "funstack.lambda.http.facades",
-    stUseScalaJsDom := true,
-  /* say we want to minimize all */
-    stMinimize := Selection.All,
-    /* but keep these very specific things*/
-    stMinimizeKeep ++= List(
-      "node.httpMod.^",
-      "node.httpMod.createServer",
-      "node.httpMod.IncomingMessage",
-      "node.httpMod.ServerResponse",
-    ),
     name := "fun-stack-lambda-http",
     libraryDependencies ++=
       Deps.cats.effect.value ::
@@ -88,9 +77,6 @@ lazy val lambdaHttp = project
         /* Deps.sttp.circeOpenApi.value :: */
         Nil,
 
-    Compile / npmDependencies ++= Seq(
-      "@types/node" -> "14.14.31",
-    ),
     // The aws-sdk is provided in lambda environment.
     // Not depending on it explicitly makes the bundle size smaller.
     // But we do not know whether our facades are on the correct version.
@@ -100,24 +86,11 @@ lazy val lambdaHttp = project
   )
 
 lazy val lambdaWs = project
-  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin, ScalablyTypedConverterGenSourcePlugin)
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(core)
   .in(file("lambdaWs"))
   .settings(commonSettings, jsSettings)
   .settings(
-    stOutputPackage := "funstack.lambda.ws.facades",
-    stUseScalaJsDom := true,
-  /* say we want to minimize all */
-    stMinimize := Selection.All,
-    /* but keep these very specific things*/
-    stMinimizeKeep ++= List(
-      "ws.mod.WebSocketServer",
-      "ws.mod.ServerOptions",
-      "ws.wsStrings",
-      "jwtDecode.mod.^",
-      "jwtDecode.mod.default",
-      "jwtDecode.mod.JwtPayload",
-    ),
     name := "fun-stack-lambda-ws",
     libraryDependencies ++=
       Deps.sloth.value ::
@@ -126,11 +99,6 @@ lazy val lambdaWs = project
         Deps.awsLambdaJS.value ::
         Nil,
 
-    Compile / npmDependencies ++= Seq(
-      "ws"            -> "8.2.3",
-      "@types/ws"     -> "8.2.0",
-      "jwt-decode"    -> "3.1.2",
-    ),
     // The aws-sdk is provided in lambda environment.
     // Not depending on it explicitly makes the bundle size smaller.
     // But we do not know whether our facades are on the correct version.
