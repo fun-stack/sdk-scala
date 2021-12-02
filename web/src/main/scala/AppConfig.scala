@@ -29,7 +29,6 @@ trait HttpAppConfig extends js.Object {
 @JSGlobal
 object AppConfig extends js.Object {
   def stage: String                      = js.native
-  def region: String                     = js.native
   def website: WebsiteAppConfig          = js.native
   def auth: js.UndefOr[AuthAppConfig]    = js.native
   def http: js.UndefOr[HttpAppConfig]    = js.native
