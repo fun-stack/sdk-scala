@@ -94,6 +94,7 @@ lazy val lambdaWs = project
     name := "fun-stack-lambda-ws",
     libraryDependencies ++=
       Deps.sloth.value ::
+        Deps.cats.effect.value ::
         Deps.mycelium.core.value ::
         Deps.awsSdkJS.lambda.value ::
         Deps.awsLambdaJS.value ::
