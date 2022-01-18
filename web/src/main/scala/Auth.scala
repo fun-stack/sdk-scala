@@ -1,7 +1,5 @@
 package funstack.web
 
-import funstack.core._
-
 import cats.implicits._
 import colibri._
 import cats.effect.{Async, Sync, IO}
@@ -36,19 +34,15 @@ case class User(
     token: TokenResponse,
 )
 
-case class AuthConfig(
-    baseUrl: Url,
-    redirectUrl: Url,
-    clientId: ClientId,
-)
-
 private sealed trait Authentication
 private object Authentication {
   case class AuthCode(code: String)      extends Authentication
   case class RefreshToken(token: String) extends Authentication
 }
 
-class Auth[F[_]: Async](val config: AuthConfig) {
+class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
+  private val redirectUrl = dom.window.location.origin.getOrElse(website.url)
+
   private implicit val cs = IO.contextShift(ExecutionContext.global)
 
   private val storageKeyRefreshToken = "auth.refresh_token"
@@ -67,18 +61,18 @@ class Auth[F[_]: Async](val config: AuthConfig) {
   }
 
   def signup: F[Unit] = Sync[F].delay {
-    val url = s"${config.baseUrl.value}/signup?response_type=code&client_id=${config.clientId.value}&redirect_uri=${config.redirectUrl.value}"
+    val url = s"${auth.url}/signup?response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
     dom.window.location.href = url
   }
 
   def login: F[Unit] = Sync[F].delay {
-    val url = s"${config.baseUrl.value}/login?response_type=code&client_id=${config.clientId.value}&redirect_uri=${config.redirectUrl.value}"
+    val url = s"${auth.url}/login?response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
     dom.window.location.href = url
   }
 
   def logout: F[Unit] = Sync[F].delay {
     localStorage.removeItem(storageKeyRefreshToken)
-    val url = s"${config.baseUrl.value}/logout?client_id=${config.clientId.value}&logout_uri=${config.redirectUrl.value}"
+    val url = s"${auth.url}/logout?client_id=${auth.clientId}&logout_uri=${redirectUrl}"
     dom.window.location.href = url
   }
 
@@ -115,7 +109,7 @@ class Auth[F[_]: Async](val config: AuthConfig) {
 
   private def getUserInfo(token: TokenResponse): IO[UserInfoResponse] = IO
     .fromFuture(IO {
-      val url = s"${config.baseUrl.value}/oauth2/userInfo"
+      val url = s"${auth.url}/oauth2/userInfo"
       Fetch
         .fetch(
           url,
@@ -134,13 +128,13 @@ class Auth[F[_]: Async](val config: AuthConfig) {
 
   private def getToken(authCode: String): IO[TokenResponse] = IO
     .fromFuture(IO {
-      val url = s"${config.baseUrl.value}/oauth2/token"
+      val url = s"${auth.url}/oauth2/token"
       Fetch
         .fetch(
           url,
           new RequestInit {
             method = HttpMethod.POST
-            body = s"grant_type=authorization_code&client_id=${config.clientId.value}&code=${authCode}&redirect_uri=${config.redirectUrl.value}"
+            body = s"grant_type=authorization_code&client_id=${auth.clientId}&code=${authCode}&redirect_uri=${redirectUrl}"
             headers = js.Array(js.Array("Content-Type", "application/x-www-form-urlencoded"))
           },
         )
@@ -151,13 +145,13 @@ class Auth[F[_]: Async](val config: AuthConfig) {
 
   private def refreshToken(refreshToken: String): IO[TokenResponse] = IO
     .fromFuture(IO {
-      val url = s"${config.baseUrl.value}/oauth2/token"
+      val url = s"${auth.url}/oauth2/token"
       Fetch
         .fetch(
           url,
           new RequestInit {
             method = HttpMethod.POST
-            body = s"grant_type=refresh_token&client_id=${config.clientId.value}&refresh_token=${refreshToken}"
+            body = s"grant_type=refresh_token&client_id=${auth.clientId}&refresh_token=${refreshToken}"
             headers = js.Array(js.Array("Content-Type", "application/x-www-form-urlencoded"))
           },
         )
@@ -165,13 +159,4 @@ class Auth[F[_]: Async](val config: AuthConfig) {
     })
     .flatMap(handleResponse)
     .flatMap(r => IO(js.Object.assign(js.Dynamic.literal(refresh_token = refreshToken), r.asInstanceOf[js.Object]).asInstanceOf[TokenResponse]))
-}
-object Auth {
-  def apply(auth: AuthAppConfig): Auth[IO] = new Auth[IO](
-    AuthConfig(
-      baseUrl = Url(s"https://${auth.domain}"),
-      redirectUrl = Url(dom.window.location.origin.getOrElse(AppConfig.website.domain)),
-      clientId = ClientId(auth.clientIdAuth),
-    ),
-  )
 }

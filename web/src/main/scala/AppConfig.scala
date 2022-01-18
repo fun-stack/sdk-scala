@@ -5,24 +5,24 @@ import scala.scalajs.js.annotation.JSGlobal
 
 @js.native
 trait WebsiteAppConfig extends js.Object {
-  def domain: String = js.native
+  def url: String = js.native
 }
 
 @js.native
 trait AuthAppConfig extends js.Object {
-  def domain: String          = js.native
-  def clientIdAuth: String    = js.native
+  def url: String         = js.native
+  def clientId: String    = js.native
 }
 
 @js.native
 trait ApiAppConfig extends js.Object {
-  def domain: String                = js.native
+  def url: String                   = js.native
   def allowUnauthenticated: Boolean = js.native
 }
 
 @js.native
 trait HttpAppConfig extends js.Object {
-  def domain: String = js.native
+  def url: String = js.native
 }
 
 @js.native

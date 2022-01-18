@@ -8,10 +8,9 @@ import mycelium.core.message.{ServerMessage, ClientMessage}
 import chameleon.{Serializer, Deserializer}
 import cats.effect.Async
 import scala.concurrent.duration._
-import funstack.core._
 
 case class WebsocketConfig(
-    baseUrl: Url,
+    baseUrl: String,
     allowUnauthenticated: Boolean,
 )
 
@@ -33,7 +32,7 @@ class Websocket(val config: WebsocketConfig) {
         },
       )
       private var currentUser: Option[User] = None
-      Fun.auth.fold(Cancelable(client.run(s"${config.baseUrl.value}/?token=anon").cancel))(
+      Fun.auth.fold(Cancelable(client.run(s"${config.baseUrl}/?token=anon").cancel))(
         _.currentUser
           .scan[(Cancelable, Option[User])]((Cancelable.empty, None)) { (current, user) =>
             currentUser = user
@@ -44,12 +43,12 @@ class Websocket(val config: WebsocketConfig) {
               case (_, Some(_)) =>
                 cancelable.cancel()
                 val cancel = client.run { () =>
-                  s"${config.baseUrl.value}/?token=${currentUser.get.token.access_token}"
+                  s"${config.baseUrl}/?token=${currentUser.get.token.access_token}"
                 }
                 Cancelable(cancel.cancel)
               case (_, None) if config.allowUnauthenticated =>
                 cancelable.cancel()
-                val cancel = client.run(s"${config.baseUrl.value}/?token=anon")
+                val cancel = client.run(s"${config.baseUrl}/?token=anon")
                 Cancelable(cancel.cancel)
               case (_, None) =>
                 cancelable.cancel()
