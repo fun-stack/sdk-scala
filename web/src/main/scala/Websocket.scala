@@ -6,7 +6,7 @@ import mycelium.js.client.JsWebsocketConnection
 import mycelium.core.client.{SendType, IncidentHandler, WebsocketClientConfig, WebsocketClient}
 import mycelium.core.message.{ServerMessage, ClientMessage}
 import chameleon.{Serializer, Deserializer}
-import cats.effect.Async
+import cats.effect.{Async, IO}
 import scala.concurrent.duration._
 
 case class WebsocketConfig(
@@ -14,10 +14,10 @@ case class WebsocketConfig(
     allowUnauthenticated: Boolean,
 )
 
-class Websocket(val config: WebsocketConfig) {
+class Websocket(config: WebsocketConfig) {
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  def transport[Event, Failure, PickleType, F[_]: Async](implicit
+  def transport[Event, Failure, PickleType, F[_]: Async](auth: Option[Auth[IO]])(implicit
       serializer: Serializer[ClientMessage[PickleType], String],
       deserializer: Deserializer[ServerMessage[PickleType, Event, Failure], String],
   ): RequestTransport[PickleType, F] =
@@ -32,7 +32,7 @@ class Websocket(val config: WebsocketConfig) {
         },
       )
       private var currentUser: Option[User] = None
-      Fun.auth.fold(Cancelable(client.run(s"${config.baseUrl}/?token=anon").cancel))(
+      auth.fold(Cancelable(client.run(s"${config.baseUrl}/?token=anon").cancel))(
         _.currentUser
           .scan[(Cancelable, Option[User])]((Cancelable.empty, None)) { (current, user) =>
             currentUser = user

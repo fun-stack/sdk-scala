@@ -15,7 +15,7 @@ trait AuthAppConfig extends js.Object {
 }
 
 @js.native
-trait ApiAppConfig extends js.Object {
+trait WsAppConfig extends js.Object {
   def url: String                   = js.native
   def allowUnauthenticated: Boolean = js.native
 }
@@ -32,6 +32,6 @@ object AppConfig extends js.Object {
   def website: WebsiteAppConfig          = js.native
   def auth: js.UndefOr[AuthAppConfig]    = js.native
   def http: js.UndefOr[HttpAppConfig]    = js.native
-  def api: js.UndefOr[ApiAppConfig]      = js.native
+  def ws: js.UndefOr[WsAppConfig]        = js.native
   def environment: js.Dictionary[String] = js.native
 }

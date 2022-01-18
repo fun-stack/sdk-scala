@@ -7,6 +7,7 @@ import mycelium.core.message._
 import sloth._
 import chameleon.{Serializer, Deserializer}
 import scala.scalajs.js.JSConverters._
+import cats.effect.IO
 import scala.concurrent.Future
 
 object Handler {
@@ -14,13 +15,27 @@ object Handler {
 
   type FunctionType = js.Function2[APIGatewayWSEvent, Context, js.Promise[APIGatewayProxyStructuredResultV2]]
 
-  def handle[T, Event, Failure, F[_]](
+  def handle[T, Event, Failure](
+      router: Router[T, IO]
+  )(implicit
+      deserializer: Deserializer[ClientMessage[T], String],
+      serializer: Serializer[ServerMessage[T, Event, Failure], String],
+  ): FunctionType = handleF[T, Event, Failure, IO](router, _.map(Right.apply).unsafeToFuture())
+
+  def handleF[T, Event, Failure, F[_]](
       router: Router[T, F],
       convert: F[T] => Future[Either[Failure, T]],
   )(implicit
       deserializer: Deserializer[ClientMessage[T], String],
       serializer: Serializer[ServerMessage[T, Event, Failure], String],
   ): FunctionType = handleWithContext[T, Event, Failure, F](router, (f, _) => convert(f))
+
+  def handleFuture[T, Event, Failure](
+      router: Router[T, Future],
+  )(implicit
+      deserializer: Deserializer[ClientMessage[T], String],
+      serializer: Serializer[ServerMessage[T, Event, Failure], String],
+  ): FunctionType = handleF[T, Event, Failure, Future](router, _.map(Right.apply))
 
   def handleWithContext[T, Event, Failure, F[_]](
       router: Router[T, F],
