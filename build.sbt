@@ -60,6 +60,21 @@ lazy val core = project
         Nil,
   )
 
+lazy val backend = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .in(file("backend"))
+  .settings(commonSettings, jsSettings)
+  .settings(
+    name := "fun-stack-backend",
+    libraryDependencies ++=
+      Deps.cats.effect.value ::
+        Deps.awsSdkJS.dynamodb.value ::
+        Deps.awsSdkJS.apigatewaymanagementapi.value ::
+        Deps.mycelium.core.value ::
+        Deps.chameleon.value ::
+        Nil,
+  )
+
 lazy val lambdaHttp = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(core)
@@ -133,4 +148,4 @@ lazy val root = project
   .settings(
     publish / skip := true,
   )
-  .aggregate(core, lambdaWs, lambdaHttp, web)
+  .aggregate(core, lambdaWs, lambdaHttp, web, backend)

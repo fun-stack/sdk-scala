@@ -1,6 +1,6 @@
 package funstack.web
 
-import colibri.Cancelable
+import colibri.{Observer, Cancelable}
 import sloth.{Request, RequestTransport}
 import mycelium.js.client.JsWebsocketConnection
 import mycelium.core.client.{SendType, IncidentHandler, WebsocketClientConfig, WebsocketClient}
@@ -9,30 +9,28 @@ import chameleon.{Serializer, Deserializer}
 import cats.effect.{Async, IO}
 import scala.concurrent.duration._
 
-case class WebsocketConfig(
-    baseUrl: String,
-    allowUnauthenticated: Boolean,
-)
-
-class Websocket(config: WebsocketConfig) {
+object WebsocketTransport {
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  def transport[Event, Failure, PickleType, F[_]: Async](auth: Option[Auth[IO]])(implicit
+  def apply[Event, Failure, PickleType, F[_]: Async](config: WsAppConfig, auth: Option[Auth[IO]], observer: Observer[Event])(implicit
       serializer: Serializer[ClientMessage[PickleType], String],
       deserializer: Deserializer[ServerMessage[PickleType, Event, Failure], String],
   ): RequestTransport[PickleType, F] =
     new RequestTransport[PickleType, F] {
       private val client = WebsocketClient.withPayload[String, PickleType, Event, Failure](
         new JsWebsocketConnection[String],
-        WebsocketClientConfig(pingInterval = 7.days),
+        WebsocketClientConfig(
+          // idle timeout is 10 minutes on api gateway: https://docs.aws.amazon.com/apigateway/latest/developerguide/limits.html
+          pingInterval = 9.minutes,
+        ),
         new IncidentHandler[Event] {
-          override def onConnect(): Unit                   = println("CONNECT")
-          override def onClose(): Unit                     = println("DISCONNECT")
-          override def onEvents(events: List[Event]): Unit = println("EVENT " + events)
+          override def onConnect(): Unit           = println("CONNECT")
+          override def onClose(): Unit             = println("DISCONNECT")
+          override def onEvent(event: Event): Unit = observer.onNext(event)
         },
       )
       private var currentUser: Option[User] = None
-      auth.fold(Cancelable(client.run(s"${config.baseUrl}/?token=anon").cancel))(
+      auth.fold(Cancelable(client.run(config.url).cancel))(
         _.currentUser
           .scan[(Cancelable, Option[User])]((Cancelable.empty, None)) { (current, user) =>
             currentUser = user
@@ -43,12 +41,12 @@ class Websocket(config: WebsocketConfig) {
               case (_, Some(_)) =>
                 cancelable.cancel()
                 val cancel = client.run { () =>
-                  s"${config.baseUrl}/?token=${currentUser.get.token.access_token}"
+                  s"${config.url}/?token=${currentUser.fold("")(_.token.access_token)}"
                 }
                 Cancelable(cancel.cancel)
               case (_, None) if config.allowUnauthenticated =>
                 cancelable.cancel()
-                val cancel = client.run(s"${config.baseUrl}/?token=anon")
+                val cancel = client.run(config.url)
                 Cancelable(cancel.cancel)
               case (_, None) =>
                 cancelable.cancel()

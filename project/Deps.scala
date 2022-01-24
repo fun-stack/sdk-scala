@@ -17,12 +17,12 @@ object Deps {
   val colibri = s("com.github.cornerman" %%% "colibri" % "0.2.2")
 
   // rpc
-  val sloth = s("com.github.cornerman" %%% "sloth" % "0.4.0")
+  val sloth     = s("com.github.cornerman" %%% "sloth" % "0.4.0")
   val chameleon = s("com.github.cornerman" %%% "chameleon" % "0.3.3")
 
   // websocket connecitivity
   val mycelium = new {
-    val version  = "0.1.0"
+    val version  = "0.2.0"
     val core     = s("com.github.cornerman" %%% "mycelium-core" % version)
     val clientJs = s("com.github.cornerman" %%% "mycelium-client-js" % version)
   }
@@ -46,8 +46,10 @@ object Deps {
 
   // aws-sdk-js
   val awsSdkJS = new {
-    val version         = s"0.32.0-v${NpmDeps.awsSdkVersion}"
-    val lambda          = s("net.exoego" %%% "aws-sdk-scalajs-facade-lambda" % version)
+    val version                 = s"0.32.0-v${NpmDeps.awsSdkVersion}"
+    val lambda                  = s("net.exoego" %%% "aws-sdk-scalajs-facade-lambda" % version)
+    val dynamodb                = s("net.exoego" %%% "aws-sdk-scalajs-facade-dynamodb" % version)
+    val apigatewaymanagementapi = s("net.exoego" %%% "aws-sdk-scalajs-facade-apigatewaymanagementapi" % version)
   }
   val awsLambdaJS = s("net.exoego" %%% "aws-lambda-scalajs-facade" % "0.11.0")
 }
