@@ -8,50 +8,110 @@ import sloth._
 import chameleon.{Serializer, Deserializer}
 import scala.scalajs.js.JSConverters._
 import cats.effect.IO
+import cats.data.Kleisli
 import scala.concurrent.Future
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
 object Handler {
-  import scala.concurrent.ExecutionContext.Implicits.global
 
   type FunctionType = js.Function2[APIGatewayWSEvent, Context, js.Promise[APIGatewayProxyStructuredResultV2]]
 
-  def handle[T, Event, Failure](
-      router: Router[T, IO]
+  type FutureFunc[Out] = APIGatewayWSRequestContext => Future[Out]
+  type IOFunc[Out]     = APIGatewayWSRequestContext => IO[Out]
+  type IOKleisli[Out]  = Kleisli[IO, APIGatewayWSRequestContext, Out]
+
+  def handle[T, Event](
+      router: Router[T, IO],
   )(implicit
       deserializer: Deserializer[ClientMessage[T], String],
-      serializer: Serializer[ServerMessage[T, Event, Failure], String],
-  ): FunctionType = handleF[T, Event, Failure, IO](router, _.map(Right.apply).unsafeToFuture())
+      serializer: Serializer[ServerMessage[T, Event, Nothing], String],
+  ): FunctionType = handleF[T, Event, Nothing, IO](router, _.map(Right.apply).unsafeToFuture())
 
-  def handleF[T, Event, Failure, F[_]](
-      router: Router[T, F],
-      convert: F[T] => Future[Either[Failure, T]],
-  )(implicit
-      deserializer: Deserializer[ClientMessage[T], String],
-      serializer: Serializer[ServerMessage[T, Event, Failure], String],
-  ): FunctionType = handleWithContext[T, Event, Failure, F](router, (f, _) => convert(f))
-
-  def handleFuture[T, Event, Failure](
+  def handleFuture[T, Event](
       router: Router[T, Future],
   )(implicit
       deserializer: Deserializer[ClientMessage[T], String],
-      serializer: Serializer[ServerMessage[T, Event, Failure], String],
-  ): FunctionType = handleF[T, Event, Failure, Future](router, _.map(Right.apply))
+      serializer: Serializer[ServerMessage[T, Event, Nothing], String],
+  ): FunctionType = handleF[T, Event, Nothing, Future](router, _.map(Right.apply))
 
-  def handleWithContext[T, Event, Failure, F[_]](
+  def handleF[T, Event, Failure, F[_]](
       router: Router[T, F],
-      convert: (F[T], APIGatewayWSRequestContext) => Future[Either[Failure, T]],
+      execute: F[T] => Future[Either[Failure, T]],
+  )(implicit
+      deserializer: Deserializer[ClientMessage[T], String],
+      serializer: Serializer[ServerMessage[T, Event, Failure], String],
+  ): FunctionType = handleFWithContext[T, Event, Failure, F](router, (f, _) => execute(f))
+
+  def handle[T, Event](
+      router: APIGatewayWSRequestContext => Router[T, IO],
+  )(implicit
+      deserializer: Deserializer[ClientMessage[T], String],
+      serializer: Serializer[ServerMessage[T, Event, Nothing], String],
+  ): FunctionType = handleF[T, Event, Nothing, IO](router, _.map(Right.apply).unsafeToFuture())
+
+  def handleFuture[T, Event](
+      router: APIGatewayWSRequestContext => Router[T, Future],
+  )(implicit
+      deserializer: Deserializer[ClientMessage[T], String],
+      serializer: Serializer[ServerMessage[T, Event, Nothing], String],
+  ): FunctionType = handleF[T, Event, Nothing, Future](router, _.map(Right.apply))
+
+  def handleF[T, Event, Failure, F[_]](
+      router: APIGatewayWSRequestContext => Router[T, F],
+      execute: F[T] => Future[Either[Failure, T]],
+  )(implicit
+      deserializer: Deserializer[ClientMessage[T], String],
+      serializer: Serializer[ServerMessage[T, Event, Failure], String],
+  ): FunctionType = handleFCustom[T, Event, Failure, F](router, (f, _) => execute(f))
+
+  def handleWithContext[T, Event](
+      router: Router[T, IOFunc],
+  )(implicit
+      deserializer: Deserializer[ClientMessage[T], String],
+      serializer: Serializer[ServerMessage[T, Event, Nothing], String],
+  ): FunctionType = handleFWithContext[T, Event, Nothing, IOFunc](router, (f, ctx) => f(ctx).map(Right.apply).unsafeToFuture())
+
+  def handleKleisliWithContext[T, Event](
+      router: Router[T, IOKleisli],
+  )(implicit
+      deserializer: Deserializer[ClientMessage[T], String],
+      serializer: Serializer[ServerMessage[T, Event, Nothing], String],
+  ): FunctionType = handleFWithContext[T, Event, Nothing, IOKleisli](router, (f, ctx) => f(ctx).map(Right.apply).unsafeToFuture())
+
+  def handleFutureWithContext[T, Event](
+      router: Router[T, FutureFunc],
+  )(implicit
+      deserializer: Deserializer[ClientMessage[T], String],
+      serializer: Serializer[ServerMessage[T, Event, Nothing], String],
+  ): FunctionType = handleFWithContext[T, Event, Nothing, FutureFunc](router, (f, ctx) => f(ctx).map(Right.apply))
+
+  def handleFWithContext[T, Event, Failure, F[_]](
+      router: Router[T, F],
+      execute: (F[T], APIGatewayWSRequestContext) => Future[Either[Failure, T]],
+  )(implicit
+      deserializer: Deserializer[ClientMessage[T], String],
+      serializer: Serializer[ServerMessage[T, Event, Failure], String],
+  ): FunctionType = handleFCustom[T, Event, Failure, F](_ => router, execute)
+
+  def handleFCustom[T, Event, Failure, F[_]](
+      routerf: APIGatewayWSRequestContext => Router[T, F],
+      execute: (F[T], APIGatewayWSRequestContext) => Future[Either[Failure, T]],
   )(implicit
       deserializer: Deserializer[ClientMessage[T], String],
       serializer: Serializer[ServerMessage[T, Event, Failure], String],
   ): FunctionType = { (event, context) =>
-    // println(js.JSON.stringify(event))
-    // println(js.JSON.stringify(context))
+    println(js.JSON.stringify(event))
+    println(js.JSON.stringify(context))
+
+    val router = routerf(event.requestContext)
+
     val result: js.Promise[ServerMessage[T, Event, Failure]] = Deserializer[ClientMessage[T], String].deserialize(event.body) match {
       case Left(error) => js.Promise.reject(new Exception(s"Deserializer: $error"))
       case Right(Ping) => js.Promise.resolve[Pong.type](Pong)
       case Right(CallRequest(seqNumber, path, payload)) =>
         router(Request(path, payload)).toEither match {
-          case Right(result) => convert(result, event.requestContext).toJSPromise.`then`[ServerMessage[T, Event, Failure]](CallResponse(seqNumber, _))
+          case Right(result) => execute(result, event.requestContext).toJSPromise.`then`[ServerMessage[T, Event, Failure]](CallResponse(seqNumber, _))
           case Left(error)   => js.Promise.reject(new Exception(error.toString))
         }
     }
