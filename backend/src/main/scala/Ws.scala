@@ -31,7 +31,7 @@ class Ws[Event](table: String) {
     .map(_.Items.fold(List.empty[String])(_.toList.flatMap(_.get("connection_id").flatMap(_.S.toOption))))
 
   def sendToConnection(connectionId: String, data: Event)(implicit
-      serializer: Serializer[ServerMessage[Nothing, Event, Nothing], WsPickleType],
+      serializer: Serializer[ServerMessage[String, Event, String], WsPickleType],
   ): IO[Unit] =
     IO.fromFuture(
       IO(
@@ -44,7 +44,7 @@ class Ws[Event](table: String) {
       ),
     ).void
 
-  def sendToUser(userId: String, data: Event)(implicit serializer: Serializer[ServerMessage[Nothing, Event, Nothing], WsPickleType]): IO[Unit] =
+  def sendToUser(userId: String, data: Event)(implicit serializer: Serializer[ServerMessage[String, Event, String], WsPickleType]): IO[Unit] =
     getConnectionIdsOfUser(userId).flatMap { connectionIds =>
       connectionIds.traverse(sendToConnection(_, data)).void
     }

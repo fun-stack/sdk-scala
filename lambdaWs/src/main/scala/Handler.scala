@@ -25,15 +25,15 @@ object Handler {
       router: Router[T, IO],
   )(implicit
       deserializer: Deserializer[ClientMessage[T], String],
-      serializer: Serializer[ServerMessage[T, Event, Nothing], String],
-  ): FunctionType = handleF[T, Event, Nothing, IO](router, _.map(Right.apply).unsafeToFuture())
+      serializer: Serializer[ServerMessage[T, Event, String], String],
+  ): FunctionType = handleF[T, Event, String, IO](router, _.map(Right.apply).unsafeToFuture())
 
   def handleFuture[T, Event](
       router: Router[T, Future],
   )(implicit
       deserializer: Deserializer[ClientMessage[T], String],
-      serializer: Serializer[ServerMessage[T, Event, Nothing], String],
-  ): FunctionType = handleF[T, Event, Nothing, Future](router, _.map(Right.apply))
+      serializer: Serializer[ServerMessage[T, Event, String], String],
+  ): FunctionType = handleF[T, Event, String, Future](router, _.map(Right.apply))
 
   def handleF[T, Event, Failure, F[_]](
       router: Router[T, F],
@@ -47,15 +47,15 @@ object Handler {
       router: APIGatewayWSRequestContext => Router[T, IO],
   )(implicit
       deserializer: Deserializer[ClientMessage[T], String],
-      serializer: Serializer[ServerMessage[T, Event, Nothing], String],
-  ): FunctionType = handleF[T, Event, Nothing, IO](router, _.map(Right.apply).unsafeToFuture())
+      serializer: Serializer[ServerMessage[T, Event, String], String],
+  ): FunctionType = handleF[T, Event, String, IO](router, _.map(Right.apply).unsafeToFuture())
 
   def handleFuture[T, Event](
       router: APIGatewayWSRequestContext => Router[T, Future],
   )(implicit
       deserializer: Deserializer[ClientMessage[T], String],
-      serializer: Serializer[ServerMessage[T, Event, Nothing], String],
-  ): FunctionType = handleF[T, Event, Nothing, Future](router, _.map(Right.apply))
+      serializer: Serializer[ServerMessage[T, Event, String], String],
+  ): FunctionType = handleF[T, Event, String, Future](router, _.map(Right.apply))
 
   def handleF[T, Event, Failure, F[_]](
       router: APIGatewayWSRequestContext => Router[T, F],
@@ -69,22 +69,22 @@ object Handler {
       router: Router[T, IOFunc],
   )(implicit
       deserializer: Deserializer[ClientMessage[T], String],
-      serializer: Serializer[ServerMessage[T, Event, Nothing], String],
-  ): FunctionType = handleFWithContext[T, Event, Nothing, IOFunc](router, (f, ctx) => f(ctx).map(Right.apply).unsafeToFuture())
+      serializer: Serializer[ServerMessage[T, Event, String], String],
+  ): FunctionType = handleFWithContext[T, Event, String, IOFunc](router, (f, ctx) => f(ctx).map(Right.apply).unsafeToFuture())
 
   def handleKleisliWithContext[T, Event](
       router: Router[T, IOKleisli],
   )(implicit
       deserializer: Deserializer[ClientMessage[T], String],
-      serializer: Serializer[ServerMessage[T, Event, Nothing], String],
-  ): FunctionType = handleFWithContext[T, Event, Nothing, IOKleisli](router, (f, ctx) => f(ctx).map(Right.apply).unsafeToFuture())
+      serializer: Serializer[ServerMessage[T, Event, String], String],
+  ): FunctionType = handleFWithContext[T, Event, String, IOKleisli](router, (f, ctx) => f(ctx).map(Right.apply).unsafeToFuture())
 
   def handleFutureWithContext[T, Event](
       router: Router[T, FutureFunc],
   )(implicit
       deserializer: Deserializer[ClientMessage[T], String],
-      serializer: Serializer[ServerMessage[T, Event, Nothing], String],
-  ): FunctionType = handleFWithContext[T, Event, Nothing, FutureFunc](router, (f, ctx) => f(ctx).map(Right.apply))
+      serializer: Serializer[ServerMessage[T, Event, String], String],
+  ): FunctionType = handleFWithContext[T, Event, String, FutureFunc](router, (f, ctx) => f(ctx).map(Right.apply))
 
   def handleFWithContext[T, Event, Failure, F[_]](
       router: Router[T, F],
