@@ -17,9 +17,10 @@ object Handler {
 
   type FunctionType = js.Function2[APIGatewayProxyEventV2, Context, js.Promise[APIGatewayProxyStructuredResultV2]]
 
-  type FutureFunc[Out] = APIGatewayProxyEventV2.RequestContext => Future[Out]
-  type IOFunc[Out]     = APIGatewayProxyEventV2.RequestContext => IO[Out]
-  type IOKleisli[Out]  = Kleisli[IO, APIGatewayProxyEventV2.RequestContext, Out]
+  type FutureFunc[Out]    = APIGatewayProxyEventV2.RequestContext => Future[Out]
+  type FutureKleisli[Out] = Kleisli[Future, APIGatewayProxyEventV2.RequestContext, Out]
+  type IOFunc[Out]        = APIGatewayProxyEventV2.RequestContext => IO[Out]
+  type IOKleisli[Out]     = Kleisli[IO, APIGatewayProxyEventV2.RequestContext, Out]
 
   def handle(
       endpoints: List[ServerEndpoint[_, IO]],
@@ -47,15 +48,19 @@ object Handler {
       execute: F[APIGatewayProxyStructuredResultV2] => Future[APIGatewayProxyStructuredResultV2],
   ): FunctionType = handleFCustom[F](endpoints, (f, _) => execute(f))
 
-  def handleWithContext(
+  def handleFunc(
       endpoints: List[ServerEndpoint[_, IOFunc]],
   ): FunctionType = handleFWithContext[IOFunc](endpoints, (f, ctx) => f(ctx).unsafeToFuture())
 
-  def handleKleisliWithContext(
+  def handleKleisli(
       endpoints: List[ServerEndpoint[_, IOKleisli]],
   ): FunctionType = handleFWithContext[IOKleisli](endpoints, (f, ctx) => f(ctx).unsafeToFuture())
 
-  def handleFutureWithContext(
+  def handleFutureKleisli(
+      endpoints: List[ServerEndpoint[_, FutureKleisli]],
+  ): FunctionType = handleFWithContext[FutureKleisli](endpoints, (f, ctx) => f(ctx))
+
+  def handleFutureFunc(
       endpoints: List[ServerEndpoint[_, FutureFunc]],
   ): FunctionType = handleFWithContext[FutureFunc](endpoints, (f, ctx) => f(ctx))
 
