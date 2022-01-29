@@ -15,8 +15,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object WebsocketTransport {
   import MyceliumInstances._
 
-  type AnyPickle = Boolean
-
   def apply[Event, Failure, PickleType, F[_]: Async](config: WsAppConfig, auth: Option[Auth[IO]], observer: Observer[Event])(implicit
       serializer: Serializer[ClientMessage[PickleType], StringSerdes],
       deserializer: Deserializer[ServerMessage[PickleType, Event, Failure], StringSerdes],

@@ -64,6 +64,7 @@ lazy val core = project
 lazy val backend = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .in(file("backend"))
+  .dependsOn(core)
   .settings(commonSettings, jsSettings)
   .settings(
     name := "fun-stack-backend",

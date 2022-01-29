@@ -1,5 +1,6 @@
 package funstack.backend
 
+import funstack.core.StringSerdes
 import facade.amazonaws.AWSConfig
 import facade.amazonaws.services.dynamodb._
 import facade.amazonaws.services.apigatewaymanagementapi._
@@ -11,7 +12,8 @@ import cats.effect.IO
 import cats.implicits._
 import chameleon._
 
-class Ws[Event](tableName: String, apiGatewayEndpoint: String) {
+class Ws[Event](tableName: String, apiGatewayEndpoint: String)(implicit serializer: Serializer[ServerMessage[Unit, Event, Unit], StringSerdes]) {
+
   private implicit val cs  = IO.contextShift(scala.concurrent.ExecutionContext.global)
   private val dynamoClient = new DynamoDB()
   private val apiClient    = new ApiGatewayManagementApi(AWSConfig(endpoint = apiGatewayEndpoint))
@@ -31,20 +33,18 @@ class Ws[Event](tableName: String, apiGatewayEndpoint: String) {
       ),
     ).map(_.Items.fold(List.empty[String])(_.toList.flatMap(_.get("connection_id").flatMap(_.S.toOption))))
 
-  def sendToConnection(connectionId: String, data: Event)(implicit
-      serializer: Serializer[ServerMessage[String, Event, String], String],
-  ): IO[Unit] = IO.fromFuture(
+  def sendToConnection(connectionId: String, data: Event): IO[Unit] = IO.fromFuture(
       IO(
         apiClient.postToConnectionFuture(
           PostToConnectionRequest(
             ConnectionId = connectionId,
-            serializer.serialize(Notification[Event](data))
+            serializer.serialize(Notification[Event](data)).value
           ),
         ),
       ),
     ).void
 
-  def sendToUser(userId: String, data: Event)(implicit serializer: Serializer[ServerMessage[String, Event, String], String]): IO[Unit] =
+  def sendToUser(userId: String, data: Event): IO[Unit] =
     getConnectionIdsOfUser(userId).flatMap { connectionIds =>
       connectionIds.traverse(sendToConnection(_, data)).void
     }
