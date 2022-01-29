@@ -34,7 +34,7 @@ lazy val commonSettings = Seq(
   libraryDependencies ++=
     Deps.scalatest.value % Test ::
       Nil,
-  scalacOptions --= Seq("-Xfatal-warnings", "-Wconf:any&src=src_managed/.*", "-P:scalajs:nowarnGlobalExecutionContext"),
+  scalacOptions --= Seq("-Xfatal-warnings", "-Wconf:any&src=src_managed/.*"),
 )
 
 lazy val jsSettings = Seq(
@@ -46,6 +46,7 @@ lazy val jsSettings = Seq(
     val remote        = s"https://raw.githubusercontent.com/${githubRepo}/${git.gitHeadCommit.value.get}"
     s"-P:scalajs:mapSourceURI:$local->$remote/${subProjectDir}/"
   },
+  scalacOptions += "-P:scalajs:nowarnGlobalExecutionContext", //TODO: setImmediate
 )
 
 lazy val core = project
