@@ -30,6 +30,7 @@ object WebsocketTransport {
         },
       )
       private var currentUser: Option[User] = None
+      //TODO..
       auth.fold(Cancelable(client.run(config.url).cancel))(
         _.currentUser
           .scan[(Cancelable, Option[User])]((Cancelable.empty, None)) { (current, user) =>
@@ -54,8 +55,7 @@ object WebsocketTransport {
             }
 
             (newCancelable, user)
-          }
-          .subscribe(colibri.Observer.empty),
+          }.subscribe(),
       )
 
       def apply(request: Request[PickleType]): F[PickleType] =
