@@ -14,9 +14,7 @@ import chameleon._
 class Ws[Event](tableName: String, apiGatewayEndpoint: String) {
   private implicit val cs  = IO.contextShift(scala.concurrent.ExecutionContext.global)
   private val dynamoClient = new DynamoDB()
-  println("ENDPOINT: " + apiGatewayEndpoint)
   private val apiClient    = new ApiGatewayManagementApi(AWSConfig(endpoint = apiGatewayEndpoint))
-  println("CLIENT")
 
   def getConnectionIdsOfUser(userId: String): IO[List[String]] = IO
     .fromFuture(
@@ -31,39 +29,23 @@ class Ws[Event](tableName: String, apiGatewayEndpoint: String) {
           ),
         ),
       ),
-    )
-      .map { items =>
-        js.Dynamic.global.console.log("ITEMS", items)
-        val resu = items.Items.fold(List.empty[String])(_.toList.flatMap(_.get("connection_id").flatMap(_.S.toOption)))
-        js.Dynamic.global.console.log("ITEMS resu", resu)
-        resu
-    }
+    ).map(_.Items.fold(List.empty[String])(_.toList.flatMap(_.get("connection_id").flatMap(_.S.toOption))))
 
   def sendToConnection(connectionId: String, data: Event)(implicit
       serializer: Serializer[ServerMessage[String, Event, String], String],
-  ): IO[Unit] = {
-    println("GOING TO SEND " + connectionId + "--- " + data)
-    val serdet = serializer.serialize(Notification[Event](data))
-    println("GOING TO SEND SERDET" + serdet)
-    IO.fromFuture(
+  ): IO[Unit] = IO.fromFuture(
       IO(
         apiClient.postToConnectionFuture(
           PostToConnectionRequest(
             ConnectionId = connectionId,
-            serdet
+            serializer.serialize(Notification[Event](data))
           ),
         ),
       ),
-    ).map { x =>
-        js.Dynamic.global.console.log("SEND", x)
-        x
-    }
-      .void
-  }
+    ).void
 
   def sendToUser(userId: String, data: Event)(implicit serializer: Serializer[ServerMessage[String, Event, String], String]): IO[Unit] =
     getConnectionIdsOfUser(userId).flatMap { connectionIds =>
-      println("SENDING TO connections: " + connectionIds)
       connectionIds.traverse(sendToConnection(_, data)).void
     }
 }

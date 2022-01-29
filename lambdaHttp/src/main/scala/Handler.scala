@@ -76,8 +76,8 @@ object Handler {
       endpointsf: HttpRequest => List[ServerEndpoint[_, F]],
       execute: (F[APIGatewayProxyStructuredResultV2], HttpRequest) => Future[APIGatewayProxyStructuredResultV2],
   ): FunctionType = { (event, context) =>
-    println(js.JSON.stringify(event))
-    println(js.JSON.stringify(context))
+    // println(js.JSON.stringify(event))
+    // println(js.JSON.stringify(context))
 
     val auth = event.requestContext.authorizer.toOption.flatMap { auth =>
       val authDict = auth.asInstanceOf[js.Dictionary[js.Dictionary[String]]]

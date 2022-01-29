@@ -24,8 +24,8 @@ object WebsocketTransport {
           pingInterval = 9.minutes,
         ),
         new IncidentHandler[Event] {
-          override def onConnect(): Unit           = println("CONNECT")
-          override def onClose(): Unit             = println("DISCONNECT")
+          override def onConnect(): Unit           = ()
+          override def onClose(): Unit             = ()
           override def onEvent(event: Event): Unit = observer.onNext(event)
         },
       )
