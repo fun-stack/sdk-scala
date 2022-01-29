@@ -15,12 +15,15 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 object Handler {
 
+  case class WsAuth(sub: String, username: String)
+  case class WsRequest(event: APIGatewayWSEvent, context: Context, auth: Option[WsAuth])
+
   type FunctionType = js.Function2[APIGatewayWSEvent, Context, js.Promise[APIGatewayProxyStructuredResultV2]]
 
-  type FutureFunc[Out]    = APIGatewayWSRequestContext => Future[Out]
-  type FutureKleisli[Out] = Kleisli[Future, APIGatewayWSRequestContext, Out]
-  type IOFunc[Out]        = APIGatewayWSRequestContext => IO[Out]
-  type IOKleisli[Out]     = Kleisli[IO, APIGatewayWSRequestContext, Out]
+  type FutureFunc[Out]    = WsRequest => Future[Out]
+  type FutureKleisli[Out] = Kleisli[Future, WsRequest, Out]
+  type IOFunc[Out]        = WsRequest => IO[Out]
+  type IOKleisli[Out]     = Kleisli[IO, WsRequest, Out]
 
   def handle[T](
       router: Router[T, IO],
@@ -45,21 +48,21 @@ object Handler {
   ): FunctionType = handleFWithContext[T, Failure, F](router, (f, _) => execute(f))
 
   def handle[T](
-      router: APIGatewayWSRequestContext => Router[T, IO],
+      router: WsRequest => Router[T, IO],
   )(implicit
       deserializer: Deserializer[ClientMessage[T], String],
       serializer: Serializer[ServerMessage[T, String, String], String],
   ): FunctionType = handleF[T, String, IO](router, _.map(Right.apply).unsafeToFuture())
 
   def handleFuture[T](
-      router: APIGatewayWSRequestContext => Router[T, Future],
+      router: WsRequest => Router[T, Future],
   )(implicit
       deserializer: Deserializer[ClientMessage[T], String],
       serializer: Serializer[ServerMessage[T, String, String], String],
   ): FunctionType = handleF[T, String, Future](router, _.map(Right.apply))
 
   def handleF[T, Failure, F[_]](
-      router: APIGatewayWSRequestContext => Router[T, F],
+      router: WsRequest => Router[T, F],
       execute: F[T] => Future[Either[Failure, T]],
   )(implicit
       deserializer: Deserializer[ClientMessage[T], String],
@@ -96,15 +99,15 @@ object Handler {
 
   def handleFWithContext[T, Failure, F[_]](
       router: Router[T, F],
-      execute: (F[T], APIGatewayWSRequestContext) => Future[Either[Failure, T]],
+      execute: (F[T], WsRequest) => Future[Either[Failure, T]],
   )(implicit
       deserializer: Deserializer[ClientMessage[T], String],
       serializer: Serializer[ServerMessage[T, String, Failure], String],
   ): FunctionType = handleFCustom[T, Failure, F](_ => router, execute)
 
   def handleFCustom[T, Failure, F[_]](
-      routerf: APIGatewayWSRequestContext => Router[T, F],
-      execute: (F[T], APIGatewayWSRequestContext) => Future[Either[Failure, T]],
+      routerf: WsRequest => Router[T, F],
+      execute: (F[T], WsRequest) => Future[Either[Failure, T]],
   )(implicit
       deserializer: Deserializer[ClientMessage[T], String],
       serializer: Serializer[ServerMessage[T, String, Failure], String],
@@ -112,14 +115,21 @@ object Handler {
     println(js.JSON.stringify(event))
     println(js.JSON.stringify(context))
 
-    val router = routerf(event.requestContext)
+    val auth = event.requestContext.authorizer.toOption.flatMap { claims =>
+      for {
+        sub <- claims.get("sub")
+        username <- claims.get("username")
+      } yield WsAuth(sub = sub, username = username)
+    }
+    val request = WsRequest(event, context, auth)
+    val router = routerf(request)
 
     val result: js.Promise[ServerMessage[T, String, Failure]] = Deserializer[ClientMessage[T], String].deserialize(event.body) match {
       case Left(error) => js.Promise.reject(new Exception(s"Deserializer: $error"))
       case Right(Ping) => js.Promise.resolve[Pong.type](Pong)
       case Right(CallRequest(seqNumber, path, payload)) =>
         router(Request(path, payload)).toEither match {
-          case Right(result) => execute(result, event.requestContext).toJSPromise.`then`[ServerMessage[T, String, Failure]](CallResponse(seqNumber, _))
+          case Right(result) => execute(result, request).toJSPromise.`then`[ServerMessage[T, String, Failure]](CallResponse(seqNumber, _))
           case Left(error)   => js.Promise.reject(new Exception(error.toString))
         }
     }
