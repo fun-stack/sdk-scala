@@ -1,5 +1,6 @@
 package funstack.web
 
+import funstack.core.StringSerdes
 import colibri.{Subject, Observable}
 import cats.effect.{IO, Async}
 import sloth.{Client, ClientException}
@@ -10,21 +11,23 @@ import scala.concurrent.Future
 class Ws[Event](ws: WsAppConfig, auth: Option[Auth[IO]]) {
   import scala.concurrent.ExecutionContext.Implicits.global
 
+  type AnyPickle = Boolean
+
   private val eventsSubject     = Subject.publish[Event]
   def events: Observable[Event] = eventsSubject
 
   def client[PickleType](implicit
-      serializer: Serializer[ClientMessage[PickleType], String],
-      deserializer: Deserializer[ServerMessage[PickleType, Event, String], String],
+      serializer: Serializer[ClientMessage[PickleType], StringSerdes],
+      deserializer: Deserializer[ServerMessage[PickleType, Event, AnyPickle], StringSerdes],
   ) = clientF[PickleType, IO]
 
   def clientF[PickleType, F[_]: Async](implicit
-      serializer: Serializer[ClientMessage[PickleType], String],
-      deserializer: Deserializer[ServerMessage[PickleType, Event, String], String],
-  ) = Client[PickleType, F, ClientException](WebsocketTransport[Event, String, PickleType, F](ws, auth, eventsSubject))
+      serializer: Serializer[ClientMessage[PickleType], StringSerdes],
+      deserializer: Deserializer[ServerMessage[PickleType, Event, AnyPickle], StringSerdes],
+  ) = Client[PickleType, F, ClientException](WebsocketTransport[Event, AnyPickle, PickleType, F](ws, auth, eventsSubject))
 
   def clientFuture[PickleType](implicit
-      serializer: Serializer[ClientMessage[PickleType], String],
-      deserializer: Deserializer[ServerMessage[PickleType, Event, String], String],
-  ) = Client[PickleType, Future, ClientException](WebsocketTransport[Event, String, PickleType, IO](ws, auth, eventsSubject).map(_.unsafeToFuture()))
+      serializer: Serializer[ClientMessage[PickleType], StringSerdes],
+      deserializer: Deserializer[ServerMessage[PickleType, Event, AnyPickle], StringSerdes],
+  ) = Client[PickleType, Future, ClientException](WebsocketTransport[Event, AnyPickle, PickleType, IO](ws, auth, eventsSubject).map(_.unsafeToFuture()))
 }

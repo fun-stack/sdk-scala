@@ -1,5 +1,6 @@
 package funstack.web
 
+import funstack.core.StringSerdes
 import colibri.{Observer, Cancelable}
 import sloth.{Request, RequestTransport}
 import mycelium.js.client.JsWebsocketConnection
@@ -9,16 +10,20 @@ import chameleon.{Serializer, Deserializer}
 import cats.effect.{Async, IO}
 import scala.concurrent.duration._
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
 object WebsocketTransport {
-  import scala.concurrent.ExecutionContext.Implicits.global
+  import MyceliumInstances._
+
+  type AnyPickle = Boolean
 
   def apply[Event, Failure, PickleType, F[_]: Async](config: WsAppConfig, auth: Option[Auth[IO]], observer: Observer[Event])(implicit
-      serializer: Serializer[ClientMessage[PickleType], String],
-      deserializer: Deserializer[ServerMessage[PickleType, Event, Failure], String],
+      serializer: Serializer[ClientMessage[PickleType], StringSerdes],
+      deserializer: Deserializer[ServerMessage[PickleType, Event, Failure], StringSerdes],
   ): RequestTransport[PickleType, F] =
     new RequestTransport[PickleType, F] {
-      private val client = WebsocketClient.withPayload[String, PickleType, Event, Failure](
-        new JsWebsocketConnection[String],
+      private val client = WebsocketClient.withPayload[StringSerdes, PickleType, Event, Failure](
+        new JsWebsocketConnection[StringSerdes],
         WebsocketClientConfig(
           // idle timeout is 10 minutes on api gateway: https://docs.aws.amazon.com/apigateway/latest/developerguide/limits.html
           pingInterval = 9.minutes,
@@ -67,4 +72,16 @@ object WebsocketTransport {
           },
         )
     }
+}
+
+private object MyceliumInstances {
+  import mycelium.js.core.JsMessageBuilder
+  import scala.concurrent.Future
+
+  implicit val base64JsMessageBuilder: JsMessageBuilder[StringSerdes] = new JsMessageBuilder[StringSerdes] {
+    import JsMessageBuilder._
+
+    def pack(msg: StringSerdes): Message = JsMessageBuilder.JsMessageBuilderString.pack(msg.value)
+    def unpack(m: Message): Future[Option[StringSerdes]] = JsMessageBuilder.JsMessageBuilderString.unpack(m).map(_.map(StringSerdes(_)))
+  }
 }
