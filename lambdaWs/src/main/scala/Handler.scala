@@ -112,8 +112,8 @@ object Handler {
       deserializer: Deserializer[ClientMessage[T], String],
       serializer: Serializer[ServerMessage[T, String, Failure], String],
   ): FunctionType = { (event, context) =>
-    println(js.JSON.stringify(event))
-    println(js.JSON.stringify(context))
+    // println(js.JSON.stringify(event))
+    // println(js.JSON.stringify(context))
 
     val auth = event.requestContext.authorizer.toOption.flatMap { claims =>
       for {
