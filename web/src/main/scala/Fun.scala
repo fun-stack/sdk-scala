@@ -3,8 +3,9 @@ package funstack.web
 import cats.effect.IO
 
 object Fun {
-  val auth                = AppConfig.auth.map(new Auth[IO](_, AppConfig.website)).toOption
-  def wsWithEvents[Event] = AppConfig.ws.map(new Ws[Event](_, auth)).toOption
-  val ws                  = wsWithEvents[String]
-  val http                = AppConfig.http.map(new Http(_, auth)).toOption
+  val config              = AppConfig.load()
+  val auth                = config.auth.map(new Auth[IO](_, config.website)).toOption
+  def wsWithEvents[Event] = config.ws.map(new Ws[Event](_, auth)).toOption
+  val ws                  = wsWithEvents[Unit]
+  val http                = config.http.map(new Http(_, auth)).toOption
 }

@@ -1,13 +1,12 @@
 package funstack.backend
 
-import funstack.core.StringSerdes
-import chameleon.Serializer
-import mycelium.core.message.ServerMessage
+import cats.implicits._
 
 object Fun {
-  val config = Config.loadFromEnv()
-  def ws[Event](implicit serializer: Serializer[ServerMessage[Unit, Event, Unit], StringSerdes]) = for {
-    tableName <- config.connectionsTableName
-    apiGatewayEndpoint <- config.apiGatewayEndpoint
-  } yield new Ws[Event](apiGatewayEndpoint = apiGatewayEndpoint, tableName = tableName)
+  val config = Config.load()
+  def wsWithEvents[Event] =
+    (config.apiGatewayEndpoint, config.connectionsTableName).mapN { (endpoint, table) =>
+      new Ws[Event](apiGatewayEndpoint = endpoint, tableName = table)
+    }
+  val ws = wsWithEvents[Unit]
 }

@@ -1,7 +1,6 @@
 package funstack.web
 
 import scala.scalajs.js
-import scala.scalajs.js.annotation.JSGlobal
 
 @js.native
 trait WebsiteAppConfig extends js.Object {
@@ -26,12 +25,17 @@ trait HttpAppConfig extends js.Object {
 }
 
 @js.native
-@JSGlobal
-object AppConfig extends js.Object {
+trait AppConfigTyped[T] extends js.Object {
   def stage: String                      = js.native
   def website: WebsiteAppConfig          = js.native
   def auth: js.UndefOr[AuthAppConfig]    = js.native
   def http: js.UndefOr[HttpAppConfig]    = js.native
   def ws: js.UndefOr[WsAppConfig]        = js.native
-  def environment: js.Dictionary[String] = js.native
+  def environment: T                     = js.native
+}
+object AppConfig {
+  import scala.scalajs.js.Dynamic.{global => g}
+
+  def load() = g.AppConfig.asInstanceOf[AppConfig]
+  def loadTyped[T]() = g.AppConfig.asInstanceOf[AppConfigTyped[T]]
 }

@@ -12,7 +12,7 @@ import cats.effect.IO
 import cats.implicits._
 import chameleon._
 
-class Ws[Event](tableName: String, apiGatewayEndpoint: String)(implicit serializer: Serializer[ServerMessage[Unit, Event, Unit], StringSerdes]) {
+class Ws[Event](tableName: String, apiGatewayEndpoint: String) {
 
   private implicit val cs  = IO.contextShift(scala.concurrent.ExecutionContext.global)
   private val dynamoClient = new DynamoDB()
@@ -33,7 +33,7 @@ class Ws[Event](tableName: String, apiGatewayEndpoint: String)(implicit serializ
       ),
     ).map(_.Items.fold(List.empty[String])(_.toList.flatMap(_.get("connection_id").flatMap(_.S.toOption))))
 
-  def sendToConnection(connectionId: String, data: Event): IO[Unit] = IO.fromFuture(
+  def sendToConnection(connectionId: String, data: Event)(implicit serializer: Serializer[ServerMessage[Unit, Event, Unit], StringSerdes]): IO[Unit] = IO.fromFuture(
       IO(
         apiClient.postToConnectionFuture(
           PostToConnectionRequest(
@@ -44,7 +44,7 @@ class Ws[Event](tableName: String, apiGatewayEndpoint: String)(implicit serializ
       ),
     ).void
 
-  def sendToUser(userId: String, data: Event): IO[Unit] =
+  def sendToUser(userId: String, data: Event)(implicit serializer: Serializer[ServerMessage[Unit, Event, Unit], StringSerdes]): IO[Unit] =
     getConnectionIdsOfUser(userId).flatMap { connectionIds =>
       connectionIds.traverse(sendToConnection(_, data)).void
     }
