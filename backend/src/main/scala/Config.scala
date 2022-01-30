@@ -1,14 +1,20 @@
 package funstack.backend
 
-case class Config(
+import scala.scalajs.js
+
+case class ConfigTyped[T](
   apiGatewayEndpoint: Option[String],
   connectionsTableName: Option[String],
+  environment: T,
 )
+
 object Config {
-  import scala.scalajs.js
   import js.Dynamic.{global => g}
-  def load() = Config(
+
+  def load() = loadWithEnv[js.Dictionary[String]]()
+  def loadWithEnv[T]() = ConfigTyped[T](
     connectionsTableName = g.process.env.FUN_WEBSOCKET_CONNECTIONS_DYNAMODB_TABLE.asInstanceOf[js.UndefOr[String]].toOption,
-    apiGatewayEndpoint = g.process.env.FUN_WEBSOCKET_API_GATEWAY_ENDPOINT.asInstanceOf[js.UndefOr[String]].toOption
+    apiGatewayEndpoint = g.process.env.FUN_WEBSOCKET_API_GATEWAY_ENDPOINT.asInstanceOf[js.UndefOr[String]].toOption,
+    environment = g.process.env.asInstanceOf[T]
   )
 }

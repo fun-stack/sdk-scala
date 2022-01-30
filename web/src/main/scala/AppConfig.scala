@@ -34,8 +34,8 @@ trait AppConfigTyped[T] extends js.Object {
   def environment: T                     = js.native
 }
 object AppConfig {
-  import scala.scalajs.js.Dynamic.{global => g}
+  import js.Dynamic.{global => g}
 
-  def load() = g.AppConfig.asInstanceOf[AppConfig]
+  def load() = loadTyped[js.Dictionary[String]]()
   def loadTyped[T]() = g.AppConfig.asInstanceOf[AppConfigTyped[T]]
 }
