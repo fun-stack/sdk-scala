@@ -11,8 +11,8 @@ case class ConfigTyped[T](
 object Config {
   import js.Dynamic.{global => g}
 
-  def load() = loadWithEnv[js.Dictionary[String]]()
-  def loadWithEnv[T]() = ConfigTyped[T](
+  def load() = loadTyped[js.Dictionary[String]]()
+  def loadTyped[T]() = ConfigTyped[T](
     connectionsTableName = g.process.env.FUN_WEBSOCKET_CONNECTIONS_DYNAMODB_TABLE.asInstanceOf[js.UndefOr[String]].toOption,
     apiGatewayEndpoint = g.process.env.FUN_WEBSOCKET_API_GATEWAY_ENDPOINT.asInstanceOf[js.UndefOr[String]].toOption,
     environment = g.process.env.asInstanceOf[T]
