@@ -3,10 +3,12 @@ package funstack.web
 import cats.implicits._
 import colibri._
 import cats.effect.{Async, Sync, IO}
+import funstack.web.helper.facades.JwtDecode
 
 import org.scalajs.dom
 import org.scalajs.dom.{Fetch, RequestInit, HttpMethod, URLSearchParams, Response}
 import scala.scalajs.js
+import scala.scalajs.js.annotation.JSName
 import org.scalajs.dom.window.localStorage
 
 import scala.concurrent.duration._
@@ -24,6 +26,7 @@ trait TokenResponse extends js.Object {
 @js.native
 trait UserInfoResponse extends js.Object {
   def sub: String             = js.native
+  @JSName("cognito:username")
   def username: String        = js.native
   def email: String           = js.native
   def email_verified: Boolean = js.native
@@ -84,13 +87,13 @@ class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
             case Authentication.AuthCode(code)      => getToken(code)
             case Authentication.RefreshToken(token) => refreshToken(token)
           }
-          .mapAsync(token => getUserInfo(token).map(info => User(info, token)))
-          .switchMap { user =>
-            localStorage.setItem(storageKeyRefreshToken, user.token.refresh_token)
+          .switchMap { token =>
+            val user = User(getUserInfo(token), token)
+            localStorage.setItem(storageKeyRefreshToken, token.refresh_token)
             Observable
-              .interval((user.token.expires_in * 0.8).seconds) // TODO: dynamic per token
+              .interval((token.expires_in * 0.8).seconds) // TODO: dynamic per token
               .drop(1)
-              .mapAsync(_ => refreshToken(user.token.refresh_token))
+              .mapAsync(_ => refreshToken(token.refresh_token))
               .map(token => Option(user.copy(token = token)))
               .prepend(Option(user))
           }
@@ -107,24 +110,7 @@ class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
     if (response.status == 200) IO.fromFuture(IO(response.json().toFuture))
     else IO.raiseError(new Exception(s"Got Error Response: ${response.status}"))
 
-  private def getUserInfo(token: TokenResponse): IO[UserInfoResponse] = IO
-    .fromFuture(IO {
-      val url = s"${auth.url}/oauth2/userInfo"
-      Fetch
-        .fetch(
-          url,
-          new RequestInit {
-            method = HttpMethod.GET
-            headers = js.Array(
-              js.Array("Authorization", s"${token.token_type} ${token.access_token}"),
-              js.Array("Content-Type", "application/json;charset=utf8"),
-            )
-          },
-        )
-        .toFuture
-    })
-    .flatMap(handleResponse)
-    .flatMap(r => IO(r.asInstanceOf[UserInfoResponse]))
+  private def getUserInfo(token: TokenResponse): UserInfoResponse = JwtDecode(token.id_token).asInstanceOf[UserInfoResponse]
 
   private def getToken(authCode: String): IO[TokenResponse] = IO
     .fromFuture(IO {

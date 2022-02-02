@@ -17,12 +17,12 @@ object Deps {
   val colibri = s("com.github.cornerman" %%% "colibri" % "0.2.6")
 
   // rpc
-  val sloth     = s("com.github.cornerman" %%% "sloth" % "0.5.1")
+  val sloth     = s("com.github.cornerman" %%% "sloth" % "0.6.0")
   val chameleon = s("com.github.cornerman" %%% "chameleon" % "0.3.4")
 
   // websocket connecitivity
   val mycelium = new {
-    val version  = "0.2.0"
+    val version  = "0.2.3"
     val core     = s("com.github.cornerman" %%% "mycelium-core" % version)
     val clientJs = s("com.github.cornerman" %%% "mycelium-client-js" % version)
   }
@@ -50,11 +50,14 @@ object Deps {
     val lambda                  = s("net.exoego" %%% "aws-sdk-scalajs-facade-lambda" % version)
     val dynamodb                = s("net.exoego" %%% "aws-sdk-scalajs-facade-dynamodb" % version)
     val apigatewaymanagementapi = s("net.exoego" %%% "aws-sdk-scalajs-facade-apigatewaymanagementapi" % version)
+    val cognitoidentityprovider = s("net.exoego" %%% "aws-sdk-scalajs-facade-cognitoidentityprovider" % version)
+    val sns = s("net.exoego" %%% "aws-sdk-scalajs-facade-sns" % version)
   }
   val awsLambdaJS = s("net.exoego" %%% "aws-lambda-scalajs-facade" % "0.12.1")
 }
 
 object NpmDeps {
-  val awsSdkVersion = "2.798.0"
-  val awsSdk        = "aws-sdk" -> awsSdkVersion
+  val awsSdkVersion    = "2.798.0"
+  val awsSdk           = "aws-sdk" -> awsSdkVersion
+  val jwtDecode        = "jwt-decode" -> "3.1.2"
 }
