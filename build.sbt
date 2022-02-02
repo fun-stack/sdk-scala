@@ -72,6 +72,7 @@ lazy val backend = project
       Deps.cats.effect.value ::
         Deps.awsSdkJS.dynamodb.value ::
         Deps.awsSdkJS.apigatewaymanagementapi.value ::
+        Deps.sloth.value ::
         Deps.mycelium.core.value ::
         Deps.chameleon.value ::
         Nil,

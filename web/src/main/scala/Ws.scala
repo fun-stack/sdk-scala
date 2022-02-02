@@ -3,7 +3,7 @@ package funstack.web
 import funstack.core.StringSerdes
 import colibri.{Subject, Observable}
 import cats.effect.{IO, Async}
-import sloth.{Client, ClientException}
+import sloth.Client
 import mycelium.core.message._
 import chameleon.{Serializer, Deserializer}
 import scala.concurrent.Future
