@@ -21,61 +21,62 @@ class Ws[Event](tableName: String, apiGatewayEndpoint: String) {
 
 
   object sender {
-    import cats.data.Kleisli
     import sloth._
 
-    case class SendRequest[+T](connectionId: String, body: T)
-    type IOKleisli[-T] = Kleisli[IO, SendRequest[T], Unit]
-
-    implicit def ioKleisliClientContraHandler: ClientContraHandler[IOKleisli] = new ClientContraHandler[IOKleisli] {
-      override def raiseFailure[B](failure: ClientFailure): IOKleisli[B] = Kleisli.liftF(IO.raiseError(failure.toException))
-      override def contramap[A,B](fa: IOKleisli[A])(f: B => A): IOKleisli[B] = Kleisli(b => fa(b.copy[A](body = f(b.body))))
+    trait SubscriptionManager[T] {
+      def send(connectionId: String, body: T): IO[Unit]
+      def register(connectionId: String): IO[Unit]
+      def unregister(connectionId: String): IO[Unit]
     }
-
-    val send = new RequestTransport[String, IOKleisli] {
-      def apply(request: Request[String]): IOKleisli[String] = Kleisli { sendRequest =>
-        val subscriptionKey = s"${request.path.mkString("/")}/${request.payload}"
-        ???
+    object SubscriptionManager {
+      implicit def ioKleisliClientContraHandler: ClientContraHandler[SubscriptionManager] = new ClientContraHandler[SubscriptionManager] {
+        override def raiseFailure[B](failure: ClientFailure): SubscriptionManager[B] = new SubscriptionManager[B] {
+          def send(connectionId: String, body: B): IO[Unit] = IO.raiseError(failure.toException)
+          def register(connectionId: String): IO[Unit] = IO.raiseError(failure.toException)
+          def unregister(connectionId: String): IO[Unit] = IO.raiseError(failure.toException)
+        }
+        override def contramap[A,B](fa: SubscriptionManager[A])(f: B => A): SubscriptionManager[B] = new SubscriptionManager[B] {
+          def send(connectionId: String, body: B): IO[Unit] = fa.send(connectionId, f(body))
+          def register(connectionId: String): IO[Unit] = fa.register(connectionId)
+          def unregister(connectionId: String): IO[Unit] = fa.unregister(connectionId)
+        }
       }
     }
 
-    val register = new RequestTransport[String, IOKleisli] {
-      def apply(request: Request[String]): IOKleisli[String] = Kleisli { sendRequest =>
-        val subscriptionKey = s"${request.path.mkString("/")}/${request.payload}"
-        storeSubscription(connectionId = sendRequest.connectionId, subscriptionKey = subscriptionKey)
+    object Transport extends RequestTransport[String, SubscriptionManager] {
+      def apply(request: Request[String]): SubscriptionManager[String] = new SubscriptionManager[String] {
+        def send(connectionId: String, body: String): IO[Unit] = {
+          val subscriptionKey = s"${request.path.mkString("/")}/${request.payload}"
+          ???
+        }
+        def register(connectionId: String): IO[Unit] = {
+          val subscriptionKey = s"${request.path.mkString("/")}/${request.payload}"
+          storeSubscription(connectionId = connectionId, subscriptionKey = subscriptionKey)
+        }
+        def unregister(connectionId: String): IO[Unit] = {
+          val subscriptionKey = s"${request.path.mkString("/")}/${request.payload}"
+          deleteSubscription(connectionId = connectionId, subscriptionKey = subscriptionKey)
+        }
       }
     }
 
-    val unregister = new RequestTransport[String, IOKleisli] {
-      def apply(request: Request[String]): IOKleisli[String] = Kleisli { sendRequest =>
-        val subscriptionKey = s"${request.path.mkString("/")}/${request.payload}"
-        deleteSubscription(connectionId = sendRequest.connectionId, subscriptionKey = subscriptionKey)
-      }
-    }
+    def client = Client.contra[String, SubscriptionManager](Transport)
 
-    def registerClient = Client.contra[String, IOKleisli](register)
-    def unregisterClient = Client.contra[String, IOKleisli](unregister)
-    def senderClient = Client.contra[String, IOKleisli](send)
+    implicit def serializer[T] = new Serializer[T, String] { def serialize(x: T) = x.toString }
 
     trait MyApi[F[_]] {
       def test(id: String): F[Int]
+      def logs: F[String]
     }
 
+    val api = client.wire[MyApi[SubscriptionManager]]
 
-    implicit def serializer[T] = new Serializer[T, String] { def serialize(x: T) = x.toString }
-      val sendApi = senderClient.wire[MyApi[IOKleisli]]
-      val registerApi = registerClient.wire[MyApi[IOKleisli]]
-      val unregisterApi = unregisterClient.wire[MyApi[IOKleisli]]
+    api.logs.register("conn-1")
+    api.logs.unregister("conn-1")
 
-      sendApi.test("hallo").apply(SendRequest("conn-1", 2)).unsafeRunSync()
-      registerApi.test("hallo").apply(SendRequest("conn-1", -1)).unsafeRunSync()
-      unregisterApi.test("hallo").apply(SendRequest("conn-1", -1)).unsafeRunSync()
+    api.logs.send("conn-1", body = "log-message")
+    api.test("hallo").send("conn-1", body = 2)
 
-      // val api = client.wire[MyApi[IOKleisli]]
-
-      // api.test("hallo").send(ConnectionRequest("conn-1", 2)).unsafeRunSync()
-      // api.test("hallo").register(ConnectionRequest("conn-1", -1)).unsafeRunSync()
-      // api.test("hallo").unregister(ConnectionRequest("conn-1", -1)).unsafeRunSync()
 
   //   def client[PickleType](implicit
   //       serializer: Serializer[ClientMessage[PickleType], StringSerdes],
