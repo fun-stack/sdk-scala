@@ -70,12 +70,37 @@ lazy val backend = project
     name := "fun-stack-backend",
     libraryDependencies ++=
       Deps.cats.effect.value ::
-        Deps.awsSdkJS.dynamodb.value ::
-        Deps.awsSdkJS.apigatewaymanagementapi.value ::
+        Deps.awsSdkJS.sns.value ::
+        Deps.awsSdkJS.cognitoidentityprovider.value ::
+        Deps.sloth.value ::
         Deps.mycelium.core.value ::
-        Deps.chameleon.value ::
         Nil,
   )
+
+lazy val lambdaEventAuthorizer = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(core)
+  .in(file("lambdaEventAuthorizer"))
+  .settings(commonSettings, jsSettings)
+  .settings(
+    name := "fun-stack-lambda-event-authorizer",
+    libraryDependencies ++=
+      Deps.cats.effect.value ::
+        Deps.awsSdkJS.sns.value ::
+        Deps.awsSdkJS.lambda.value ::
+        Deps.awsLambdaJS.value ::
+        Deps.sloth.value ::
+        Deps.mycelium.core.value ::
+        Nil,
+
+    // The aws-sdk is provided in lambda environment.
+    // Not depending on it explicitly makes the bundle size smaller.
+    // But we do not know whether our facades are on the correct version.
+    /* Compile / npmDependencies ++= */
+    /*   NpmDeps.awsSdk :: */
+    /*   Nil */
+  )
+
 
 lazy val lambdaHttp = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
@@ -142,6 +167,7 @@ lazy val web = project
         Deps.mycelium.clientJs.value ::
         Nil,
     Compile / npmDependencies ++=
+      NpmDeps.jwtDecode ::
         Nil,
   )
 
@@ -150,4 +176,4 @@ lazy val root = project
   .settings(
     publish / skip := true,
   )
-  .aggregate(core, lambdaWs, lambdaHttp, web, backend)
+  .aggregate(core, lambdaWs, lambdaHttp, lambdaEventAuthorizer, web, backend)
