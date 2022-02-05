@@ -1,7 +1,7 @@
 package funstack.web
 
-import funstack.core.StringSerdes
-import colibri.{Observer, Cancelable}
+import funstack.core.{SubscriptionEvent, StringSerdes}
+import colibri.{Observer, Observable, Cancelable}
 import sloth.{Request, RequestTransport}
 import mycelium.js.client.JsWebsocketConnection
 import mycelium.core.client.{SendType, IncidentHandler, WebsocketClientConfig, WebsocketClient}
@@ -14,10 +14,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 object WebsocketTransport {
 
-  def apply[Event, Failure, PickleType, F[_]: Async](config: WsAppConfig, auth: Option[Auth[IO]], client: WebsocketClient[PickleType, Event, Failure])(implicit
-      serializer: Serializer[ClientMessage[PickleType], StringSerdes],
-      deserializer: Deserializer[ServerMessage[PickleType, Event, Failure], StringSerdes],
-  ): RequestTransport[PickleType, F] =
+  def apply[PickleType, F[_]: Async](client: WebsocketClient[PickleType, _, _]): RequestTransport[PickleType, F] =
     new RequestTransport[PickleType, F] {
       def apply(request: Request[PickleType]): F[PickleType] =
         Async[F].async[PickleType](cb =>
@@ -27,6 +24,39 @@ object WebsocketTransport {
             case util.Failure(ex)           => cb(Left(ex))
           },
         )
+    }
+
+  def subscriptions(client: WebsocketClient[StringSerdes, _, _], events: Observable[ControlEvent]): RequestTransport[StringSerdes, Observable] =
+    new RequestTransport[StringSerdes, Observable] {
+      def apply(request: Request[StringSerdes]): Observable[StringSerdes] = {
+        val subscriptionKey = s"${request.path.mkString("/")}/${request.payload.value}"
+
+        val subscribePayload = StringSerdes(s"""{"__action": "subscribe", "subscription_key": "${subscriptionKey}" }""")
+        val unsubscribePayload = StringSerdes(s"""{"__action": "unsubscribe", "subscription_key": "${subscriptionKey}" }""")
+
+        var cancelable: Cancelable = Cancelable.empty
+        def subscribe(): Unit = {
+          def inner(): Cancelable = {
+            client.rawSend(subscribePayload)
+            Cancelable(() => client.rawSend(unsubscribePayload))
+          }
+
+          cancelable.cancel()
+          cancelable = inner()
+        }
+
+        events
+          .doOnNext {
+            case ControlEvent.Disconnected => cancelable = Cancelable.empty
+            case ControlEvent.Connected => subscribe()
+            case _ => ()
+          }
+          .collect { case ControlEvent.Subscription(SubscriptionEvent(`subscriptionKey`, body)) => body }
+          .doOnSubscribe { () =>
+            subscribe()
+            Cancelable(() => cancelable.cancel())
+          }.publish.refCount
+      }
     }
 }
 

@@ -1,6 +1,6 @@
 package funstack.web
 
-import funstack.core.StringSerdes
+import funstack.core.{SubscriptionEvent, StringSerdes}
 import colibri.{Subject, Observable}
 import cats.effect.{IO, Async}
 import sloth.Client
@@ -20,31 +20,40 @@ import scala.concurrent.duration._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class Ws[Event](ws: WsAppConfig, auth: Option[Auth[IO]])(implicit
+private[web] sealed trait ControlEvent
+private[web] object ControlEvent {
+  case class Subscription(event: SubscriptionEvent) extends ControlEvent
+  case object Connected extends ControlEvent
+  case object Disconnected extends ControlEvent
+}
+
+class Ws(ws: WsAppConfig, auth: Option[Auth[IO]])(implicit
       serializer: Serializer[ClientMessage[StringSerdes], StringSerdes],
-      deserializer: Deserializer[ServerMessage[StringSerdes, Event, Unit], StringSerdes],
+      deserializer: Deserializer[ServerMessage[StringSerdes, SubscriptionEvent, Unit], StringSerdes],
       ) {
 
-  private val eventsSubject     = Subject.publish[Event]
-  def events: Observable[Event] = eventsSubject
+  private val eventsSubject = Subject.publish[ControlEvent]
 
-  def client = clientF[IO]
+  import SlothInstances._
+  val subscriptionsClient = Client[StringSerdes, Observable](WebsocketTransport.subscriptions(wsClient, eventsSubject))
 
-  def clientF[F[_]: Async] = Client[StringSerdes, F](WebsocketTransport[Event, Unit, StringSerdes, F](ws, auth, wsClient))
+  val client = clientF[IO]
 
-  def clientFuture = Client[StringSerdes, Future](WebsocketTransport[Event, Unit, StringSerdes, IO](ws, auth, wsClient).map(_.unsafeToFuture()))
+  def clientF[F[_]: Async] = Client[StringSerdes, F](WebsocketTransport[StringSerdes, F](wsClient))
+
+  def clientFuture = Client[StringSerdes, Future](WebsocketTransport[StringSerdes, IO](wsClient).map(_.unsafeToFuture()))
 
   import MyceliumInstances._
-  private[web] val wsClient = WebsocketClient[StringSerdes, Event, Unit](
+  private[web] lazy val wsClient = WebsocketClient[StringSerdes, SubscriptionEvent, Unit](
         new JsWebsocketConnection[StringSerdes],
         WebsocketClientConfig(
           // idle timeout is 10 minutes on api gateway: https://docs.aws.amazon.com/apigateway/latest/developerguide/limits.html
           pingInterval = 9.minutes,
         ),
-        new IncidentHandler[Event] {
-          override def onConnect(): Unit           = ()
-          override def onClose(): Unit             = ()
-          override def onEvent(event: Event): Unit = eventsSubject.onNext(event)
+        new IncidentHandler[SubscriptionEvent] {
+          override def onConnect(): Unit           = eventsSubject.onNext(ControlEvent.Connected)
+          override def onClose(): Unit             = eventsSubject.onNext(ControlEvent.Disconnected)
+          override def onEvent(event: SubscriptionEvent): Unit = eventsSubject.onNext(ControlEvent.Subscription(event))
         },
       )
       private var currentUser: Option[User] = None
@@ -85,5 +94,13 @@ private object MyceliumInstances {
 
     def pack(msg: StringSerdes): Message = JsMessageBuilder.JsMessageBuilderString.pack(msg.value)
     def unpack(m: Message): Future[Option[StringSerdes]] = JsMessageBuilder.JsMessageBuilderString.unpack(m).map(_.map(StringSerdes(_)))
+  }
+}
+private object SlothInstances {
+  import sloth._
+
+  implicit val observableClientHandler: ClientHandler[Observable] = new ClientHandler[Observable] {
+    def raiseFailure[B](failure: ClientFailure): Observable[B] = Observable.failure(failure.toException)
+    def eitherMap[A, B](fa: Observable[A])(f: A => Either[ClientFailure,B]): Observable[B] = fa.mapEither(a => f(a).left.map(_.toException))
   }
 }

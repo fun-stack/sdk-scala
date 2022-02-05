@@ -1,10 +1,11 @@
 package funstack.backend
 
-import funstack.core.StringSerdes
+import funstack.core.{SubscriptionEvent, StringSerdes}
 import facade.amazonaws.AWSConfig
 import facade.amazonaws.services.dynamodb._
 import facade.amazonaws.services.apigatewaymanagementapi._
 import scala.scalajs.js
+import sloth._
 
 import mycelium.core.message.{Notification, ServerMessage}
 
@@ -13,107 +14,21 @@ import cats.implicits._
 import chameleon._
 import java.time.Instant
 
-class Ws[Event](tableName: String, apiGatewayEndpoint: String) {
+import scala.scalajs.js.JSConverters._
+
+class Ws(tableName: String, apiGatewayEndpoint: String)(implicit
+      serializer: Serializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes],
+      ) {
 
   private implicit val cs  = IO.contextShift(scala.concurrent.ExecutionContext.global)
   private val dynamoClient = new DynamoDB()
   private val apiClient    = new ApiGatewayManagementApi(AWSConfig(endpoint = apiGatewayEndpoint))
 
+  def sendClient = Client.contra[StringSerdes, SubscriptionManager](new WebsocketTransport(sendToSubscription(_,_)))
 
-  object sender {
-    import sloth._
+  case class QueryResult[T](nextToken: Option[Key], result: T)
 
-    trait SubscriptionManager[T] {
-      def send(connectionId: String, body: T): IO[Unit]
-      def register(connectionId: String): IO[Unit]
-      def unregister(connectionId: String): IO[Unit]
-    }
-    object SubscriptionManager {
-      implicit def ioKleisliClientContraHandler: ClientContraHandler[SubscriptionManager] = new ClientContraHandler[SubscriptionManager] {
-        override def raiseFailure[B](failure: ClientFailure): SubscriptionManager[B] = new SubscriptionManager[B] {
-          def send(connectionId: String, body: B): IO[Unit] = IO.raiseError(failure.toException)
-          def register(connectionId: String): IO[Unit] = IO.raiseError(failure.toException)
-          def unregister(connectionId: String): IO[Unit] = IO.raiseError(failure.toException)
-        }
-        override def contramap[A,B](fa: SubscriptionManager[A])(f: B => A): SubscriptionManager[B] = new SubscriptionManager[B] {
-          def send(connectionId: String, body: B): IO[Unit] = fa.send(connectionId, f(body))
-          def register(connectionId: String): IO[Unit] = fa.register(connectionId)
-          def unregister(connectionId: String): IO[Unit] = fa.unregister(connectionId)
-        }
-      }
-    }
-
-    object Transport extends RequestTransport[String, SubscriptionManager] {
-      def apply(request: Request[String]): SubscriptionManager[String] = new SubscriptionManager[String] {
-        def send(connectionId: String, body: String): IO[Unit] = {
-          val subscriptionKey = s"${request.path.mkString("/")}/${request.payload}"
-          ???
-        }
-        def register(connectionId: String): IO[Unit] = {
-          val subscriptionKey = s"${request.path.mkString("/")}/${request.payload}"
-          storeSubscription(connectionId = connectionId, subscriptionKey = subscriptionKey)
-        }
-        def unregister(connectionId: String): IO[Unit] = {
-          val subscriptionKey = s"${request.path.mkString("/")}/${request.payload}"
-          deleteSubscription(connectionId = connectionId, subscriptionKey = subscriptionKey)
-        }
-      }
-    }
-
-    def client = Client.contra[String, SubscriptionManager](Transport)
-
-    implicit def serializer[T] = new Serializer[T, String] { def serialize(x: T) = x.toString }
-
-    trait MyApi[F[_]] {
-      def test(id: String): F[Int]
-      def logs: F[String]
-    }
-
-    val api = client.wire[MyApi[SubscriptionManager]]
-
-    api.logs.register("conn-1")
-    api.logs.unregister("conn-1")
-
-    api.logs.send("conn-1", body = "log-message")
-    api.test("hallo").send("conn-1", body = 2)
-
-
-  //   def client[PickleType](implicit
-  //       serializer: Serializer[ClientMessage[PickleType], StringSerdes],
-  //       deserializer: Deserializer[ServerMessage[PickleType, Event, Unit], StringSerdes],
-  //   ) = clientF[PickleType, IO]
-
-    // def clientF[PickleType, F[_]: Async]
-    // (implicit
-    //     serializer: Serializer[ClientMessage[PickleType], StringSerdes],
-    //     deserializer: Deserializer[ServerMessage[PickleType, Event, Unit], StringSerdes],
-    // )
-    // = Client[PickleType, F](WebsocketTransport[Event, Unit, PickleType, F](ws, auth, eventsSubject))
-
-  //   def clientFuture[PickleType](implicit
-  //       serializer: Serializer[ClientMessage[PickleType], StringSerdes],
-  //       deserializer: Deserializer[ServerMessage[PickleType, Event, Unit], StringSerdes],
-  //   ) = Client[PickleType, Future](WebsocketTransport[Event, Unit, PickleType, IO](ws, auth, eventsSubject).map(_.unsafeToFuture()))
-  }
-
-  // object registrar {
-  //   def client[PickleType](implicit
-  //       serializer: Serializer[ClientMessage[PickleType], StringSerdes],
-  //       deserializer: Deserializer[ServerMessage[PickleType, Event, Unit], StringSerdes],
-  //   ) = clientF[PickleType, IO]
-
-  //   def clientF[PickleType, F[_]: Async](implicit
-  //       serializer: Serializer[ClientMessage[PickleType], StringSerdes],
-  //       deserializer: Deserializer[ServerMessage[PickleType, Event, Unit], StringSerdes],
-  //   ) = Client[PickleType, F](WebsocketTransport[Event, Unit, PickleType, F](ws, auth, eventsSubject))
-
-  //   def clientFuture[PickleType](implicit
-  //       serializer: Serializer[ClientMessage[PickleType], StringSerdes],
-  //       deserializer: Deserializer[ServerMessage[PickleType, Event, Unit], StringSerdes],
-  //   ) = Client[PickleType, Future](WebsocketTransport[Event, Unit, PickleType, IO](ws, auth, eventsSubject).map(_.unsafeToFuture()))
-  // }
-
-  def getConnectionIdsOfSubscription(subscriptionKey: String): IO[List[String]] = IO
+  def getConnectionIdsOfSubscription(subscriptionKey: String, nextToken: Option[Key]): IO[QueryResult[List[String]]] = IO
     .fromFuture(
       IO(
         dynamoClient.queryFuture(
@@ -122,10 +37,14 @@ class Ws[Event](tableName: String, apiGatewayEndpoint: String) {
             ExpressionAttributeValues = js.Dictionary(":subscription_key" -> AttributeValue(S = subscriptionKey)),
             KeyConditionExpression = "subscription_key = :subscription_key",
             ProjectionExpression = "connection_id",
+            ExclusiveStartKey = nextToken.orUndefined,
           ),
         ),
       ),
-    ).map(_.Items.fold(List.empty[String])(_.toList.flatMap(_.get("connection_id").flatMap(_.S.toOption))))
+    ).map { result =>
+      val items = result.Items.fold(List.empty[String])(_.flatMap(_.get("connection_id").flatMap(_.S.toOption)).toList)
+      QueryResult(nextToken = result.LastEvaluatedKey.toOption, result = items)
+    }
 
   def deleteSubscription(connectionId: String, subscriptionKey: String): IO[Unit] = IO
     .fromFuture(
@@ -164,7 +83,7 @@ class Ws[Event](tableName: String, apiGatewayEndpoint: String) {
       ),
     ).void
 
-  def getConnectionIdsOfUser(userId: String): IO[List[String]] = IO
+  def getConnectionIdsOfUser(userId: String, nextToken: Option[Key]): IO[QueryResult[List[String]]] = IO
     .fromFuture(
       IO(
         dynamoClient.queryFuture(
@@ -174,29 +93,77 @@ class Ws[Event](tableName: String, apiGatewayEndpoint: String) {
             ExpressionAttributeValues = js.Dictionary(":user_id" -> AttributeValue(S = userId)),
             KeyConditionExpression = "user_id = :user_id",
             ProjectionExpression = "connection_id",
+            ExclusiveStartKey = nextToken.orUndefined,
           ),
         ),
       ),
-    ).map(_.Items.fold(List.empty[String])(_.toList.flatMap(_.get("connection_id").flatMap(_.S.toOption))))
+    ).map { result =>
+      val items = result.Items.fold(List.empty[String])(_.toList.flatMap(_.get("connection_id").flatMap(_.S.toOption)))
+      QueryResult(nextToken = result.LastEvaluatedKey.toOption, result = items)
+    }
 
-  def sendToConnection(connectionId: String, data: Event)(implicit serializer: Serializer[ServerMessage[Unit, Event, Unit], StringSerdes]): IO[Unit] = IO.fromFuture(
+  def sendToConnection(connectionId: String, data: SubscriptionEvent)(implicit serializer: Serializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): IO[Unit] = IO.fromFuture(
       IO(
         apiClient.postToConnectionFuture(
           PostToConnectionRequest(
             ConnectionId = connectionId,
-            serializer.serialize(Notification[Event](data)).value
+            serializer.serialize(Notification[SubscriptionEvent](data)).value
           ),
         ),
       ),
     ).void
 
-  def sendToUser(userId: String, data: Event)(implicit serializer: Serializer[ServerMessage[Unit, Event, Unit], StringSerdes]): IO[Unit] =
-    getConnectionIdsOfUser(userId).flatMap { connectionIds =>
-      connectionIds.traverse(sendToConnection(_, data)).void
+  def sendToUser(userId: String, data: SubscriptionEvent)(implicit serializer: Serializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): IO[Unit] = {
+    def inner(nextToken: Option[Key]): IO[Unit] = getConnectionIdsOfUser(userId, nextToken).flatMap { queryResult =>
+      queryResult.result.traverse(sendToConnection(_, data)).void *> inner(queryResult.nextToken)
     }
 
-  def sendToSubscription(subscriptionKey: String, data: Event)(implicit serializer: Serializer[ServerMessage[Unit, Event, Unit], StringSerdes]): IO[Unit] =
-    getConnectionIdsOfSubscription(subscriptionKey).flatMap { connectionIds =>
-      connectionIds.traverse(sendToConnection(_, data)).void
+    inner(None)
+  }
+
+  //TODO: we currently just do a sequential run over the data here. we should parallelize and maybe even distribute the batches
+  def sendToSubscription(subscriptionKey: String, data: SubscriptionEvent)(implicit serializer: Serializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): IO[Unit] = {
+    def inner(nextToken: Option[Key]): IO[Unit] = getConnectionIdsOfSubscription(subscriptionKey, nextToken).flatMap { queryResult =>
+      queryResult.result.traverse(sendToConnection(_, data)).void *> inner(queryResult.nextToken)
     }
+
+    inner(None)
+  }
+}
+
+trait SubscriptionManager[T] {
+  def send(connectionId: String, body: T): IO[Unit]
+  // def register(connectionId: String): IO[Unit]
+  // def unregister(connectionId: String): IO[Unit]
+}
+object SubscriptionManager {
+  implicit def ioKleisliClientContraHandler: ClientContraHandler[SubscriptionManager] = new ClientContraHandler[SubscriptionManager] {
+    override def raiseFailure[B](failure: ClientFailure): SubscriptionManager[B] = new SubscriptionManager[B] {
+      def send(connectionId: String, body: B): IO[Unit] = IO.raiseError(failure.toException)
+      // def register(connectionId: String): IO[Unit] = IO.raiseError(failure.toException)
+      // def unregister(connectionId: String): IO[Unit] = IO.raiseError(failure.toException)
+    }
+    override def contramap[A,B](fa: SubscriptionManager[A])(f: B => A): SubscriptionManager[B] = new SubscriptionManager[B] {
+      def send(connectionId: String, body: B): IO[Unit] = fa.send(connectionId, f(body))
+      // def register(connectionId: String): IO[Unit] = fa.register(connectionId)
+      // def unregister(connectionId: String): IO[Unit] = fa.unregister(connectionId)
+    }
+  }
+}
+
+class WebsocketTransport(sendSubscription: (String, SubscriptionEvent) => IO[Unit]) extends RequestTransport[StringSerdes, SubscriptionManager] {
+  def apply(request: Request[StringSerdes]): SubscriptionManager[StringSerdes] = new SubscriptionManager[StringSerdes] {
+    def send(connectionId: String, body: StringSerdes): IO[Unit] = {
+      val subscriptionKey = s"${request.path.mkString("/")}/${request.payload}"
+      sendSubscription(subscriptionKey, SubscriptionEvent(subscriptionKey, body))
+    }
+    // def register(connectionId: String): IO[Unit] = {
+    //   val subscriptionKey = s"${request.path.mkString("/")}/${request.payload}"
+    //   storeSubscription(connectionId = connectionId, subscriptionKey = subscriptionKey)
+    // }
+    // def unregister(connectionId: String): IO[Unit] = {
+    //   val subscriptionKey = s"${request.path.mkString("/")}/${request.payload}"
+    //   deleteSubscription(connectionId = connectionId, subscriptionKey = subscriptionKey)
+    // }
+  }
 }
