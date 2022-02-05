@@ -132,19 +132,19 @@ class Ws(tableName: String, apiGatewayEndpoint: String)(implicit
 }
 
 trait SubscriptionManager[T] {
-  def send(connectionId: String, body: T): IO[Unit]
+  def send(body: T): IO[Unit]
   // def register(connectionId: String): IO[Unit]
   // def unregister(connectionId: String): IO[Unit]
 }
 object SubscriptionManager {
-  implicit def ioKleisliClientContraHandler: ClientContraHandler[SubscriptionManager] = new ClientContraHandler[SubscriptionManager] {
+  implicit def subscriptionManagerClientContraHandler: ClientContraHandler[SubscriptionManager] = new ClientContraHandler[SubscriptionManager] {
     override def raiseFailure[B](failure: ClientFailure): SubscriptionManager[B] = new SubscriptionManager[B] {
-      def send(connectionId: String, body: B): IO[Unit] = IO.raiseError(failure.toException)
+      def send(body: B): IO[Unit] = IO.raiseError(failure.toException)
       // def register(connectionId: String): IO[Unit] = IO.raiseError(failure.toException)
       // def unregister(connectionId: String): IO[Unit] = IO.raiseError(failure.toException)
     }
     override def contramap[A,B](fa: SubscriptionManager[A])(f: B => A): SubscriptionManager[B] = new SubscriptionManager[B] {
-      def send(connectionId: String, body: B): IO[Unit] = fa.send(connectionId, f(body))
+      def send(body: B): IO[Unit] = fa.send(f(body))
       // def register(connectionId: String): IO[Unit] = fa.register(connectionId)
       // def unregister(connectionId: String): IO[Unit] = fa.unregister(connectionId)
     }
@@ -153,7 +153,7 @@ object SubscriptionManager {
 
 class WebsocketTransport(sendSubscription: (String, SubscriptionEvent) => IO[Unit]) extends RequestTransport[StringSerdes, SubscriptionManager] {
   def apply(request: Request[StringSerdes]): SubscriptionManager[StringSerdes] = new SubscriptionManager[StringSerdes] {
-    def send(connectionId: String, body: StringSerdes): IO[Unit] = {
+    def send(body: StringSerdes): IO[Unit] = {
       val subscriptionKey = s"${request.path.mkString("/")}/${request.payload}"
       sendSubscription(subscriptionKey, SubscriptionEvent(subscriptionKey, body))
     }
