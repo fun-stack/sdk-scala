@@ -110,9 +110,9 @@ class Ws(tableName: String, subscriptionsTable: String, apiGatewayEndpoint: Stri
             ConnectionId = connectionId,
             serializer.serialize(Notification[SubscriptionEvent](data)).value
           ),
-        ),
-      ),
-    ).void
+        )
+      )
+    ).attempt.void //ignoring erros. Should we cleanup old ones? GoneException?
 
   def sendToUser(userId: String, data: SubscriptionEvent)(implicit serializer: Serializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): IO[Unit] = {
     def inner(nextToken: Option[Key]): IO[Unit] = getConnectionIdsOfUser(userId, nextToken).flatMap { queryResult =>
@@ -134,7 +134,7 @@ class Ws(tableName: String, subscriptionsTable: String, apiGatewayEndpoint: Stri
 
 class WebsocketTransport(sendSubscription: (String, SubscriptionEvent) => IO[Unit]) extends RequestTransport[StringSerdes, Kleisli[IO, *, Unit]] {
   def apply(request: Request[StringSerdes]): Kleisli[IO, StringSerdes, Unit] = Kleisli { body =>
-    val subscriptionKey = s"${request.path.mkString("/")}/${request.payload}"
+    val subscriptionKey = s"${request.path.mkString("/")}/${request.payload.value}"
     sendSubscription(subscriptionKey, SubscriptionEvent(subscriptionKey, body))
   }
 }

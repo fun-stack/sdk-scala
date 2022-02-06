@@ -1,13 +1,10 @@
 package funstack.web
 
-import funstack.core.{SubscriptionEvent, StringSerdes}
-import colibri.{Observer, Observable, Cancelable}
+import funstack.core.StringSerdes
+import colibri.Observable
 import sloth.{Request, RequestTransport}
-import mycelium.js.client.JsWebsocketConnection
-import mycelium.core.client.{SendType, IncidentHandler, WebsocketClientConfig, WebsocketClient}
-import mycelium.core.message.{ServerMessage, ClientMessage}
-import chameleon.{Serializer, Deserializer}
-import cats.effect.{Async, IO}
+import mycelium.core.client.{SendType, WebsocketClient}
+import cats.effect.Async
 import scala.concurrent.duration._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -26,45 +23,11 @@ object WebsocketTransport {
         )
     }
 
-  def subscriptions(client: WebsocketClient[StringSerdes, _, _], events: Observable[ControlEvent]): RequestTransport[StringSerdes, Observable] =
+  def subscriptions(eventSubscriber: EventSubscriber): RequestTransport[StringSerdes, Observable] =
     new RequestTransport[StringSerdes, Observable] {
       def apply(request: Request[StringSerdes]): Observable[StringSerdes] = {
         val subscriptionKey = s"${request.path.mkString("/")}/${request.payload.value}"
-
-        val subscribePayload = StringSerdes(s"""{"__action": "subscribe", "subscription_key": "${subscriptionKey}" }""")
-        val unsubscribePayload = StringSerdes(s"""{"__action": "unsubscribe", "subscription_key": "${subscriptionKey}" }""")
-
-        var cancelable: Cancelable = Cancelable.empty
-        def subscribe(): Unit = {
-          def inner(): Cancelable = {
-            client.rawSend(subscribePayload)
-            Cancelable(() => client.rawSend(unsubscribePayload))
-          }
-
-          cancelable.cancel()
-          cancelable = inner()
-        }
-
-        events
-          .doOnSubscribe { () =>
-            println("SUBSCRIBE")
-            subscribe()
-            Cancelable(() => cancelable.cancel())
-          }
-          .doOnNext {
-            case ControlEvent.Disconnected =>
-              println("GOT DISCONNECT")
-              cancelable = Cancelable.empty
-            case ControlEvent.Connected =>
-              println("GOT CONNECT")
-              subscribe()
-            case e =>
-              println("GOT EVENT " + e)
-              ()
-          }
-          .collect { case ControlEvent.Subscription(SubscriptionEvent(`subscriptionKey`, body)) => body }
-          .publish
-          .refCount
+        Observable.create(eventSubscriber.subscribe(subscriptionKey, _))
       }
     }
 }
