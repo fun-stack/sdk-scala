@@ -46,16 +46,25 @@ object WebsocketTransport {
         }
 
         events
-          .doOnNext {
-            case ControlEvent.Disconnected => cancelable = Cancelable.empty
-            case ControlEvent.Connected => subscribe()
-            case _ => ()
-          }
-          .collect { case ControlEvent.Subscription(SubscriptionEvent(`subscriptionKey`, body)) => body }
           .doOnSubscribe { () =>
+            println("SUBSCRIBE")
             subscribe()
             Cancelable(() => cancelable.cancel())
-          }.publish.refCount
+          }
+          .doOnNext {
+            case ControlEvent.Disconnected =>
+              println("GOT DISCONNECT")
+              cancelable = Cancelable.empty
+            case ControlEvent.Connected =>
+              println("GOT CONNECT")
+              subscribe()
+            case e =>
+              println("GOT EVENT " + e)
+              ()
+          }
+          .collect { case ControlEvent.Subscription(SubscriptionEvent(`subscriptionKey`, body)) => body }
+          .publish
+          .refCount
       }
     }
 }
