@@ -56,6 +56,7 @@ object Deps {
 }
 
 object NpmDeps {
-  val awsSdkVersion = "2.798.0"
-  val awsSdk        = "aws-sdk" -> awsSdkVersion
+  val awsSdkVersion    = "2.798.0"
+  val awsSdk           = "aws-sdk" -> awsSdkVersion
+  val jwtDecode        = "jwt-decode" -> "3.1.2"
 }

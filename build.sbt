@@ -72,28 +72,16 @@ lazy val backend = project
       Deps.cats.effect.value ::
         Deps.awsSdkJS.dynamodb.value ::
         Deps.awsSdkJS.apigatewaymanagementapi.value ::
+        Deps.awsSdkJS.cognitoidentityprovider.value ::
         Deps.sloth.value ::
         Deps.mycelium.core.value ::
         Deps.chameleon.value ::
         Nil,
   )
 
-lazy val lambdaCore = project
-  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(core)
-  .in(file("lambdaCore"))
-  .settings(commonSettings, jsSettings)
-  .settings(
-    name := "fun-stack-lambda-core",
-    libraryDependencies ++=
-      Deps.cats.effect.value ::
-        Deps.awsSdkJS.cognitoidentityprovider.value ::
-        Nil,
-  )
-
 lazy val lambdaHttp = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(core, lambdaCore)
+  .dependsOn(core)
   .in(file("lambdaHttp"))
   .settings(commonSettings, jsSettings)
   .settings(
@@ -118,7 +106,7 @@ lazy val lambdaHttp = project
 
 lazy val lambdaWs = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(core, lambdaCore)
+  .dependsOn(core)
   .in(file("lambdaWs"))
   .settings(commonSettings, jsSettings)
   .settings(
@@ -156,6 +144,7 @@ lazy val web = project
         Deps.mycelium.clientJs.value ::
         Nil,
     Compile / npmDependencies ++=
+      NpmDeps.jwtDecode ::
         Nil,
   )
 
@@ -164,4 +153,4 @@ lazy val root = project
   .settings(
     publish / skip := true,
   )
-  .aggregate(core, lambdaWs, lambdaHttp, web, backend, lambdaCore)
+  .aggregate(core, lambdaWs, lambdaHttp, web, backend)
