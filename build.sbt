@@ -78,9 +78,22 @@ lazy val backend = project
         Nil,
   )
 
-lazy val lambdaHttp = project
+lazy val lambdaCore = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(core)
+  .in(file("lambdaCore"))
+  .settings(commonSettings, jsSettings)
+  .settings(
+    name := "fun-stack-lambda-core",
+    libraryDependencies ++=
+      Deps.cats.effect.value ::
+        Deps.awsSdkJS.cognitoidentityprovider.value ::
+        Nil,
+  )
+
+lazy val lambdaHttp = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(core, lambdaCore)
   .in(file("lambdaHttp"))
   .settings(commonSettings, jsSettings)
   .settings(
@@ -105,7 +118,7 @@ lazy val lambdaHttp = project
 
 lazy val lambdaWs = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(core)
+  .dependsOn(core, lambdaCore)
   .in(file("lambdaWs"))
   .settings(commonSettings, jsSettings)
   .settings(
@@ -151,4 +164,4 @@ lazy val root = project
   .settings(
     publish / skip := true,
   )
-  .aggregate(core, lambdaWs, lambdaHttp, web, backend)
+  .aggregate(core, lambdaWs, lambdaHttp, web, backend, lambdaCore)
