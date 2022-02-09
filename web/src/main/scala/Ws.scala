@@ -22,10 +22,10 @@ class Ws[Event](ws: WsAppConfig, auth: Option[Auth[IO]]) {
   def clientF[PickleType, F[_]: Async](implicit
       serializer: Serializer[ClientMessage[PickleType], StringSerdes],
       deserializer: Deserializer[ServerMessage[PickleType, Event, Unit], StringSerdes],
-  ) = Client[PickleType, F, ClientException](WebsocketTransport[Event, Unit, PickleType, F](ws, auth, eventsSubject))
+  ) = Client[PickleType, F](WebsocketTransport[Event, Unit, PickleType, F](ws, auth, eventsSubject))
 
   def clientFuture[PickleType](implicit
       serializer: Serializer[ClientMessage[PickleType], StringSerdes],
       deserializer: Deserializer[ServerMessage[PickleType, Event, Unit], StringSerdes],
-  ) = Client[PickleType, Future, ClientException](WebsocketTransport[Event, Unit, PickleType, IO](ws, auth, eventsSubject).map(_.unsafeToFuture()))
+  ) = Client[PickleType, Future](WebsocketTransport[Event, Unit, PickleType, IO](ws, auth, eventsSubject).map(_.unsafeToFuture()))
 }
