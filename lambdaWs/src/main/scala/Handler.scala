@@ -139,10 +139,12 @@ object Handler {
       .`then`[StringSerdes](Serializer[ServerMessage[T, Unit, Failure], StringSerdes].serialize)
       .`then`[APIGatewayProxyStructuredResultV2](
         payload => APIGatewayProxyStructuredResultV2(body = payload.value, statusCode = 200),
-        ((e: Any) => APIGatewayProxyStructuredResultV2(body = e.toString, statusCode = 500)): js.Function1[Any, APIGatewayProxyStructuredResultV2],
+        { (error: Any) =>
+          println(error.toString)
+          APIGatewayProxyStructuredResultV2(body = error.toString, statusCode = 500) 
+        }: js.Function1[Any, APIGatewayProxyStructuredResultV2],
       )
       .`then`[APIGatewayProxyStructuredResultV2]({ (result: APIGatewayProxyStructuredResultV2) =>
-        println(js.JSON.stringify(result))
         result: APIGatewayProxyStructuredResultV2
       }: js.Function1[APIGatewayProxyStructuredResultV2, APIGatewayProxyStructuredResultV2])
   }
