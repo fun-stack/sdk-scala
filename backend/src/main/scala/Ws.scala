@@ -29,6 +29,7 @@ private class WsOperationsAWS(eventsSnsTopic: String) extends WsOperations {
     val serializedData = serializer.serialize(Notification[SubscriptionEvent](data))
     val params = PublishInput(
       Message = serializedData.value,
+      MessageAttributes = js.Dictionary("subscription_key" -> MessageAttributeValue(DataType = "String", StringValue = subscriptionKey)),
       TopicArn = eventsSnsTopic
     )
 
