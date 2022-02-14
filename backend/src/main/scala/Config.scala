@@ -5,7 +5,7 @@ import cats.implicits._
 
 @js.native
 trait FunDevEnvironment extends js.Object {
-  def send_subscription(subscriptionKey: String, data: String): Unit = js.native
+  def send_subscription(@annotation.nowarn subscriptionKey: String, @annotation.nowarn data: String): Unit = js.native
 }
 
 case class ConfigTyped[T](

@@ -1,7 +1,5 @@
 package funstack.backend
 
-import cats.implicits._
-
 object Fun {
   val config = Config.load()
 
