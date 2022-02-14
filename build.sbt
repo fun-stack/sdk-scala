@@ -70,8 +70,7 @@ lazy val backend = project
     name := "fun-stack-backend",
     libraryDependencies ++=
       Deps.cats.effect.value ::
-        Deps.awsSdkJS.dynamodb.value ::
-        Deps.awsSdkJS.apigatewaymanagementapi.value ::
+        Deps.awsSdkJS.sns.value ::
         Deps.awsSdkJS.cognitoidentityprovider.value ::
         Deps.sloth.value ::
         Deps.mycelium.core.value ::

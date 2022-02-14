@@ -8,9 +8,7 @@ object Fun {
   val authOption = config.cognitoUserPoolId.map(new Auth(_))
 
   val wsOption =
-    (config.apiGatewayEndpoint, config.subscriptionsTableName).mapN { (endpoint, subscriptionsTable) =>
-      new WsOperationsAWS(apiGatewayEndpoint = endpoint, subscriptionsTable = subscriptionsTable)
-    }
+    config.eventsSnsTopic.map(new WsOperationsAWS(_))
      .orElse(config.devEnvironment.map(env => new WsOperationsDev(env.send_subscription)))
      .map(new Ws(_))
 
