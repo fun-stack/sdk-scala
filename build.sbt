@@ -78,6 +78,30 @@ lazy val backend = project
         Nil,
   )
 
+lazy val lambdaEventAuthorizer = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(core)
+  .in(file("lambdaEventAuthorizer"))
+  .settings(commonSettings, jsSettings)
+  .settings(
+    name := "fun-stack-lambda-event-authorizer",
+    libraryDependencies ++=
+      Deps.cats.effect.value ::
+        Deps.awsSdkJS.sns.value ::
+        Deps.awsSdkJS.lambda.value ::
+        Deps.awsLambdaJS.value ::
+        Deps.sloth.value ::
+        Nil,
+
+    // The aws-sdk is provided in lambda environment.
+    // Not depending on it explicitly makes the bundle size smaller.
+    // But we do not know whether our facades are on the correct version.
+    /* Compile / npmDependencies ++= */
+    /*   NpmDeps.awsSdk :: */
+    /*   Nil */
+  )
+
+
 lazy val lambdaHttp = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(core)
@@ -152,4 +176,4 @@ lazy val root = project
   .settings(
     publish / skip := true,
   )
-  .aggregate(core, lambdaWs, lambdaHttp, web, backend)
+  .aggregate(core, lambdaWs, lambdaHttp, lambdaEventAuthorizer, web, backend)
