@@ -129,7 +129,7 @@ object Handler {
       case Left(error) => js.Promise.reject(new Exception(s"Deserializer: $error"))
       case Right(Ping) => js.Promise.resolve[Pong.type](Pong)
       case Right(CallRequest(seqNumber, path, payload)) =>
-        val result = router(Request(path, payload)).toEither match {
+        val result = router(Request(path, payload)) match {
           case Right(result) => execute(result, request).map[ServerMessage[T, Unit, Failure]](CallResponse(seqNumber, _))
           case Left(error)   => Future.failed(new Exception(s"Server Failure - ${error}"))
         }

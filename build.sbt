@@ -74,7 +74,6 @@ lazy val backend = project
         Deps.awsSdkJS.cognitoidentityprovider.value ::
         Deps.sloth.value ::
         Deps.mycelium.core.value ::
-        Deps.chameleon.value ::
         Nil,
   )
 
@@ -91,6 +90,7 @@ lazy val lambdaEventAuthorizer = project
         Deps.awsSdkJS.lambda.value ::
         Deps.awsLambdaJS.value ::
         Deps.sloth.value ::
+        Deps.mycelium.core.value ::
         Nil,
 
     // The aws-sdk is provided in lambda environment.

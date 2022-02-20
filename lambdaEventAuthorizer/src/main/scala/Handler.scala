@@ -3,10 +3,11 @@ package funstack.lambda.eventauthorizer
 import net.exoego.facade.aws_lambda._
 import facade.amazonaws.services.sns._
 
-import funstack.core.StringSerdes
+import funstack.core.{SubscriptionEvent, StringSerdes}
+import mycelium.core.message._
 import scala.scalajs.js
 import sloth._
-import chameleon.{Serializer, Deserializer}
+import chameleon.Deserializer
 import scala.scalajs.js.JSConverters._
 import cats.effect.IO
 import cats.data.Kleisli
@@ -15,7 +16,6 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object Handler {
-  private implicit val cs  = IO.contextShift(scala.concurrent.ExecutionContext.global)
 
   case class EventAuth(sub: String)
   case class EventRequest(auth: Option[EventAuth])
@@ -34,45 +34,46 @@ object Handler {
 
   def handleFunc(
       router: Router[StringSerdes, IOFunc],
-  ): FunctionType = handleFWithContext[IOFunc](router, (f, arg, ctx) => f(ctx, arg).unsafeToFuture())
+  )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = handleFWithContext[IOFunc](router, (f, arg, ctx) => f(ctx, arg).unsafeToFuture())
 
   def handleKleisli(
       router: Router[StringSerdes, IOKleisli],
-  ): FunctionType = handleFWithContext[IOKleisli](router, (f, arg, ctx) => f(ctx -> arg).unsafeToFuture())
+  )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = handleFWithContext[IOKleisli](router, (f, arg, ctx) => f(ctx -> arg).unsafeToFuture())
 
   def handleFutureKleisli(
       router: Router[StringSerdes, FutureKleisli],
-  ): FunctionType = handleFWithContext[FutureKleisli](router, (f, arg, ctx) => f(ctx -> arg))
+  )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = handleFWithContext[FutureKleisli](router, (f, arg, ctx) => f(ctx -> arg))
 
   def handleFutureFunc(
       router: Router[StringSerdes, FutureFunc],
-  ): FunctionType = handleFWithContext[FutureFunc](router, (f, arg, ctx) => f(ctx, arg))
+  )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = handleFWithContext[FutureFunc](router, (f, arg, ctx) => f(ctx, arg))
 
   def handleFunc(
       router: EventRequest => Router[StringSerdes, IOFunc1],
-      ): FunctionType = handleFCustom[IOFunc1](router, (f, arg, _) => f(arg).unsafeToFuture())
+      )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = handleFCustom[IOFunc1](router, (f, arg, _) => f(arg).unsafeToFuture())
 
   def handleKleisli(
     router: EventRequest => Router[StringSerdes, IOKleisli1],
-    ): FunctionType = handleFCustom[IOKleisli1](router, (f, arg, _) => f(arg).unsafeToFuture())
+    )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = handleFCustom[IOKleisli1](router, (f, arg, _) => f(arg).unsafeToFuture())
 
   def handleFutureKleisli(
     router: EventRequest => Router[StringSerdes, FutureKleisli1],
-    ): FunctionType = handleFCustom[FutureKleisli1](router, (f, arg, _) => f(arg))
+    )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = handleFCustom[FutureKleisli1](router, (f, arg, _) => f(arg))
 
   def handleFutureFunc(
     router: EventRequest => Router[StringSerdes, FutureFunc1],
-  ): FunctionType = handleFCustom[FutureFunc1](router, (f, arg, _) => f(arg))
+  )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = handleFCustom[FutureFunc1](router, (f, arg, _) => f(arg))
 
   def handleFWithContext[F[_]](
       router: Router[StringSerdes, F],
       execute: (F[StringSerdes], StringSerdes, EventRequest) => Future[Boolean],
-  ): FunctionType = handleFCustom[F](_ => router, execute)
+  )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = handleFCustom[F](_ => router, execute)
 
   def handleFCustom[F[_]](
       routerf: EventRequest => Router[StringSerdes, F],
       execute: (F[StringSerdes], StringSerdes, EventRequest) => Future[Boolean],
-  ): FunctionType = {
+  )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = {
+    println("GO")
     val config = Config.load()
 
     val sendEvent: (String, String) => Future[Unit] = (config.eventsSnsTopic, config.devEnvironment) match {
@@ -107,21 +108,23 @@ object Handler {
       println(js.JSON.stringify(context))
 
       val record = event.Records(0)
-      val subscriptionKey = record.Sns.MessageAttributes.get("subscripion_key")
+      // val subscriptionKey = record.Sns.MessageAttributes.get("subscripion_key")
 
       val auth = record.Sns.MessageAttributes.get("user_id").map { attr =>
         EventAuth(sub = attr.Value)
       }
       val request = EventRequest(auth)
       val router = routerf(request)
-      val result: Future[Boolean] = subscriptionKey match {
-        case None => Future.failed(new Exception("Missing subscription_key"))
-        case Some(key) =>
-          val Array(a, b, arg) = key.Value.split("/")
-          router(Request(List(a,b), StringSerdes(arg))).toEither match {
-            case Right(result) => execute(result, StringSerdes(record.Sns.Message), request)
+
+      val result: Future[Boolean] = deserializer.deserialize(StringSerdes(record.Sns.Message)) match {
+        case Right(n: Notification[SubscriptionEvent]) =>
+          val Array(a, b, arg) = n.event.subscriptionKey.split("/")
+          router(Request(List(a,b), StringSerdes(arg))) match {
+            case Right(result) => execute(result, n.event.body, request)
             case Left(error)   => Future.failed(new Exception(s"Server Failure - ${error}"))
           }
+        case Right(s) => Future.failed(new Exception(s"Unexpected event body: $s"))
+        case Left(error) => Future.failed(new Exception(s"Deserialization Error - ${error}"))
       }
 
       result
