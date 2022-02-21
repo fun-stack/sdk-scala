@@ -73,7 +73,6 @@ object Handler {
       routerf: EventRequest => Router[StringSerdes, F],
       execute: (F[StringSerdes], StringSerdes, EventRequest) => Future[Boolean],
   )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = {
-    println("GO")
     val config = Config.load()
 
     val sendEvent: (String, String) => Future[Unit] = (config.eventsSnsTopic, config.devEnvironment) match {
@@ -104,8 +103,8 @@ object Handler {
     }
 
     { (event, context) =>
-      println(js.JSON.stringify(event))
-      println(js.JSON.stringify(context))
+      // println(js.JSON.stringify(event))
+      // println(js.JSON.stringify(context))
 
       val record = event.Records(0)
 
