@@ -108,17 +108,17 @@ object Handler {
       println(js.JSON.stringify(context))
 
       val record = event.Records(0)
-      // val subscriptionKey = record.Sns.MessageAttributes.get("subscripion_key")
 
-      val auth = record.Sns.MessageAttributes.get("user_id").map { attr =>
-        EventAuth(sub = attr.Value)
-      }
+      val auth = record.Sns.MessageAttributes.get("user_id").map { attr => EventAuth(sub = attr.Value) }
       val request = EventRequest(auth)
       val router = routerf(request)
 
       val result: Future[Boolean] = deserializer.deserialize(StringSerdes(record.Sns.Message)) match {
         case Right(n: Notification[SubscriptionEvent]) =>
-          val Array(a, b, arg) = n.event.subscriptionKey.split("/")
+          val (a, b, arg) = n.event.subscriptionKey.split("/") match {
+            case Array(a, b) => (a, b, "")
+            case Array(a, b, arg) => (a, b, arg)
+          }
           router(Request(List(a,b), StringSerdes(arg))) match {
             case Right(result) => execute(result, n.event.body, request)
             case Left(error)   => Future.failed(new Exception(s"Server Failure - ${error}"))
