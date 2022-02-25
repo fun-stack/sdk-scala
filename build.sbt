@@ -56,7 +56,6 @@ lazy val core = project
   .settings(
     name := "fun-stack-core",
     libraryDependencies ++=
-      Deps.base64.value ::
         Deps.chameleon.value ::
         Nil,
   )
