@@ -27,9 +27,6 @@ object Deps {
     val clientJs = s("com.github.cornerman" %%% "mycelium-client-js" % version)
   }
 
-  // utils
-  val base64 = s("com.github.marklister" %%% "base64" % "0.3.0")
-
   // js utils
   val jsTime = s("io.github.cquiroz" %%% "scala-java-time" % "2.3.0")
 
