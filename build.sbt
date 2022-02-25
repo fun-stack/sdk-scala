@@ -169,10 +169,3 @@ lazy val web = project
       NpmDeps.jwtDecode ::
         Nil,
   )
-
-lazy val root = project
-  .in(file("."))
-  .settings(
-    publish / skip := true,
-  )
-  .aggregate(core, lambdaWs, lambdaHttp, lambdaEventAuthorizer, web, backend)
