@@ -1,4 +1,4 @@
-package funstack.lambda.http
+package funstack.lambda.http.tapir
 
 import cats.effect.Sync
 import cats.implicits._
@@ -67,7 +67,7 @@ object LambdaToResponseBody extends ToResponseBody[APIGatewayProxyStructuredResu
 }
 
 object LambdaServerInterpreter {
-  import funstack.lambda.http.implicits._
+  import funstack.lambda.http.tapir.implicits._
 
   def apply[F[_]: Sync](event: APIGatewayProxyEventV2) = new ServerInterpreter(
     requestBody = new LambdaRequestBody[F](event),
