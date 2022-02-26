@@ -1,4 +1,4 @@
-package funstack.lambda.http
+package funstack.lambda.http.tapir
 
 import net.exoego.facade.aws_lambda._
 import cats.data.Kleisli

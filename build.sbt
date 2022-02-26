@@ -100,14 +100,13 @@ lazy val lambdaEventAuthorizer = project
     /*   Nil */
   )
 
-
-lazy val lambdaHttp = project
+lazy val lambdaHttpTapir = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(core)
-  .in(file("lambdaHttp"))
+  .in(file("lambdaHttpTapir"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-lambda-http",
+    name := "fun-stack-lambda-http-tapir",
     libraryDependencies ++=
       Deps.cats.effect.value ::
         Deps.awsSdkJS.lambda.value ::
@@ -125,6 +124,29 @@ lazy val lambdaHttp = project
     /*   NpmDeps.awsSdk :: */
     /*   Nil */
   )
+
+/* lazy val lambdaHttp = project */
+/*   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin) */
+/*   .dependsOn(core) */
+/*   .in(file("lambdaHttp")) */
+/*   .settings(commonSettings, jsSettings) */
+/*   .settings( */
+/*     name := "fun-stack-lambda-http", */
+/*     libraryDependencies ++= */
+/*       Deps.cats.effect.value :: */
+/*         Deps.awsSdkJS.lambda.value :: */
+/*         Deps.awsLambdaJS.value :: */
+/*         /1* Deps.sttp.openApi.value :: *1/ */
+/*         /1* Deps.sttp.circeOpenApi.value :: *1/ */
+/*         Nil, */
+
+/*     // The aws-sdk is provided in lambda environment. */
+/*     // Not depending on it explicitly makes the bundle size smaller. */
+/*     // But we do not know whether our facades are on the correct version. */
+/*     /1* Compile / npmDependencies ++= *1/ */
+/*     /1*   NpmDeps.awsSdk :: *1/ */
+/*     /1*   Nil *1/ */
+/*   ) */
 
 lazy val lambdaWs = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)

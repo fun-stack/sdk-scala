@@ -1,4 +1,4 @@
-package funstack.lambda.http
+package funstack.lambda.http.tapir
 
 import sttp.monad.{MonadError => SttpMonadError}
 import cats.effect.Sync
