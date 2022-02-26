@@ -82,7 +82,7 @@ class LambdaServerRequest(event: APIGatewayProxyEventV2) extends ServerRequest {
   def connectionInfo: ConnectionInfo = ConnectionInfo(local = None, remote = None, secure = None) // TODO?
   def underlying: Any                = event
 
-  def pathSegments: List[String]   = event.requestContext.http.path.split("/").toList.tail.tail
+  def pathSegments: List[String]   = event.requestContext.http.path.split("/").toList.drop(2)
   def queryParameters: QueryParams = QueryParams.fromMap(event.queryStringParameters.fold(Map.empty[String, String])(_.toMap))
 
   def headers: Seq[Header] = event.headers.map { case (key, value) => Header(key, value) }.toSeq
