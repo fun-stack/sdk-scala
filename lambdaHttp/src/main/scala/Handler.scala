@@ -4,13 +4,19 @@ import net.exoego.facade.aws_lambda._
 import cats.data.Kleisli
 import cats.effect.{IO, Sync, ExitCase}
 import cats.implicits._
+import sttp.tapir._
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.interceptor.RequestResult
+import sttp.tapir.serverless.aws.lambda._
+import sttp.tapir.serverless.aws.lambda.js._
+
 import scala.concurrent.Future
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
 import scala.concurrent.ExecutionContext.Implicits.global
+
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 object Handler {
   import SyncInstances._
@@ -101,6 +107,31 @@ object Handler {
     }
 
     execute(run, request).toJSPromise
+  }
+
+  def handleFCustom2(
+      endpointsf: HttpRequest => List[ServerEndpoint[_, Future]],
+      execute: (F[APIGatewayProxyStructuredResultV2], HttpRequest) => Future[APIGatewayProxyStructuredResultV2],
+  ): FunctionType = { (event, context) =>
+    // println(js.JSON.stringify(event))
+    // println(js.JSON.stringify(context))
+
+    val auth = event.requestContext.authorizer.toOption.flatMap { auth =>
+      val authDict = auth.asInstanceOf[js.Dictionary[js.Dictionary[String]]]
+      for {
+        claims <- authDict.get("lambda")
+        sub <- claims.get("sub")
+        username <- claims.get("username")
+      } yield HttpAuth(sub = sub, username = username)
+    }
+    val request = HttpRequest(event, context, auth)
+    val endpoints   = endpointsf(request)
+
+    val options: AwsServerOptions[Future] = AwsFutureServerOptions.default.copy(encodeResponseBody = false)
+
+    val route: Route[Future] = AwsFutureServerInterpreter(options).toRoute(endpoints)
+
+    AwsJsRouteHandler.futureHandler(event.asInstanceOf[AwsJsRequest], route)
   }
 }
 

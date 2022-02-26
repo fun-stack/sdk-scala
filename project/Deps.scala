@@ -34,9 +34,8 @@ object Deps {
   val sttp = new {
     val version      = "0.19.0"
     val core         = s("com.softwaremill.sttp.tapir" %%% "tapir-core" % version)
+    val lambda       = s("com.softwaremill.sttp.tapir" %%% "tapir-aws-lambda" % version)
     val circe        = s("com.softwaremill.sttp.tapir" %%% "tapir-json-circe" % version)
-    val openApi      = s("com.softwaremill.sttp.tapir" %% "tapir-openapi-docs" % version)
-    val circeOpenApi = s("com.softwaremill.sttp.tapir" %% "tapir-openapi-circe-yaml" % version)
     val jsClient     = s("com.softwaremill.sttp.tapir" %%% "tapir-sttp-client" % version)
     val catsClient   = s("com.softwaremill.sttp.client3" %%% "catsce2" % "3.4.1")
   }

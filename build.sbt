@@ -83,6 +83,7 @@ lazy val lambdaEventAuthorizer = project
   .settings(commonSettings, jsSettings)
   .settings(
     name := "fun-stack-lambda-event-authorizer",
+
     libraryDependencies ++=
       Deps.cats.effect.value ::
         Deps.awsSdkJS.sns.value ::
@@ -108,14 +109,14 @@ lazy val lambdaHttp = project
   .settings(commonSettings, jsSettings)
   .settings(
     name := "fun-stack-lambda-http",
+
     libraryDependencies ++=
       Deps.cats.effect.value ::
         Deps.awsSdkJS.lambda.value ::
         Deps.awsLambdaJS.value ::
         Deps.sttp.core.value ::
+        Deps.sttp.lambda.value ::
         Deps.sttp.circe.value ::
-        /* Deps.sttp.openApi.value :: */
-        /* Deps.sttp.circeOpenApi.value :: */
         Nil,
 
     // The aws-sdk is provided in lambda environment.
@@ -133,6 +134,7 @@ lazy val lambdaWs = project
   .settings(commonSettings, jsSettings)
   .settings(
     name := "fun-stack-lambda-ws",
+
     libraryDependencies ++=
       Deps.sloth.value ::
         Deps.cats.effect.value ::
@@ -156,6 +158,7 @@ lazy val web = project
   .settings(commonSettings, jsSettings)
   .settings(
     name := "fun-stack-web",
+
     libraryDependencies ++=
       Deps.sloth.value ::
         Deps.cats.effect.value ::
@@ -165,6 +168,7 @@ lazy val web = project
         Deps.sttp.catsClient.value ::
         Deps.mycelium.clientJs.value ::
         Nil,
+
     Compile / npmDependencies ++=
       NpmDeps.jwtDecode ::
         Nil,
