@@ -6,6 +6,7 @@ import cats.effect.{IO, Sync, ExitCase}
 import cats.implicits._
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.interceptor.RequestResult
+import funstack.lambda.http.core.HandlerFunction
 import scala.concurrent.Future
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
@@ -18,7 +19,7 @@ object Handler {
   case class HttpAuth(sub: String, username: String)
   case class HttpRequest(event: APIGatewayProxyEventV2, context: Context, auth: Option[HttpAuth])
 
-  type FunctionType = js.Function2[APIGatewayProxyEventV2, Context, js.Promise[APIGatewayProxyStructuredResultV2]]
+  type FunctionType = HandlerFunction.Type
 
   type FutureFunc[Out]    = HttpRequest => Future[Out]
   type FutureKleisli[Out] = Kleisli[Future, HttpRequest, Out]

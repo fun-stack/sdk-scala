@@ -86,7 +86,6 @@ lazy val lambdaEventAuthorizer = project
     libraryDependencies ++=
       Deps.cats.effect.value ::
         Deps.awsSdkJS.sns.value ::
-        Deps.awsSdkJS.lambda.value ::
         Deps.awsLambdaJS.value ::
         Deps.sloth.value ::
         Deps.mycelium.core.value ::
@@ -100,18 +99,35 @@ lazy val lambdaEventAuthorizer = project
     /*   Nil */
   )
 
-lazy val lambdaHttpTapir = project
+lazy val lambdaHttpCore = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(core)
+  .in(file("lambdaHttpCore"))
+  .settings(commonSettings, jsSettings)
+  .settings(
+    name := "fun-stack-lambda-http-core",
+    libraryDependencies ++=
+      Deps.cats.effect.value ::
+        Deps.awsLambdaJS.value ::
+        Nil,
+
+    // The aws-sdk is provided in lambda environment.
+    // Not depending on it explicitly makes the bundle size smaller.
+    // But we do not know whether our facades are on the correct version.
+    /* Compile / npmDependencies ++= */
+    /*   NpmDeps.awsSdk :: */
+    /*   Nil */
+  )
+
+lazy val lambdaHttpTapir = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(core, lambdaHttpCore)
   .in(file("lambdaHttpTapir"))
   .settings(commonSettings, jsSettings)
   .settings(
     name := "fun-stack-lambda-http-tapir",
     libraryDependencies ++=
-      Deps.cats.effect.value ::
-        Deps.awsSdkJS.lambda.value ::
-        Deps.awsLambdaJS.value ::
-        Deps.sttp.core.value ::
+      Deps.sttp.core.value ::
         Deps.sttp.circe.value ::
         /* Deps.sttp.openApi.value :: */
         /* Deps.sttp.circeOpenApi.value :: */
@@ -125,28 +141,24 @@ lazy val lambdaHttpTapir = project
     /*   Nil */
   )
 
-/* lazy val lambdaHttp = project */
-/*   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin) */
-/*   .dependsOn(core) */
-/*   .in(file("lambdaHttp")) */
-/*   .settings(commonSettings, jsSettings) */
-/*   .settings( */
-/*     name := "fun-stack-lambda-http", */
-/*     libraryDependencies ++= */
-/*       Deps.cats.effect.value :: */
-/*         Deps.awsSdkJS.lambda.value :: */
-/*         Deps.awsLambdaJS.value :: */
-/*         /1* Deps.sttp.openApi.value :: *1/ */
-/*         /1* Deps.sttp.circeOpenApi.value :: *1/ */
-/*         Nil, */
+lazy val lambdaHttp = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(core, lambdaHttpCore)
+  .in(file("lambdaHttp"))
+  .settings(commonSettings, jsSettings)
+  .settings(
+    name := "fun-stack-lambda-http",
+    libraryDependencies ++=
+      Deps.sloth.value ::
+        Nil,
 
-/*     // The aws-sdk is provided in lambda environment. */
-/*     // Not depending on it explicitly makes the bundle size smaller. */
-/*     // But we do not know whether our facades are on the correct version. */
-/*     /1* Compile / npmDependencies ++= *1/ */
-/*     /1*   NpmDeps.awsSdk :: *1/ */
-/*     /1*   Nil *1/ */
-/*   ) */
+    // The aws-sdk is provided in lambda environment.
+    // Not depending on it explicitly makes the bundle size smaller.
+    // But we do not know whether our facades are on the correct version.
+    /* Compile / npmDependencies ++= */
+    /*   NpmDeps.awsSdk :: */
+    /*   Nil */
+  )
 
 lazy val lambdaWs = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
@@ -159,7 +171,6 @@ lazy val lambdaWs = project
       Deps.sloth.value ::
         Deps.cats.effect.value ::
         Deps.mycelium.core.value ::
-        Deps.awsSdkJS.lambda.value ::
         Deps.awsLambdaJS.value ::
         Nil,
 
@@ -187,6 +198,7 @@ lazy val web = project
         Deps.sttp.catsClient.value ::
         Deps.mycelium.clientJs.value ::
         Nil,
+
     Compile / npmDependencies ++=
       NpmDeps.jwtDecode ::
         Nil,
