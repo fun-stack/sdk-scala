@@ -2,6 +2,7 @@ package funstack.lambda.ws
 
 import net.exoego.facade.aws_lambda._
 
+import funstack.lambda.core.{HandlerRequest, AuthInfo}
 import funstack.core.StringSerdes
 import scala.scalajs.js
 import mycelium.core.message._
@@ -11,13 +12,13 @@ import scala.scalajs.js.JSConverters._
 import cats.effect.IO
 import cats.data.Kleisli
 import scala.concurrent.Future
+import scala.util.control.NonFatal
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object Handler {
 
-  case class WsAuth(sub: String, username: String)
-  case class WsRequest(event: APIGatewayWSEvent, context: Context, auth: Option[WsAuth])
+  type WsRequest = HandlerRequest[APIGatewayWSEvent]
 
   type FunctionType = js.Function2[APIGatewayWSEvent, Context, js.Promise[APIGatewayProxyStructuredResultV2]]
 
@@ -120,40 +121,38 @@ object Handler {
       for {
         sub <- claims.get("sub")
         username <- claims.get("username")
-      } yield WsAuth(sub = sub, username = username)
+      } yield AuthInfo(sub = sub, username = username)
     }
-    val request = WsRequest(event, context, auth)
+    val request = HandlerRequest(event, context, auth)
     val router = routerf(request)
 
-    val result: js.Promise[ServerMessage[T, Unit, Failure]] = Deserializer[ClientMessage[T], StringSerdes].deserialize(StringSerdes(event.body)) match {
-      case Left(error) => js.Promise.reject(new Exception(s"Deserializer: $error"))
-      case Right(Ping) => js.Promise.resolve[Pong.type](Pong)
+    val result = Deserializer[ClientMessage[T], StringSerdes].deserialize(StringSerdes(event.body)) match {
+      case Left(error) => Future.failed(error)
+
+      case Right(Ping) => Future.successful(Pong)
+
       case Right(CallRequest(seqNumber, path, payload)) =>
         val result = router(Request(path, payload)) match {
           case Right(result) => execute(result, request).map[ServerMessage[T, Unit, Failure]] {
             case Right(value) => CallResponse(seqNumber, value)
             case Left(failure) => CallResponseFailure(seqNumber, failure)
           }
-          case Left(error)   => Future.failed(new Exception(s"Server Failure - ${error}"))
+          case Left(serverFailure)   => Future.failed(serverFailure.toException)
         }
 
-        result.recover { case t =>
-          println(s"Error handling request: $t")
+        result.recover { case NonFatal(t) =>
+          println(s"Request Error: $t")
           CallResponseException(seqNumber)
-        }.toJSPromise
+        }
     }
 
     result
-      .`then`[StringSerdes](Serializer[ServerMessage[T, Unit, Failure], StringSerdes].serialize)
-      .`then`[APIGatewayProxyStructuredResultV2](
-        payload => APIGatewayProxyStructuredResultV2(body = payload.value, statusCode = 200),
-        { (error: Any) =>
-          println(error.toString)
-          APIGatewayProxyStructuredResultV2(body = error.toString, statusCode = 500) 
-        }: js.Function1[Any, APIGatewayProxyStructuredResultV2],
-      )
-      .`then`[APIGatewayProxyStructuredResultV2]({ (result: APIGatewayProxyStructuredResultV2) =>
-        result: APIGatewayProxyStructuredResultV2
-      }: js.Function1[APIGatewayProxyStructuredResultV2, APIGatewayProxyStructuredResultV2])
+      .map { message =>
+        val serialized = Serializer[ServerMessage[T, Unit, Failure], StringSerdes].serialize(message)
+        APIGatewayProxyStructuredResultV2(body = serialized.value, statusCode = 200)
+      }.recover { case NonFatal(t) =>
+        println(s"Bad Request: $t")
+        APIGatewayProxyStructuredResultV2(body = "Bad Request", statusCode = 400)
+      }.toJSPromise
   }
 }

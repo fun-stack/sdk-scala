@@ -102,7 +102,7 @@ object Handler {
         }
     }
 
-    { (event, context) =>
+    { (event, _) =>
       // println(js.JSON.stringify(event))
       // println(js.JSON.stringify(context))
 
@@ -117,6 +117,7 @@ object Handler {
           val (a, b, arg) = n.event.subscriptionKey.split("/") match {
             case Array(a, b) => (a, b, "")
             case Array(a, b, arg) => (a, b, arg)
+            case _ => ???
           }
           router(Request(List(a,b), StringSerdes(arg))) match {
             case Right(result) => execute(result, n.event.body, request)

@@ -7,6 +7,7 @@ import scala.concurrent.Future
 
 import colibri._
 import mycelium.js.client.JsWebsocketConnection
+import mycelium.core.{Cancelable => MyceliumCancelable}
 import mycelium.core.client.{WebsocketClientConfig, WebsocketClient, WebsocketClientWithPayload}
 import mycelium.core.message.{ServerMessage, ClientMessage}
 import cats.effect.{Async, IO}
@@ -18,33 +19,31 @@ class Ws(ws: WsAppConfig, auth: Option[Auth[IO]]) {
   import SlothInstances._
   import MyceliumInstances._
 
-  private var wsClient: Option[WebsocketClient[StringSerdes, SubscriptionEvent, Unit]] = None
+  private var wsClientConnection: Option[(Cancelable, WebsocketClient[StringSerdes, SubscriptionEvent, Unit])] = None
+  private def wsClient = wsClientConnection.map(_._2)
 
   def start(implicit
     serializer: Serializer[ClientMessage[StringSerdes], StringSerdes],
     deserializer: Deserializer[ServerMessage[StringSerdes, SubscriptionEvent, Unit], StringSerdes],
   ): IO[Unit] = IO {
-    wsClient match {
-      case None =>
-        wsClient = Some(createWsClient())
-      case Some(_) => ()
-    }
+    wsClientConnection.foreach(_._1.cancel())
+    wsClientConnection = Some(createWsClient())
   }
 
   private val eventSubscriber = new EventSubscriber(x => wsClient.foreach(_.rawSend(x)))
 
   def client = clientF[IO]
 
-  def clientF[F[_]: Async] = Client[StringSerdes, F](WebsocketTransport[StringSerdes, F]((a,b,c,d) => wsClient.map(_.send(a,b,c,d))))
+  def clientF[F[_]: Async] = Client[StringSerdes, F](WsTransport[StringSerdes, F]((a,b,c,d) => wsClient.map(_.send(a,b,c,d))))
 
-  def clientFuture = Client[StringSerdes, Future](WebsocketTransport[StringSerdes, IO]((a,b,c,d) => wsClient.map(_.send(a,b,c,d))).map(_.unsafeToFuture()))
+  def clientFuture = Client[StringSerdes, Future](WsTransport[StringSerdes, IO]((a,b,c,d) => wsClient.map(_.send(a,b,c,d))).map(_.unsafeToFuture()))
 
-  val subscriptionsClient = Client[StringSerdes, Observable](WebsocketTransport.subscriptions(eventSubscriber))
+  val subscriptionsClient = Client[StringSerdes, Observable](WsTransport.subscriptions(eventSubscriber))
 
   private def createWsClient()(implicit
     serializer: Serializer[ClientMessage[StringSerdes], StringSerdes],
     deserializer: Deserializer[ServerMessage[StringSerdes, SubscriptionEvent, Unit], StringSerdes],
-  ): WebsocketClientWithPayload[StringSerdes, StringSerdes, SubscriptionEvent, Unit] = {
+  ): (Cancelable, WebsocketClientWithPayload[StringSerdes, StringSerdes, SubscriptionEvent, Unit]) = {
     val wsClient = WebsocketClient[StringSerdes, SubscriptionEvent, Unit](
         new JsWebsocketConnection[StringSerdes],
         WebsocketClientConfig(
@@ -54,35 +53,32 @@ class Ws(ws: WsAppConfig, auth: Option[Auth[IO]]) {
         ),
         eventSubscriber
       )
-  var currentUser: Option[User] = None
-  //TODO..
-  auth.fold(Cancelable(wsClient.run(ws.url).cancel))(
-    _.currentUser
-      .scan[(Cancelable, Option[User])]((Cancelable.empty, None)) { (current, user) =>
-        currentUser = user
-        val (cancelable, prevUser) = current
-        val newCancelable = (prevUser, user) match {
-          case (Some(prevUser), Some(user)) if prevUser.info.sub == user.info.sub =>
-            cancelable
-          case (_, Some(_)) =>
-            cancelable.cancel()
-            val cancel = wsClient.run { () =>
-              s"${ws.url}/?token=${currentUser.fold("")(_.token.access_token)}"
-            }
-            Cancelable(cancel.cancel)
-          case (_, None) if ws.allowUnauthenticated =>
-            cancelable.cancel()
-            val cancel = wsClient.run(ws.url)
-            Cancelable(cancel.cancel)
-          case (_, None) =>
-            cancelable.cancel()
-            Cancelable.empty
-        }
 
-        (newCancelable, user)
-      }.subscribe(),
-  )
-   wsClient
+    var currentUser: Option[User] = None
+    var connectionCancelable = MyceliumCancelable.empty
+
+    def runServer(): Unit = {
+      connectionCancelable.cancel()
+      connectionCancelable =
+        if (currentUser.isEmpty && !ws.allowUnauthenticated) MyceliumCancelable.empty
+        else wsClient.run { () =>
+          val tokenParam = currentUser.fold("")(user => s"?token=${user.token.access_token}")
+          s"${ws.url}/${tokenParam}"
+        }
+    }
+
+    val subscriptionCancelable = auth match {
+      case None =>
+        runServer()
+        Cancelable.empty
+      case Some(auth) => auth.currentUser.foreach { user =>
+        val prevUser = currentUser
+        currentUser = user
+        if (connectionCancelable == MyceliumCancelable.empty || prevUser.map(_.info.sub) != user.map(_.info.sub)) runServer()
+      }
+    }
+
+    (Cancelable.composite(Cancelable(() => connectionCancelable.cancel()), subscriptionCancelable), wsClient)
   }
 }
 private object MyceliumInstances {

@@ -1,12 +1,12 @@
 package funstack.lambda.http.tapir
 
+import funstack.lambda.core.{HandlerFunction, HandlerRequest, AuthInfo}
 import net.exoego.facade.aws_lambda._
 import cats.data.Kleisli
 import cats.effect.{IO, Sync, ExitCase}
 import cats.implicits._
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.interceptor.RequestResult
-import funstack.lambda.http.core.HandlerFunction
 import scala.concurrent.Future
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
@@ -16,10 +16,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object Handler {
   import SyncInstances._
 
-  case class HttpAuth(sub: String, username: String)
-  case class HttpRequest(event: APIGatewayProxyEventV2, context: Context, auth: Option[HttpAuth])
+  type HttpRequest = HandlerRequest[APIGatewayProxyEventV2]
 
-  type FunctionType = HandlerFunction.Type
+  type FunctionType = HandlerFunction.Type[APIGatewayProxyEventV2]
 
   type FutureFunc[Out]    = HttpRequest => Future[Out]
   type FutureKleisli[Out] = Kleisli[Future, HttpRequest, Out]
@@ -86,9 +85,9 @@ object Handler {
         claims <- authDict.get("lambda")
         sub <- claims.get("sub")
         username <- claims.get("username")
-      } yield HttpAuth(sub = sub, username = username)
+      } yield AuthInfo(sub = sub, username = username)
     }
-    val request = HttpRequest(event, context, auth)
+    val request = HandlerRequest(event, context, auth)
     val endpoints   = endpointsf(request)
     val interpreter = LambdaServerInterpreter[F](event)
 
