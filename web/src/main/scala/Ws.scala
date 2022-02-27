@@ -35,11 +35,11 @@ class Ws(ws: WsAppConfig, auth: Option[Auth[IO]]) {
 
   def client = clientF[IO]
 
-  def clientF[F[_]: Async] = Client[StringSerdes, F](WebsocketTransport[StringSerdes, F]((a,b,c,d) => wsClient.map(_.send(a,b,c,d))))
+  def clientF[F[_]: Async] = Client[StringSerdes, F](WsTransport[StringSerdes, F]((a,b,c,d) => wsClient.map(_.send(a,b,c,d))))
 
-  def clientFuture = Client[StringSerdes, Future](WebsocketTransport[StringSerdes, IO]((a,b,c,d) => wsClient.map(_.send(a,b,c,d))).map(_.unsafeToFuture()))
+  def clientFuture = Client[StringSerdes, Future](WsTransport[StringSerdes, IO]((a,b,c,d) => wsClient.map(_.send(a,b,c,d))).map(_.unsafeToFuture()))
 
-  val subscriptionsClient = Client[StringSerdes, Observable](WebsocketTransport.subscriptions(eventSubscriber))
+  val subscriptionsClient = Client[StringSerdes, Observable](WsTransport.subscriptions(eventSubscriber))
 
   private def createWsClient()(implicit
     serializer: Serializer[ClientMessage[StringSerdes], StringSerdes],

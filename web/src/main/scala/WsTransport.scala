@@ -10,7 +10,7 @@ import scala.concurrent.duration._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-private object WebsocketTransport {
+private object WsTransport {
 
   def apply[PickleType, F[_]: Async](send: (List[String], PickleType, SendType, FiniteDuration) => Option[Future[Either[Unit, PickleType]]]): RequestTransport[PickleType, F] =
     new RequestTransport[PickleType, F] {
