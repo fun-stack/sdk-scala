@@ -4,6 +4,7 @@ import cats.effect.Sync
 import cats.implicits._
 import sttp.tapir._
 import sttp.tapir.server.interpreter._
+import sttp.tapir.server.ServerEndpoint
 import sttp.capabilities.Streams
 import sttp.tapir.model.{ServerRequest, ConnectionInfo}
 import sttp.model.{QueryParams, HasHeaders, Header, Method, Uri}
@@ -69,8 +70,8 @@ object LambdaToResponseBody extends ToResponseBody[APIGatewayProxyStructuredResu
 object LambdaServerInterpreter {
   import funstack.lambda.http.tapir.implicits._
 
-  def apply[F[_]: Sync](event: APIGatewayProxyEventV2) = new ServerInterpreter(
-    requestBody = new LambdaRequestBody[F](event),
+  def apply[F[_]: Sync](endpoints: List[ServerEndpoint[_, F]], event: APIGatewayProxyEventV2) = new ServerInterpreter(
+    serverEndpoints = endpoints.asInstanceOf[List[ServerEndpoint[Any, F]]],
     toResponseBody = LambdaToResponseBody,
     interceptors = Nil,
     deleteFile = _ => Sync[F].unit,

@@ -89,18 +89,25 @@ object Handler {
     }
     val request = HandlerRequest(event, context, auth)
     val endpoints   = endpointsf(request)
-    val interpreter = LambdaServerInterpreter[F](event)
 
-    val run = interpreter(new LambdaServerRequest(event), endpoints).map {
-      case RequestResult.Response(response) =>
-        println(response)
-        response.body.getOrElse(APIGatewayProxyStructuredResultV2(statusCode = 404))
-      case RequestResult.Failure(errors) =>
-        println(s"No response, errors: ${errors.mkString(", ")}")
-        APIGatewayProxyStructuredResultV2(statusCode = 404)
+    val fullPath = event.requestContext.http.path.split("/").toList.drop(2)
+
+    DocServer.serve(fullPath, endpoints) match {
+      case Some(docResult) => js.Promise.resolve[APIGatewayProxyStructuredResultV2](docResult)
+      case None =>
+        val interpreter = LambdaServerInterpreter[F](endpoints, event)
+
+        val run = interpreter(new LambdaServerRequest(event), new LambdaRequestBody[F](event)).map {
+          case RequestResult.Response(response) =>
+            println(response)
+            response.body.getOrElse(APIGatewayProxyStructuredResultV2(statusCode = 404))
+          case RequestResult.Failure(errors) =>
+            println(s"No response, errors: ${errors.mkString(", ")}")
+            APIGatewayProxyStructuredResultV2(statusCode = 404)
+        }
+
+        execute(run, request).toJSPromise
     }
-
-    execute(run, request).toJSPromise
   }
 }
 
