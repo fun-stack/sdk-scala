@@ -20,7 +20,7 @@ private object HttpTransport {
     new RequestTransport[StringSerdes, IO] {
       def apply(request: Request[StringSerdes]): IO[StringSerdes] = {
         val path = request.path.mkString("/")
-        val url = s"${http.url}/$path"
+        val url = s"${http.url}/_/$path"
         val requestBody = request.payload.value
 
         for {
