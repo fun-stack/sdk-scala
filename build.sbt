@@ -156,13 +156,23 @@ lazy val web = project
       Deps.sloth.value ::
         Deps.cats.effect.value ::
         Deps.colibri.value ::
-        /* Deps.jsTime.value :: */
-        Deps.sttp.jsClient.value ::
-        Deps.sttp.catsClient.value ::
         Deps.mycelium.clientJs.value ::
         Nil,
 
     Compile / npmDependencies ++=
       NpmDeps.jwtDecode ::
+        Nil,
+  )
+
+lazy val webTapir = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(core, web)
+  .in(file("webTapir"))
+  .settings(commonSettings, jsSettings)
+  .settings(
+    name := "fun-stack-web-tapir",
+    libraryDependencies ++=
+      Deps.sttp.jsClient.value ::
+        Deps.sttp.catsClient.value ::
         Nil,
   )

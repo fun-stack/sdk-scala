@@ -15,6 +15,4 @@ class Http(http: HttpAppConfig, auth: Option[Auth[IO]]) {
   def clientF[F[_]: Async] = Client[StringSerdes, F](HttpTransport(http, auth).map(Async[F].liftIO))
 
   def clientFuture = Client[StringSerdes, Future](HttpTransport(http, auth).map(_.unsafeToFuture()))
-
-  val tapir = new HttpTapir(http, auth)
 }
