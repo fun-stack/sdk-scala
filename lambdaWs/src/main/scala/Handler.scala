@@ -2,7 +2,7 @@ package funstack.lambda.ws
 
 import net.exoego.facade.aws_lambda._
 
-import funstack.lambda.core.{HandlerRequest, AuthInfo}
+import funstack.lambda.core.{HandlerFunction, HandlerRequest, AuthInfo}
 import funstack.core.StringSerdes
 import scala.scalajs.js
 import mycelium.core.message._
@@ -20,7 +20,7 @@ object Handler {
 
   type WsRequest = HandlerRequest[APIGatewayWSEvent]
 
-  type FunctionType = js.Function2[APIGatewayWSEvent, Context, js.Promise[APIGatewayProxyStructuredResultV2]]
+  type FunctionType = HandlerFunction.Type[APIGatewayWSEvent]
 
   type FutureFunc[Out]    = WsRequest => Future[Out]
   type FutureKleisli[Out] = Kleisli[Future, WsRequest, Out]
