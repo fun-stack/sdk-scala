@@ -8,7 +8,7 @@ import cats.implicits._
 import scala.scalajs.js
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import org.scalajs.dom.{Fetch, RequestInit, HttpMethod, Headers}
+import org.scalajs.dom.{ Fetch, RequestInit, HttpMethod }
 
 private object HttpTransport {
 
@@ -21,16 +21,18 @@ private object HttpTransport {
       def apply(request: Request[StringSerdes]): IO[StringSerdes] = {
         val path = request.path.mkString("/")
         val url = s"${http.url}/$path"
-        val body = request.payload.asInstanceOf[js.Any]
+        val requestBody = request.payload.value
 
         for {
           user <- auth.flatTraverse(_.currentUser.headIO)
 
-          headers = js.Array(user.fold(new js.Array[String]) { user =>
-            js.Array("Authorization", s"${user.token.token_type} ${user.token.access_token}")
-          })
+          requestHeaders = user.fold(js.Array[js.Array[String]]()) { user =>
+            js.Array(js.Array("Authorization", s"${user.token.token_type} ${user.token.access_token}"))
+          }
 
-          result <- IO.fromFuture(IO(Fetch.fetch(url, js.Dynamic.literal("method" -> HttpMethod.POST, "body" -> body, "headers" -> new Headers(headers)).asInstanceOf[RequestInit]).toFuture))
+          result <- IO.fromFuture(IO {
+            Fetch.fetch(url, new RequestInit { method = HttpMethod.POST; body = requestBody; headers = requestHeaders }).toFuture
+          })
 
           text <- IO.fromFuture(IO(result.text().toFuture))
 

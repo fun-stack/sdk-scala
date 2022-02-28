@@ -1,17 +1,14 @@
-package funstack.lambda.http.core
+package funstack.lambda.core
 
 import net.exoego.facade.aws_lambda._
 import scala.scalajs.js
 import scala.scalajs.js.|
-import cats.effect.IO
-import cats.data.Kleisli
-import scala.concurrent.Future
 
 object HandlerFunction {
 
-  type Type = js.Function2[APIGatewayProxyEventV2, Context, js.Promise[APIGatewayProxyStructuredResultV2]]
+  type Type[T] = js.Function2[T, Context, js.Promise[APIGatewayProxyStructuredResultV2]]
 
-  def combine(func1: Type, func2: Type): Type = { (event, context) =>
+  def combine(func1: Type[_], func2: Type[_]): Type[_] = { (event, context) =>
     val r: js.Promise[APIGatewayProxyStructuredResultV2] = func1(event, context)
 
     r.`then`[APIGatewayProxyStructuredResultV2]({ result =>

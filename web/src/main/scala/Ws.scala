@@ -74,7 +74,7 @@ class Ws(ws: WsAppConfig, auth: Option[Auth[IO]]) {
       case Some(auth) => auth.currentUser.foreach { user =>
         val prevUser = currentUser
         currentUser = user
-        if (prevUser.map(_.info.sub) != user.map(_.info.sub)) runServer()
+        if (connectionCancelable == MyceliumCancelable.empty || prevUser.map(_.info.sub) != user.map(_.info.sub)) runServer()
       }
     }
 

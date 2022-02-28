@@ -1,12 +1,13 @@
 package funstack.lambda.http
 
 import net.exoego.facade.aws_lambda._
+import funstack.lambda.core.{HandlerRequest, AuthInfo}
 import funstack.core.StringSerdes
 import scala.scalajs.js
 import sloth._
 import chameleon.{Serializer, Deserializer}
 import scala.scalajs.js.JSConverters._
-import funstack.lambda.http.core.HandlerFunction
+import funstack.lambda.core.HandlerFunction
 import cats.effect.IO
 import cats.data.Kleisli
 import scala.concurrent.Future
@@ -15,10 +16,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 object Handler {
 
-  case class HttpAuth(sub: String, username: String)
-  case class HttpRequest(event: APIGatewayProxyEventV2, context: Context, auth: Option[HttpAuth])
+  type HttpRequest = HandlerRequest[APIGatewayProxyEventV2]
 
-  type FunctionType = HandlerFunction.Type
+  type FunctionType = HandlerFunction.Type[APIGatewayProxyEventV2]
 
   type FutureFunc[Out]    = HttpRequest => Future[Out]
   type FutureKleisli[Out] = Kleisli[Future, HttpRequest, Out]
@@ -85,32 +85,39 @@ object Handler {
         claims <- authDict.get("lambda")
         sub <- claims.get("sub")
         username <- claims.get("username")
-      } yield HttpAuth(sub = sub, username = username)
+      } yield AuthInfo(sub = sub, username = username)
     }
 
-    val request = HttpRequest(event, context, auth)
+    val request = HandlerRequest(event, context, auth)
     val router = routerf(request)
 
     val path = event.requestContext.http.path.split("/").toList.drop(2)
     val body = event.body.getOrElse("")
-    val result = Deserializer[T, StringSerdes].deserialize(StringSerdes(body)) match {
-      case Right(payload) => router(Request(path, payload)) match {
-        case Right(result) => execute(result, request).map { value =>
-          APIGatewayProxyStructuredResultV2(body = Serializer[T, StringSerdes].serialize(value).value, statusCode = 200)
+    println(path)
+    println(event.body)
+    val result = router.getFunction(path) match {
+      case Some(function) => Deserializer[T, StringSerdes].deserialize(StringSerdes(body)) match {
+        case Right(payload) => function(payload) match {
+          case Right(result) => execute(result, request).map { value =>
+            APIGatewayProxyStructuredResultV2(body = Serializer[T, StringSerdes].serialize(value).value, statusCode = 200)
+          }
+          case Left(ServerFailure.PathNotFound(p))   =>
+            println(s"Path not found: $p")
+            Future.successful(APIGatewayProxyStructuredResultV2(statusCode = 404))
+          case Left(ServerFailure.HandlerError(e))   =>
+            println(s"Handler error: $e")
+            Future.successful(APIGatewayProxyStructuredResultV2(statusCode = 500))
+          case Left(ServerFailure.DeserializerError(e))   =>
+            println(s"Deserializer error: $e")
+            Future.successful(APIGatewayProxyStructuredResultV2(statusCode = 400))
         }
-        case Left(ServerFailure.PathNotFound(p))   =>
-          println(s"Path not found: $p")
-          Future.successful(APIGatewayProxyStructuredResultV2(statusCode = 404))
-        case Left(ServerFailure.HandlerError(e))   =>
-          println(s"Handler error: $e")
-          Future.successful(APIGatewayProxyStructuredResultV2(statusCode = 500))
-        case Left(ServerFailure.DeserializerError(e))   =>
-          println(s"Deserializer error: $e")
+        case Left(e) =>
+          println(s"Unexpected payload: $e")
           Future.successful(APIGatewayProxyStructuredResultV2(statusCode = 400))
       }
-      case Left(e) =>
-        println(s"Unexpected payload: $e")
-        Future.successful(APIGatewayProxyStructuredResultV2(statusCode = 400))
+      case None =>
+        println(s"Path not found: $path")
+        Future.successful(APIGatewayProxyStructuredResultV2(statusCode = 404))
     }
 
     result.recover { case t =>
