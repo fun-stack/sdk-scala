@@ -63,7 +63,7 @@ lazy val core = project
 lazy val backend = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .in(file("backend"))
-  .dependsOn(core)
+  .dependsOn(core, wsCore)
   .settings(commonSettings, jsSettings)
   .settings(
     name := "fun-stack-backend",
@@ -76,79 +76,90 @@ lazy val backend = project
         Nil,
   )
 
-lazy val lambdaEventAuthorizer = project
+lazy val lambdaApigateway = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .in(file("lambdaApigateway"))
+  .settings(commonSettings, jsSettings)
+  .settings(
+    name := "fun-stack-lambda-apigateway",
+    libraryDependencies ++=
+      Deps.cats.effect.value ::
+        Deps.awsLambdaJS.value ::
+        Nil,
+  )
+
+lazy val wsCore = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(core)
-  .in(file("lambdaEventAuthorizer"))
+  .in(file("wsCore"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-lambda-event-authorizer",
+    name := "fun-stack-ws-core",
     libraryDependencies ++=
-      Deps.cats.effect.value ::
-        Deps.awsSdkJS.sns.value ::
-        Deps.awsLambdaJS.value ::
-        Deps.sloth.value ::
-        Deps.mycelium.core.value ::
+      Deps.mycelium.core.value ::
         Nil,
   )
 
-lazy val lambdaCore = project
+lazy val lambdaHttpRpc = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .in(file("lambdaCore"))
+  .dependsOn(core, lambdaApigateway)
+  .in(file("lambdaHttpRpc"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-lambda-core",
+    name := "fun-stack-lambda-http-rpc",
     libraryDependencies ++=
-      Deps.cats.effect.value ::
-        Deps.awsLambdaJS.value ::
+      Deps.sloth.value ::
         Nil,
   )
 
-lazy val lambdaHttpTapir = project
+lazy val lambdaWsRpc = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(core, lambdaCore)
-  .in(file("lambdaHttpTapir"))
+  .dependsOn(core, lambdaApigateway, wsCore)
+  .in(file("lambdaWsRpc"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-lambda-http-tapir",
+    name := "fun-stack-lambda-ws-rpc",
+    libraryDependencies ++=
+      Deps.sloth.value ::
+        Deps.cats.effect.value ::
+        Nil,
+  )
+
+lazy val lambdaHttpApiTapir = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(core, lambdaApigateway)
+  .in(file("lambdaHttpApiTapir"))
+  .settings(commonSettings, jsSettings)
+  .settings(
+    name := "fun-stack-lambda-http-api-tapir",
     libraryDependencies ++=
       Deps.sttp.core.value ::
         Deps.sttp.circe.value ::
+        Deps.sttp.catsClient.value ::
         Deps.sttp.openApi.value ::
         Deps.sttp.openApiCirce.value ::
         Deps.sttp.redoc.value ::
         Nil,
   )
 
-lazy val lambdaHttp = project
+lazy val lambdaWsEventAuthorizer = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(core, lambdaCore)
-  .in(file("lambdaHttp"))
+  .dependsOn(core, wsCore)
+  .in(file("lambdaWsEventAuthorizer"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-lambda-http",
+    name := "fun-stack-lambda-ws-event-authorizer",
     libraryDependencies ++=
-      Deps.sloth.value ::
-        Nil,
-  )
-
-lazy val lambdaWs = project
-  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(core, lambdaCore)
-  .in(file("lambdaWs"))
-  .settings(commonSettings, jsSettings)
-  .settings(
-    name := "fun-stack-lambda-ws",
-    libraryDependencies ++=
-      Deps.sloth.value ::
-        Deps.cats.effect.value ::
-        Deps.mycelium.core.value ::
+      Deps.cats.effect.value ::
+        Deps.awsSdkJS.sns.value ::
+        Deps.awsLambdaJS.value ::
+        Deps.sloth.value ::
         Nil,
   )
 
 lazy val web = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(core)
+  .dependsOn(core, wsCore)
   .in(file("web"))
   .settings(commonSettings, jsSettings)
   .settings(
