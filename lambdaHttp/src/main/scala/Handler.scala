@@ -75,7 +75,7 @@ object Handler {
   def handleFCustom[T : Serializer[*, StringSerdes] : Deserializer[*, StringSerdes], F[_]](
       routerf: HttpRequest => Router[T, F],
       execute: (F[T], HttpRequest) => Future[T],
-  ): FunctionType = { (event, context) =>
+  ): FunctionType = setUnderscoreMarker({ (event, context) =>
     // println(js.JSON.stringify(event))
     // println(js.JSON.stringify(context))
 
@@ -91,13 +91,11 @@ object Handler {
     val request = HandlerRequest(event, context, auth)
     val router = routerf(request)
 
-    val path = event.requestContext.http.path.split("/").toList.drop(2)
+    val fullPath = event.requestContext.http.path.split("/").toList.drop(2)
     val body = event.body.getOrElse("")
-    println(path)
-    println(event.body)
-    val result = router.getFunction(path) match {
-      case Some(function) => Deserializer[T, StringSerdes].deserialize(StringSerdes(body)) match {
-        case Right(payload) => function(payload) match {
+    val result = fullPath match {
+      case "_" :: path => Deserializer[T, StringSerdes].deserialize(StringSerdes(body)) match {
+        case Right(payload) => router(Request(path, payload)) match {
           case Right(result) => execute(result, request).map { value =>
             APIGatewayProxyStructuredResultV2(body = Serializer[T, StringSerdes].serialize(value).value, statusCode = 200)
           }
@@ -115,8 +113,9 @@ object Handler {
           println(s"Unexpected payload: $e")
           Future.successful(APIGatewayProxyStructuredResultV2(statusCode = 400))
       }
-      case None =>
-        println(s"Path not found: $path")
+
+      case _ =>
+        println(s"Expected path starting with '/_/', got: $fullPath")
         Future.successful(APIGatewayProxyStructuredResultV2(statusCode = 404))
     }
 
@@ -124,5 +123,10 @@ object Handler {
       println(s"Error handling request: $t")
       APIGatewayProxyStructuredResultV2(statusCode = 500)
     }.toJSPromise
+  })
+
+  private def setUnderscoreMarker(func: FunctionType): FunctionType = {
+    func.asInstanceOf[js.Dynamic].__isUnderscore = true
+    func
   }
 }
