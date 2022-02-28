@@ -1,6 +1,6 @@
 package funstack.web
 
-import funstack.core.StringSerdes
+import funstack.core.CanSerialize
 import sloth.{Request, RequestTransport}
 import cats.effect.IO
 import cats.implicits._
@@ -16,12 +16,12 @@ private object HttpTransport {
 
   private implicit val cs = IO.contextShift(global)
 
-  def apply(http: HttpAppConfig, auth: Option[Auth[IO]]): RequestTransport[StringSerdes, IO] =
-    new RequestTransport[StringSerdes, IO] {
-      def apply(request: Request[StringSerdes]): IO[StringSerdes] = {
+  def apply[T: CanSerialize](http: HttpAppConfig, auth: Option[Auth[IO]]): RequestTransport[T, IO] =
+    new RequestTransport[T, IO] {
+      def apply(request: Request[T]): IO[T] = {
         val path = request.path.mkString("/")
         val url = s"${http.url}/_/$path"
-        val requestBody = request.payload.value
+        val requestBody = CanSerialize[T].serialize(request.payload)
 
         for {
           user <- auth.flatTraverse(_.currentUser.headIO)
@@ -36,8 +36,10 @@ private object HttpTransport {
 
           text <- IO.fromFuture(IO(result.text().toFuture))
 
-          _ <- if (result.status == 200) IO.pure(()) else IO.raiseError(HttpResponseError(s"Status ${result.status}: $text"))
-        } yield StringSerdes(text)
+          _ <- IO.whenA(result.status != 200)(IO.raiseError(HttpResponseError(s"Status ${result.status}: $text")))
+
+          deserialized <- IO.fromEither(CanSerialize[T].deserialize(text))
+        } yield deserialized
       }
     }
 }

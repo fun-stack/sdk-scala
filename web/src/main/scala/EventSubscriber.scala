@@ -1,19 +1,19 @@
 package funstack.web
 
-import funstack.core.{SubscriptionEvent, StringSerdes}
+import funstack.core.SubscriptionEvent
 import colibri._
 
 import mycelium.core.client.IncidentHandler
 
-final class EventSubscriber(send: StringSerdes => Unit) extends IncidentHandler[SubscriptionEvent] {
+final class EventSubscriber(send: String => Unit) extends IncidentHandler[SubscriptionEvent] {
   import scala.collection.mutable
 
   private def subscribePayload(subscriptionKey: String) =
-    StringSerdes(s"""{"__action": "subscribe", "subscription_key": "${subscriptionKey}" }""")
+    s"""{"__action": "subscribe", "subscription_key": "${subscriptionKey}" }"""
   private def unsubscribePayload(subscriptionKey: String) =
-    StringSerdes(s"""{"__action": "unsubscribe", "subscription_key": "${subscriptionKey}" }""")
+    s"""{"__action": "unsubscribe", "subscription_key": "${subscriptionKey}" }"""
 
-  private val subscriptionByKey = mutable.HashMap[String, PublishSubject[StringSerdes]]()
+  private val subscriptionByKey = mutable.HashMap[String, PublishSubject[String]]()
 
   private def doSubscribe(subscriptionKey: String): Unit = {
     send(subscribePayload(subscriptionKey))
@@ -30,7 +30,7 @@ final class EventSubscriber(send: StringSerdes => Unit) extends IncidentHandler[
 
   override def onEvent(event: SubscriptionEvent): Unit = subscriptionByKey.get(event.subscriptionKey).foreach(_.onNext(event.body))
 
-  def subscribe(subscriptionKey: String, observer: Observer[StringSerdes]): Cancelable = {
+  def subscribe(subscriptionKey: String, observer: Observer[String]): Cancelable = {
     val subject = subscriptionByKey.getOrElseUpdate(subscriptionKey, Subject.publish)
     if (!subject.hasSubscribers) doSubscribe(subscriptionKey)
 

@@ -3,7 +3,8 @@ package funstack.lambda.eventauthorizer
 import net.exoego.facade.aws_lambda._
 import facade.amazonaws.services.sns._
 
-import funstack.core.{SubscriptionEvent, StringSerdes}
+import funstack.core.{SubscriptionEvent, CanSerialize}
+import funstack.ws.core.ServerMessageSerdes
 import mycelium.core.message._
 import scala.scalajs.js
 import sloth._
@@ -32,47 +33,47 @@ object Handler {
   type IOFunc1[Out]        = Out => IO[Boolean]
   type IOKleisli1[Out]     = Kleisli[IO, Out, Boolean]
 
-  def handleFunc(
-      router: Router[StringSerdes, IOFunc],
-  )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = handleFWithContext[IOFunc](router, (f, arg, ctx) => f(ctx, arg).unsafeToFuture())
+  def handleFunc[T: CanSerialize](
+      router: Router[T, IOFunc],
+  ): FunctionType = handleFWithContext[T, IOFunc](router, (f, arg, ctx) => f(ctx, arg).unsafeToFuture())
 
-  def handleKleisli(
-      router: Router[StringSerdes, IOKleisli],
-  )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = handleFWithContext[IOKleisli](router, (f, arg, ctx) => f(ctx -> arg).unsafeToFuture())
+  def handleKleisli[T: CanSerialize](
+      router: Router[T, IOKleisli],
+  ): FunctionType = handleFWithContext[T, IOKleisli](router, (f, arg, ctx) => f(ctx -> arg).unsafeToFuture())
 
-  def handleFutureKleisli(
-      router: Router[StringSerdes, FutureKleisli],
-  )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = handleFWithContext[FutureKleisli](router, (f, arg, ctx) => f(ctx -> arg))
+  def handleFutureKleisli[T: CanSerialize](
+      router: Router[T, FutureKleisli],
+  ): FunctionType = handleFWithContext[T, FutureKleisli](router, (f, arg, ctx) => f(ctx -> arg))
 
-  def handleFutureFunc(
-      router: Router[StringSerdes, FutureFunc],
-  )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = handleFWithContext[FutureFunc](router, (f, arg, ctx) => f(ctx, arg))
+  def handleFutureFunc[T: CanSerialize](
+      router: Router[T, FutureFunc],
+  ): FunctionType = handleFWithContext[T, FutureFunc](router, (f, arg, ctx) => f(ctx, arg))
 
-  def handleFunc(
-      router: EventRequest => Router[StringSerdes, IOFunc1],
-      )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = handleFCustom[IOFunc1](router, (f, arg, _) => f(arg).unsafeToFuture())
+  def handleFunc[T: CanSerialize](
+      router: EventRequest => Router[T, IOFunc1],
+  ): FunctionType = handleFCustom[T, IOFunc1](router, (f, arg, _) => f(arg).unsafeToFuture())
 
-  def handleKleisli(
-    router: EventRequest => Router[StringSerdes, IOKleisli1],
-    )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = handleFCustom[IOKleisli1](router, (f, arg, _) => f(arg).unsafeToFuture())
+  def handleKleisli[T: CanSerialize](
+    router: EventRequest => Router[T, IOKleisli1],
+  ): FunctionType = handleFCustom[T, IOKleisli1](router, (f, arg, _) => f(arg).unsafeToFuture())
 
-  def handleFutureKleisli(
-    router: EventRequest => Router[StringSerdes, FutureKleisli1],
-    )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = handleFCustom[FutureKleisli1](router, (f, arg, _) => f(arg))
+  def handleFutureKleisli[T: CanSerialize](
+    router: EventRequest => Router[T, FutureKleisli1],
+  ): FunctionType = handleFCustom[T, FutureKleisli1](router, (f, arg, _) => f(arg))
 
-  def handleFutureFunc(
-    router: EventRequest => Router[StringSerdes, FutureFunc1],
-  )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = handleFCustom[FutureFunc1](router, (f, arg, _) => f(arg))
+  def handleFutureFunc[T: CanSerialize](
+    router: EventRequest => Router[T, FutureFunc1],
+  ): FunctionType = handleFCustom[T, FutureFunc1](router, (f, arg, _) => f(arg))
 
-  def handleFWithContext[F[_]](
-      router: Router[StringSerdes, F],
-      execute: (F[StringSerdes], StringSerdes, EventRequest) => Future[Boolean],
-  )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = handleFCustom[F](_ => router, execute)
+  def handleFWithContext[T: CanSerialize, F[_]](
+      router: Router[T, F],
+      execute: (F[T], T, EventRequest) => Future[Boolean],
+  ): FunctionType = handleFCustom[T, F](_ => router, execute)
 
-  def handleFCustom[F[_]](
-      routerf: EventRequest => Router[StringSerdes, F],
-      execute: (F[StringSerdes], StringSerdes, EventRequest) => Future[Boolean],
-  )(implicit deserializer: Deserializer[ServerMessage[Unit, SubscriptionEvent, Unit], StringSerdes]): FunctionType = {
+  def handleFCustom[T: CanSerialize, F[_]](
+      routerf: EventRequest => Router[T, F],
+      execute: (F[T], T, EventRequest) => Future[Boolean],
+  ): FunctionType = {
     val config = Config.load()
 
     val sendEvent: (String, String) => Future[Unit] = (config.eventsSnsTopic, config.devEnvironment) match {
@@ -112,16 +113,22 @@ object Handler {
       val request = EventRequest(auth)
       val router = routerf(request)
 
-      val result: Future[Boolean] = deserializer.deserialize(StringSerdes(record.Sns.Message)) match {
+      val result: Future[Boolean] = ServerMessageSerdes.deserialize(record.Sns.Message) match {
         case Right(n: Notification[SubscriptionEvent]) =>
           val (a, b, arg) = n.event.subscriptionKey.split("/") match {
             case Array(a, b) => (a, b, "")
             case Array(a, b, arg) => (a, b, arg)
             case _ => ???
           }
-          router(Request(List(a,b), StringSerdes(arg))) match {
-            case Right(result) => execute(result, n.event.body, request)
-            case Left(error)   => Future.failed(new Exception(s"Server Failure - ${error}"))
+          CanSerialize[T].deserialize(arg) match {
+            case Right(arg) => router(Request(List(a,b), arg)) match {
+              case Right(result) => CanSerialize[T].deserialize(n.event.body) match {
+                case Right(body) => execute(result, body, request)
+                case Left(error) => Future.failed(new Exception(s"Deserialization Error - ${error}"))
+              }
+              case Left(error)   => Future.failed(new Exception(s"Server Failure - ${error}"))
+            }
+            case Left(error) => Future.failed(new Exception(s"Deserialization Error - ${error}"))
           }
         case Right(s) => Future.failed(new Exception(s"Unexpected event body: $s"))
         case Left(error) => Future.failed(new Exception(s"Deserialization Error - ${error}"))

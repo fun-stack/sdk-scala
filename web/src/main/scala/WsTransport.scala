@@ -1,6 +1,7 @@
 package funstack.web
 
-import funstack.core.StringSerdes
+import funstack.core.CanSerialize
+
 import colibri.Observable
 import sloth.{Request, RequestTransport}
 import mycelium.core.client.SendType
@@ -12,7 +13,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 private object WsTransport {
 
-  def apply[PickleType, F[_]: Async](send: (List[String], PickleType, SendType, FiniteDuration) => Option[Future[Either[Unit, PickleType]]]): RequestTransport[PickleType, F] =
+  def apply[PickleType, F[_]: Async](send: (List[String], PickleType, SendType, FiniteDuration) => Option[Future[Either[PickleType, PickleType]]]): RequestTransport[PickleType, F] =
     new RequestTransport[PickleType, F] {
       def apply(request: Request[PickleType]): F[PickleType] =
         Async[F].async[PickleType](cb =>
@@ -27,11 +28,11 @@ private object WsTransport {
         )
     }
 
-  def subscriptions(eventSubscriber: EventSubscriber): RequestTransport[StringSerdes, Observable] =
-    new RequestTransport[StringSerdes, Observable] {
-      def apply(request: Request[StringSerdes]): Observable[StringSerdes] = {
-        val subscriptionKey = s"${request.path.mkString("/")}/${request.payload.value}"
-        Observable.create(eventSubscriber.subscribe(subscriptionKey, _))
+  def subscriptions[T: CanSerialize](eventSubscriber: EventSubscriber): RequestTransport[T, Observable] =
+    new RequestTransport[T, Observable] {
+      def apply(request: Request[T]): Observable[T] = {
+        val subscriptionKey = s"${request.path.mkString("/")}/${CanSerialize[T].serialize(request.payload)}"
+        Observable.create[T](observer => eventSubscriber.subscribe(subscriptionKey, observer.contramapEither[String](CanSerialize[T].deserialize)))
       }
     }
 }

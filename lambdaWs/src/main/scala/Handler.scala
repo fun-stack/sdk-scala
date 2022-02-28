@@ -1,16 +1,17 @@
 package funstack.lambda.ws
 
-import net.exoego.facade.aws_lambda._
-
+import funstack.ws.core.{ClientMessageSerdes, ServerMessageSerdes}
 import funstack.lambda.core.{HandlerFunction, HandlerRequest, AuthInfo}
-import funstack.core.StringSerdes
-import scala.scalajs.js
+import funstack.core.{SubscriptionEvent, CanSerialize}
+
+import net.exoego.facade.aws_lambda._
 import mycelium.core.message._
 import sloth._
-import chameleon.{Serializer, Deserializer}
-import scala.scalajs.js.JSConverters._
+
 import cats.effect.IO
 import cats.data.Kleisli
+
+import scala.scalajs.js.JSConverters._
 import scala.concurrent.Future
 import scala.util.control.NonFatal
 
@@ -27,92 +28,56 @@ object Handler {
   type IOFunc[Out]        = WsRequest => IO[Out]
   type IOKleisli[Out]     = Kleisli[IO, WsRequest, Out]
 
-  def handle[T](
+  def handle[T: CanSerialize](
       router: Router[T, IO],
-  )(implicit
-      deserializer: Deserializer[ClientMessage[T], StringSerdes],
-      serializer: Serializer[ServerMessage[T, Unit, Unit], StringSerdes],
-  ): FunctionType = handleF[T, Unit, IO](router, _.map(Right.apply).unsafeToFuture())
+  ): FunctionType = handleF[T, IO](router, _.map(Right.apply).unsafeToFuture())
 
-  def handleFuture[T](
+  def handleFuture[T: CanSerialize](
       router: Router[T, Future],
-  )(implicit
-      deserializer: Deserializer[ClientMessage[T], StringSerdes],
-      serializer: Serializer[ServerMessage[T, Unit, Unit], StringSerdes],
-  ): FunctionType = handleF[T, Unit, Future](router, _.map(Right.apply))
+  ): FunctionType = handleF[T, Future](router, _.map(Right.apply))
 
-  def handleF[T, Failure, F[_]](
+  def handleF[T: CanSerialize, F[_]](
       router: Router[T, F],
-      execute: F[T] => Future[Either[Failure, T]],
-  )(implicit
-      deserializer: Deserializer[ClientMessage[T], StringSerdes],
-      serializer: Serializer[ServerMessage[T, Unit, Failure], StringSerdes],
-  ): FunctionType = handleFWithContext[T, Failure, F](router, (f, _) => execute(f))
+      execute: F[T] => Future[Either[T, T]],
+  ): FunctionType = handleFWithContext[T, F](router, (f, _) => execute(f))
 
-  def handle[T](
+  def handle[T: CanSerialize](
       router: WsRequest => Router[T, IO],
-  )(implicit
-      deserializer: Deserializer[ClientMessage[T], StringSerdes],
-      serializer: Serializer[ServerMessage[T, Unit, Unit], StringSerdes],
-  ): FunctionType = handleF[T, Unit, IO](router, _.map(Right.apply).unsafeToFuture())
+  ): FunctionType = handleF[T, IO](router, _.map(Right.apply).unsafeToFuture())
 
-  def handleFuture[T](
+  def handleFuture[T: CanSerialize](
       router: WsRequest => Router[T, Future],
-  )(implicit
-      deserializer: Deserializer[ClientMessage[T], StringSerdes],
-      serializer: Serializer[ServerMessage[T, Unit, Unit], StringSerdes],
-  ): FunctionType = handleF[T, Unit, Future](router, _.map(Right.apply))
+  ): FunctionType = handleF[T, Future](router, _.map(Right.apply))
 
-  def handleF[T, Failure, F[_]](
+  def handleF[T: CanSerialize, F[_]](
       router: WsRequest => Router[T, F],
-      execute: F[T] => Future[Either[Failure, T]],
-  )(implicit
-      deserializer: Deserializer[ClientMessage[T], StringSerdes],
-      serializer: Serializer[ServerMessage[T, Unit, Failure], StringSerdes],
-  ): FunctionType = handleFCustom[T, Failure, F](router, (f, _) => execute(f))
+      execute: F[T] => Future[Either[T, T]],
+  ): FunctionType = handleFCustom[T, F](router, (f, _) => execute(f))
 
-  def handleFunc[T](
+  def handleFunc[T: CanSerialize](
       router: Router[T, IOFunc],
-  )(implicit
-      deserializer: Deserializer[ClientMessage[T], StringSerdes],
-      serializer: Serializer[ServerMessage[T, Unit, Unit], StringSerdes],
-  ): FunctionType = handleFWithContext[T, Unit, IOFunc](router, (f, ctx) => f(ctx).map(Right.apply).unsafeToFuture())
+  ): FunctionType = handleFWithContext[T, IOFunc](router, (f, ctx) => f(ctx).map(Right.apply).unsafeToFuture())
 
-  def handleKleisli[T](
+  def handleKleisli[T: CanSerialize](
       router: Router[T, IOKleisli],
-  )(implicit
-      deserializer: Deserializer[ClientMessage[T], StringSerdes],
-      serializer: Serializer[ServerMessage[T, Unit, Unit], StringSerdes],
-  ): FunctionType = handleFWithContext[T, Unit, IOKleisli](router, (f, ctx) => f(ctx).map(Right.apply).unsafeToFuture())
+  ): FunctionType = handleFWithContext[T, IOKleisli](router, (f, ctx) => f(ctx).map(Right.apply).unsafeToFuture())
 
-  def handleFutureKleisli[T](
+  def handleFutureKleisli[T: CanSerialize](
       router: Router[T, FutureKleisli],
-  )(implicit
-      deserializer: Deserializer[ClientMessage[T], StringSerdes],
-      serializer: Serializer[ServerMessage[T, Unit, Unit], StringSerdes],
-  ): FunctionType = handleFWithContext[T, Unit, FutureKleisli](router, (f, ctx) => f(ctx).map(Right.apply))
+  ): FunctionType = handleFWithContext[T, FutureKleisli](router, (f, ctx) => f(ctx).map(Right.apply))
 
-  def handleFutureFunc[T](
+  def handleFutureFunc[T: CanSerialize](
       router: Router[T, FutureFunc],
-  )(implicit
-      deserializer: Deserializer[ClientMessage[T], StringSerdes],
-      serializer: Serializer[ServerMessage[T, Unit, Unit], StringSerdes],
-  ): FunctionType = handleFWithContext[T, Unit, FutureFunc](router, (f, ctx) => f(ctx).map(Right.apply))
+  ): FunctionType = handleFWithContext[T, FutureFunc](router, (f, ctx) => f(ctx).map(Right.apply))
 
-  def handleFWithContext[T, Failure, F[_]](
+  def handleFWithContext[T: CanSerialize, F[_]](
       router: Router[T, F],
-      execute: (F[T], WsRequest) => Future[Either[Failure, T]],
-  )(implicit
-      deserializer: Deserializer[ClientMessage[T], StringSerdes],
-      serializer: Serializer[ServerMessage[T, Unit, Failure], StringSerdes],
-  ): FunctionType = handleFCustom[T, Failure, F](_ => router, execute)
+      execute: (F[T], WsRequest) => Future[Either[T, T]],
+  ): FunctionType = handleFCustom[T, F](_ => router, execute)
 
-  def handleFCustom[T, Failure, F[_]](
+  def handleFCustom[T: CanSerialize, F[_]](
       routerf: WsRequest => Router[T, F],
-      execute: (F[T], WsRequest) => Future[Either[Failure, T]],
-  )(implicit
-      deserializer: Deserializer[ClientMessage[T], StringSerdes],
-      serializer: Serializer[ServerMessage[T, Unit, Failure], StringSerdes],
+      execute: (F[T], WsRequest) => Future[Either[T, T]],
   ): FunctionType = { (event, context) =>
     // println(js.JSON.stringify(event))
     // println(js.JSON.stringify(context))
@@ -126,14 +91,14 @@ object Handler {
     val request = HandlerRequest(event, context, auth)
     val router = routerf(request)
 
-    val result = Deserializer[ClientMessage[T], StringSerdes].deserialize(StringSerdes(event.body)) match {
+    val result = ClientMessageSerdes.deserialize(event.body) match {
       case Left(error) => Future.failed(error)
 
       case Right(Ping) => Future.successful(Pong)
 
       case Right(CallRequest(seqNumber, path, payload)) =>
         val result = router(Request(path, payload)) match {
-          case Right(result) => execute(result, request).map[ServerMessage[T, Unit, Failure]] {
+          case Right(result) => execute(result, request).map[ServerMessage[T, SubscriptionEvent, T]] {
             case Right(value) => CallResponse(seqNumber, value)
             case Left(failure) => CallResponseFailure(seqNumber, failure)
           }
@@ -148,8 +113,8 @@ object Handler {
 
     result
       .map { message =>
-        val serialized = Serializer[ServerMessage[T, Unit, Failure], StringSerdes].serialize(message)
-        APIGatewayProxyStructuredResultV2(body = serialized.value, statusCode = 200)
+        val serialized = ServerMessageSerdes.serialize(message)
+        APIGatewayProxyStructuredResultV2(body = serialized, statusCode = 200)
       }.recover { case NonFatal(t) =>
         println(s"Bad Request: $t")
         APIGatewayProxyStructuredResultV2(body = "Bad Request", statusCode = 400)

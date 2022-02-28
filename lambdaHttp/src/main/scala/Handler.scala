@@ -2,10 +2,9 @@ package funstack.lambda.http
 
 import net.exoego.facade.aws_lambda._
 import funstack.lambda.core.{HandlerRequest, AuthInfo}
-import funstack.core.StringSerdes
+import funstack.core.CanSerialize
 import scala.scalajs.js
 import sloth._
-import chameleon.{Serializer, Deserializer}
 import scala.scalajs.js.JSConverters._
 import funstack.lambda.core.HandlerFunction
 import cats.effect.IO
@@ -25,54 +24,54 @@ object Handler {
   type IOFunc[Out]        = HttpRequest => IO[Out]
   type IOKleisli[Out]     = Kleisli[IO, HttpRequest, Out]
 
-  def handle[T : Serializer[*, StringSerdes] : Deserializer[*, StringSerdes]](
+  def handle[T : CanSerialize](
       router: Router[T, IO],
   ): FunctionType = handleF[T, IO](router, _.unsafeToFuture())
 
-  def handleFuture[T : Serializer[*, StringSerdes] : Deserializer[*, StringSerdes]](
+  def handleFuture[T : CanSerialize](
       router: Router[T, Future],
   ): FunctionType = handleF[T, Future](router, identity)
 
-  def handleF[T : Serializer[*, StringSerdes] : Deserializer[*, StringSerdes], F[_]](
+  def handleF[T : CanSerialize, F[_]](
       router: Router[T, F],
       execute: F[T] => Future[T],
   ): FunctionType = handleFWithContext[T, F](router, (f, _) => execute(f))
 
-  def handle[T : Serializer[*, StringSerdes] : Deserializer[*, StringSerdes]](
+  def handle[T : CanSerialize](
       router: HttpRequest => Router[T, IO],
   ): FunctionType = handleF[T, IO](router, _.unsafeToFuture())
 
-  def handleFuture[T : Serializer[*, StringSerdes] : Deserializer[*, StringSerdes]](
+  def handleFuture[T : CanSerialize](
       router: HttpRequest => Router[T, Future],
   ): FunctionType = handleF[T, Future](router, identity)
 
-  def handleF[T : Serializer[*, StringSerdes] : Deserializer[*, StringSerdes], F[_]](
+  def handleF[T : CanSerialize, F[_]](
       router: HttpRequest => Router[T, F],
       execute: F[T] => Future[T],
   ): FunctionType = handleFCustom[T, F](router, (f, _) => execute(f))
 
-  def handleFunc[T : Serializer[*, StringSerdes] : Deserializer[*, StringSerdes]](
+  def handleFunc[T : CanSerialize](
       router: Router[T, IOFunc],
   ): FunctionType = handleFWithContext[T, IOFunc](router, (f, ctx) => f(ctx).unsafeToFuture())
 
-  def handleKleisli[T : Serializer[*, StringSerdes] : Deserializer[*, StringSerdes]](
+  def handleKleisli[T : CanSerialize](
       router: Router[T, IOKleisli],
   ): FunctionType = handleFWithContext[T, IOKleisli](router, (f, ctx) => f(ctx).unsafeToFuture())
 
-  def handleFutureKleisli[T : Serializer[*, StringSerdes] : Deserializer[*, StringSerdes]](
+  def handleFutureKleisli[T : CanSerialize](
       router: Router[T, FutureKleisli],
   ): FunctionType = handleFWithContext[T, FutureKleisli](router, (f, ctx) => f(ctx))
 
-  def handleFutureFunc[T : Serializer[*, StringSerdes] : Deserializer[*, StringSerdes]](
+  def handleFutureFunc[T : CanSerialize](
       router: Router[T, FutureFunc],
   ): FunctionType = handleFWithContext[T, FutureFunc](router, (f, ctx) => f(ctx))
 
-  def handleFWithContext[T : Serializer[*, StringSerdes] : Deserializer[*, StringSerdes], F[_]](
+  def handleFWithContext[T : CanSerialize, F[_]](
       router: Router[T, F],
       execute: (F[T], HttpRequest) => Future[T],
   ): FunctionType = handleFCustom[T, F](_ => router, execute)
 
-  def handleFCustom[T : Serializer[*, StringSerdes] : Deserializer[*, StringSerdes], F[_]](
+  def handleFCustom[T : CanSerialize, F[_]](
       routerf: HttpRequest => Router[T, F],
       execute: (F[T], HttpRequest) => Future[T],
   ): FunctionType = setUnderscoreMarker({ (event, context) =>
@@ -94,10 +93,10 @@ object Handler {
     val fullPath = event.requestContext.http.path.split("/").toList.drop(2)
     val body = event.body.getOrElse("")
     val result = fullPath match {
-      case "_" :: path => Deserializer[T, StringSerdes].deserialize(StringSerdes(body)) match {
+      case "_" :: path => CanSerialize[T].deserialize(body) match {
         case Right(payload) => router(Request(path, payload)) match {
           case Right(result) => execute(result, request).map { value =>
-            APIGatewayProxyStructuredResultV2(body = Serializer[T, StringSerdes].serialize(value).value, statusCode = 200)
+            APIGatewayProxyStructuredResultV2(body = CanSerialize[T].serialize(value), statusCode = 200)
           }
           case Left(ServerFailure.PathNotFound(p))   =>
             println(s"Path not found: $p")
