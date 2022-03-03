@@ -42,8 +42,8 @@ object Base64Codec {
     var i = 0
     while (i < n) {
       val c = buffer.get
-      s ++= NativeCodec.string.fromCharCode(c & 0xFF).asInstanceOf[String]
-      i += 1
+      s ++= NativeCodec.string.fromCharCode(c & 0xff).asInstanceOf[String]
+      i  += 1
     }
 
     NativeCodec.btoa(s.result())
@@ -51,10 +51,9 @@ object Base64Codec {
 
   def decode(base64Data: String): ByteBuffer = {
     val byteString = NativeCodec.atob(base64Data)
-    val buffer = ByteBuffer.allocateDirect(byteString.size)
+    val buffer     = ByteBuffer.allocateDirect(byteString.size)
     byteString.foreach(c => buffer.put(c.toByte))
     buffer.flip()
     buffer
   }
 }
-

@@ -6,8 +6,8 @@ import sttp.tapir._
 import sttp.tapir.server.interpreter._
 import sttp.tapir.server.ServerEndpoint
 import sttp.capabilities.Streams
-import sttp.tapir.model.{ServerRequest, ConnectionInfo}
-import sttp.model.{QueryParams, HasHeaders, Header, Method, Uri}
+import sttp.tapir.model.{ConnectionInfo, ServerRequest}
+import sttp.model.{HasHeaders, Header, Method, QueryParams, Uri}
 import net.exoego.facade.aws_lambda._
 
 import java.nio.charset.Charset
@@ -21,8 +21,8 @@ object UnitStreams extends Streams[Unit] {
 }
 
 object LambdaToResponseBody extends ToResponseBody[APIGatewayProxyStructuredResultV2, Unit] {
-  val streams = UnitStreams
-  def fromRawValue[R](v: R, headers: HasHeaders, format: CodecFormat, bodyType: RawBodyType[R]): APIGatewayProxyStructuredResultV2 = {
+  val streams                                                                                                                      = UnitStreams
+  def fromRawValue[R](v: R, headers: HasHeaders, format: CodecFormat, bodyType: RawBodyType[R]): APIGatewayProxyStructuredResultV2 =
     bodyType match {
       case RawBodyType.StringBody(charset) =>
         APIGatewayProxyStructuredResultV2(
@@ -30,30 +30,29 @@ object LambdaToResponseBody extends ToResponseBody[APIGatewayProxyStructuredResu
           body = new String(v.getBytes(charset)),
           headers = headers.headers.map(header => header.name -> (header.value: Boolean | Double | String)).toMap.toJSDictionary,
         )
-      case _ => APIGatewayProxyStructuredResultV2(statusCode = 500, body = "Not implemented")
+      case _                               => APIGatewayProxyStructuredResultV2(statusCode = 500, body = "Not implemented")
     }
-  }
   def fromStreamValue(
-      v: streams.BinaryStream,
-      headers: HasHeaders,
-      format: CodecFormat,
-      charset: Option[Charset],
+    v: streams.BinaryStream,
+    headers: HasHeaders,
+    format: CodecFormat,
+    charset: Option[Charset],
   ): APIGatewayProxyStructuredResultV2 = APIGatewayProxyStructuredResultV2(statusCode = 500, body = "Not implemented")
 
   def fromWebSocketPipe[REQ, RESP](
-      pipe: streams.Pipe[REQ, RESP],
-      o: WebSocketBodyOutput[streams.Pipe[REQ, RESP], REQ, RESP, _, Unit],
+    pipe: streams.Pipe[REQ, RESP],
+    o: WebSocketBodyOutput[streams.Pipe[REQ, RESP], REQ, RESP, _, Unit],
   ): APIGatewayProxyStructuredResultV2 = APIGatewayProxyStructuredResultV2(statusCode = 500, body = "Not implemented")
 }
 
 class LambdaRequestBody[F[_]: Sync](event: APIGatewayProxyEventV2) extends RequestBody[F, Unit] {
-  val streams = UnitStreams
+  val streams                                            = UnitStreams
   def toRaw[R](bodyType: RawBodyType[R]): F[RawValue[R]] =
     bodyType match {
       case RawBodyType.StringBody(charset) => Sync[F].pure(RawValue(new String(event.body.getOrElse("").getBytes(charset))))
-      case _ => Sync[F].raiseError(new NotImplementedError)
+      case _                               => Sync[F].raiseError(new NotImplementedError)
     }
-  def toStream(): streams.BinaryStream = ()
+  def toStream(): streams.BinaryStream                   = ()
 }
 
 class LambdaServerRequest(event: APIGatewayProxyEventV2) extends ServerRequest {
@@ -66,7 +65,7 @@ class LambdaServerRequest(event: APIGatewayProxyEventV2) extends ServerRequest {
 
   def headers: Seq[Header] = event.headers.map { case (key, value) => Header(key, value) }.toSeq
   def method: Method       = Method(event.requestContext.http.method)
-  def uri: Uri = Uri.unsafeApply(scheme = "https", host = event.requestContext.domainName, path = event.requestContext.stage +: pathSegments)
+  def uri: Uri             = Uri.unsafeApply(scheme = "https", host = event.requestContext.domainName, path = event.requestContext.stage +: pathSegments)
 }
 
 object LambdaServerInterpreter {

@@ -2,11 +2,11 @@ package funstack.web
 
 import cats.implicits._
 import colibri._
-import cats.effect.{Async, Sync, IO}
+import cats.effect.{Async, IO, Sync}
 import funstack.web.helper.facades.JwtDecode
 
 import org.scalajs.dom
-import org.scalajs.dom.{Fetch, RequestInit, HttpMethod, URLSearchParams, Response}
+import org.scalajs.dom.{Fetch, HttpMethod, RequestInit, Response, URLSearchParams}
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSName
 import org.scalajs.dom.window.localStorage
@@ -33,8 +33,8 @@ trait UserInfoResponse extends js.Object {
 }
 
 case class User(
-    info: UserInfoResponse,
-    token: TokenResponse,
+  info: UserInfoResponse,
+  token: TokenResponse,
 )
 
 private sealed trait Authentication
@@ -56,7 +56,8 @@ class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
       val refreshToken = localStorage.getItem(storageKeyRefreshToken)
       if (refreshToken == null) None
       else Some(Authentication.RefreshToken(refreshToken))
-    } else {
+    }
+    else {
       localStorage.removeItem(storageKeyRefreshToken)
       dom.window.history.replaceState(null, "", dom.window.location.origin.get)
       Some(Authentication.AuthCode(code))
@@ -82,26 +83,23 @@ class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
   val currentUser: Observable[Option[User]] =
     authentication
       .fold[Observable[Option[User]]](Observable(None)) { authentication =>
-        Observable(authentication)
-          .mapAsync {
-            case Authentication.AuthCode(code)      => getToken(code)
-            case Authentication.RefreshToken(token) => refreshToken(token)
-          }
-          .switchMap { token =>
-            val user = User(getUserInfo(token), token)
-            localStorage.setItem(storageKeyRefreshToken, token.refresh_token)
-            Observable
-              .interval((token.expires_in * 0.8).seconds) // TODO: dynamic per token
-              .drop(1)
-              .mapAsync(_ => refreshToken(token.refresh_token))
-              .map(token => Option(user.copy(token = token)))
-              .prepend(Option(user))
-          }
-          .recover { case t =>
-            dom.console.error("Error in user handling: " + t)
-            localStorage.removeItem(storageKeyRefreshToken)
-            None
-          }
+        Observable(authentication).mapAsync {
+          case Authentication.AuthCode(code)      => getToken(code)
+          case Authentication.RefreshToken(token) => refreshToken(token)
+        }.switchMap { token =>
+          val user = User(getUserInfo(token), token)
+          localStorage.setItem(storageKeyRefreshToken, token.refresh_token)
+          Observable
+            .interval((token.expires_in * 0.8).seconds) // TODO: dynamic per token
+            .drop(1)
+            .mapAsync(_ => refreshToken(token.refresh_token))
+            .map(token => Option(user.copy(token = token)))
+            .prepend(Option(user))
+        }.recover { case t =>
+          dom.console.error("Error in user handling: " + t)
+          localStorage.removeItem(storageKeyRefreshToken)
+          None
+        }
       }
       .replay
       .hot

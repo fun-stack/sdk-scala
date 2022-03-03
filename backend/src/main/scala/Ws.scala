@@ -1,7 +1,7 @@
 package funstack.backend
 
 import funstack.ws.core.ServerMessageSerdes
-import funstack.core.{SubscriptionEvent, CanSerialize}
+import funstack.core.{CanSerialize, SubscriptionEvent}
 import facade.amazonaws.services.sns._
 import scala.scalajs.js
 import sloth._
@@ -20,15 +20,15 @@ private trait WsOperations {
 
 private class WsOperationsAWS(eventsSnsTopic: String) extends WsOperations {
 
-  private implicit val cs  = IO.contextShift(scala.concurrent.ExecutionContext.global)
-  private val snsClient = new SNS()
+  private implicit val cs = IO.contextShift(scala.concurrent.ExecutionContext.global)
+  private val snsClient   = new SNS()
 
   def sendToSubscription(subscriptionKey: String, data: SubscriptionEvent): IO[Unit] = {
     val serializedData = ServerMessageSerdes.serializer.notification(data)
-    val params = PublishInput(
+    val params         = PublishInput(
       Message = serializedData,
       MessageAttributes = js.Dictionary("subscription_key" -> MessageAttributeValue(DataType = "String", StringValue = subscriptionKey)),
-      TopicArn = eventsSnsTopic
+      TopicArn = eventsSnsTopic,
     )
 
     IO.fromFuture(IO(snsClient.publishFuture(params)))
