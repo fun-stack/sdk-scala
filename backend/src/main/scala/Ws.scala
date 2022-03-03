@@ -1,17 +1,14 @@
 package funstack.backend
 
-import funstack.ws.core.{ServerMessageSerdes, ClientMessageSerdes}
+import funstack.ws.core.ServerMessageSerdes
 import funstack.core.{SubscriptionEvent, CanSerialize}
 import facade.amazonaws.services.sns._
 import scala.scalajs.js
 import sloth._
 
-import mycelium.core.message.{Notification, ServerMessage}
-
 import cats.data.Kleisli
 import cats.effect.IO
 import cats.implicits._
-import chameleon._
 
 class Ws(operations: WsOperations) {
   def sendTransport[T: CanSerialize] = new WsTransport[T](operations)

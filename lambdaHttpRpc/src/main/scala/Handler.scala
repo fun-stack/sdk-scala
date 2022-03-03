@@ -1,18 +1,19 @@
 package funstack.lambda.http.rpc
 
-import net.exoego.facade.aws_lambda._
-import funstack.lambda.core.{HandlerType, RequestOf, AuthInfo}
+import funstack.lambda.apigateway
 import funstack.core.CanSerialize
-import scala.scalajs.js
-import sloth._
-import scala.scalajs.js.JSConverters._
-import cats.effect.IO
-import cats.data.Kleisli
-import scala.concurrent.Future
 
+import net.exoego.facade.aws_lambda._
+import sloth._
+
+import cats.effect.IO
+
+import scala.scalajs.js
+import scala.scalajs.js.JSConverters._
+import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object Handler extends HandlerType[APIGatewayProxyEventV2] {
+object Handler extends apigateway.Handler[APIGatewayProxyEventV2] {
 
   def handle[T : CanSerialize](
       router: Router[T, IO],
@@ -73,10 +74,10 @@ object Handler extends HandlerType[APIGatewayProxyEventV2] {
       for {
         claims <- authDict.get("lambda")
         sub <- claims.get("sub")
-      } yield AuthInfo(sub = sub)
+      } yield apigateway.AuthInfo(sub = sub)
     }
 
-    val request = RequestOf(event, context, auth)
+    val request = apigateway.RequestOf(event, context, auth)
     val router = routerf(request)
 
     val fullPath = event.requestContext.http.path.split("/").toList.drop(2)

@@ -1,7 +1,8 @@
 package funstack.lambda.ws.rpc
 
 import funstack.ws.core.{ClientMessageSerdes, ServerMessageSerdes}
-import funstack.lambda.core.{RequestOf, AuthInfo}
+import funstack.lambda.apigateway.helper.facades._
+import funstack.lambda.apigateway
 import funstack.core.{SubscriptionEvent, CanSerialize}
 
 import net.exoego.facade.aws_lambda._
@@ -9,7 +10,6 @@ import mycelium.core.message._
 import sloth._
 
 import cats.effect.IO
-import cats.data.Kleisli
 
 import scala.scalajs.js.JSConverters._
 import scala.concurrent.Future
@@ -17,7 +17,7 @@ import scala.util.control.NonFatal
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object Handler extends HandlerType[APIGatewayWSEvent] {
+object Handler extends apigateway.Handler[APIGatewayWsEvent] {
 
   def handle[T: CanSerialize](
       router: Router[T, IO],
@@ -76,9 +76,9 @@ object Handler extends HandlerType[APIGatewayWSEvent] {
     val auth = event.requestContext.authorizer.toOption.flatMap { claims =>
       for {
         sub <- claims.get("sub")
-      } yield AuthInfo(sub = sub)
+      } yield apigateway.AuthInfo(sub = sub)
     }
-    val request = RequestOf(event, context, auth)
+    val request = apigateway.RequestOf(event, context, auth)
     val router = routerf(request)
 
     val result = ClientMessageSerdes.deserialize(event.body) match {

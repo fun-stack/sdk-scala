@@ -4,13 +4,10 @@ import funstack.ws.core.{ClientMessageSerdes, ServerMessageSerdes}
 import funstack.core.{SubscriptionEvent, CanSerialize}
 import funstack.web.helper.EventSubscriber
 
-import sloth._
 import colibri._
-import chameleon.{Serializer, Deserializer}
 import mycelium.js.client.JsWebsocketConnection
 import mycelium.core.{Cancelable => MyceliumCancelable}
-import mycelium.core.client.{WebsocketClientConfig, WebsocketClient, WebsocketClientWithPayload}
-import mycelium.core.message.{ServerMessage, ClientMessage}
+import mycelium.core.client.{WebsocketClientConfig, WebsocketClient}
 
 import cats.effect.{Async, IO}
 

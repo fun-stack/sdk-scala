@@ -1,14 +1,17 @@
-package funstack.lambda.core
+package funstack.lambda.apigateway
 
 import net.exoego.facade.aws_lambda._
-import funstack.lambda.core.helper.facades._
-import scala.concurrent.Future
+
 import cats.effect.IO
 import cats.data.Kleisli
 
+import scala.concurrent.Future
 import scala.scalajs.js
 
-trait HandlerType[Event] {
+case class AuthInfo(sub: String)
+case class RequestOf[+T](event: T, context: Context, auth: Option[AuthInfo])
+
+trait Handler[Event] {
   type Request = RequestOf[Event]
 
   type FunctionType = js.Function2[Event, Context, js.Promise[APIGatewayProxyStructuredResultV2]]
@@ -19,4 +22,4 @@ trait HandlerType[Event] {
   type IOKleisli[Out]     = Kleisli[IO, RequestOf[Event], Out]
 }
 
-object types extends HandlerType[Any]
+object Handler extends Handler[Any]

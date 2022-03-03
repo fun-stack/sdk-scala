@@ -1,31 +1,31 @@
 package funstack.lambda.ws.eventauthorizer
 
+import funstack.core.{SubscriptionEvent, CanSerialize}
+import funstack.ws.core.ServerMessageSerdes
+
 import net.exoego.facade.aws_lambda._
 import facade.amazonaws.services.sns._
-
-import funstack.core.{SubscriptionEvent, CanSerialize}
-import funstack.lambda.core.{HandlerType, RequestOf, AuthInfo}
-import funstack.ws.core.ServerMessageSerdes
 import mycelium.core.message._
-import scala.scalajs.js
 import sloth._
-import chameleon.Deserializer
-import scala.scalajs.js.JSConverters._
+
 import cats.effect.IO
 import cats.data.Kleisli
-import scala.concurrent.Future
 
+import scala.scalajs.js
+import scala.scalajs.js.JSConverters._
+import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+
+case class AuthInfo(sub: String)
+case class Message(auth: Option[AuthInfo])
 
 object Handler {
   type FunctionType = js.Function2[SNSEvent, Context, js.Promise[Unit]]
 
-  type EventRequest = RequestOf[SNSEvent]
-
-  type FutureFunc[Out]    = (EventRequest, Out) => Future[Boolean]
-  type FutureKleisli[Out] = Kleisli[Future, (EventRequest, Out), Boolean]
-  type IOFunc[Out]        = (EventRequest, Out) => IO[Boolean]
-  type IOKleisli[Out]     = Kleisli[IO, (EventRequest, Out), Boolean]
+  type FutureFunc[Out]    = (Message, Out) => Future[Boolean]
+  type FutureKleisli[Out] = Kleisli[Future, (Message, Out), Boolean]
+  type IOFunc[Out]        = (Message, Out) => IO[Boolean]
+  type IOKleisli[Out]     = Kleisli[IO, (Message, Out), Boolean]
 
   type FutureFunc1[Out]    = Out => Future[Boolean]
   type FutureKleisli1[Out] = Kleisli[Future, Out, Boolean]
@@ -49,29 +49,29 @@ object Handler {
   ): FunctionType = handleFWithContext[T, FutureFunc](router, (f, arg, ctx) => f(ctx, arg))
 
   def handleFunc[T: CanSerialize](
-      router: EventRequest => Router[T, IOFunc1],
+      router: Message => Router[T, IOFunc1],
   ): FunctionType = handleFCustom[T, IOFunc1](router, (f, arg, _) => f(arg).unsafeToFuture())
 
   def handleKleisli[T: CanSerialize](
-    router: EventRequest => Router[T, IOKleisli1],
+    router: Message => Router[T, IOKleisli1],
   ): FunctionType = handleFCustom[T, IOKleisli1](router, (f, arg, _) => f(arg).unsafeToFuture())
 
   def handleFutureKleisli[T: CanSerialize](
-    router: EventRequest => Router[T, FutureKleisli1],
+    router: Message => Router[T, FutureKleisli1],
   ): FunctionType = handleFCustom[T, FutureKleisli1](router, (f, arg, _) => f(arg))
 
   def handleFutureFunc[T: CanSerialize](
-    router: EventRequest => Router[T, FutureFunc1],
+    router: Message => Router[T, FutureFunc1],
   ): FunctionType = handleFCustom[T, FutureFunc1](router, (f, arg, _) => f(arg))
 
   def handleFWithContext[T: CanSerialize, F[_]](
       router: Router[T, F],
-      execute: (F[T], T, EventRequest) => Future[Boolean],
+      execute: (F[T], T, Message) => Future[Boolean],
   ): FunctionType = handleFCustom[T, F](_ => router, execute)
 
   def handleFCustom[T: CanSerialize, F[_]](
-      routerf: EventRequest => Router[T, F],
-      execute: (F[T], T, EventRequest) => Future[Boolean],
+      routerf: Message => Router[T, F],
+      execute: (F[T], T, Message) => Future[Boolean],
   ): FunctionType = {
     val config = Config.load()
 
@@ -108,8 +108,8 @@ object Handler {
 
       val record = event.Records(0)
 
-      val auth = record.Sns.MessageAttributes.get("user_id").map { attr => EventAuth(sub = attr.Value) }
-      val request = RequestOf(auth)
+      val auth = record.Sns.MessageAttributes.get("user_id").map { attr => AuthInfo(sub = attr.Value) }
+      val request = Message(auth)
       val router = routerf(request)
 
       val result: Future[Boolean] = ServerMessageSerdes.deserialize(record.Sns.Message) match {

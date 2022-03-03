@@ -1,20 +1,21 @@
 package funstack.lambda.http.api.tapir
 
 import funstack.lambda.http.api.tapir.helper._
-import funstack.lambda.core.{HandlerType, RequestOf, AuthInfo}
+import funstack.lambda.apigateway
+
 import net.exoego.facade.aws_lambda._
-import cats.data.Kleisli
-import cats.effect.{IO, Sync, ExitCase}
-import cats.implicits._
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.interceptor.RequestResult
+
+import cats.effect.{IO, Sync, ExitCase}
+import cats.implicits._
+
 import scala.concurrent.Future
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
-
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object Handler extends HandlerType[APIGatewayProxyEventV2] {
+object Handler extends apigateway.Handler[APIGatewayProxyEventV2] {
   import SyncInstances._
 
   def handle(
@@ -76,9 +77,9 @@ object Handler extends HandlerType[APIGatewayProxyEventV2] {
       for {
         claims <- authDict.get("lambda")
         sub <- claims.get("sub")
-      } yield AuthInfo(sub = sub)
+      } yield apigateway.AuthInfo(sub = sub)
     }
-    val request = RequestOf(event, context, auth)
+    val request = apigateway.RequestOf(event, context, auth)
     val endpoints   = endpointsf(request)
 
     val fullPath = event.requestContext.http.path.split("/").toList.drop(2)

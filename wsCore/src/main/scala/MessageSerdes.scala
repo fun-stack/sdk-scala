@@ -7,7 +7,6 @@ import chameleon.{Serializer, Deserializer}
 
 import scala.util.Try
 import scala.scalajs.js
-import scala.scalajs.js.JSConverters._
 
 object ServerMessageSerdes {
   case class UnknownMessage(msg: String) extends Exception

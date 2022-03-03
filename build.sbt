@@ -76,12 +76,12 @@ lazy val backend = project
         Nil,
   )
 
-lazy val lambdaCore = project
+lazy val lambdaApigateway = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .in(file("lambdaCore"))
+  .in(file("lambdaApigateway"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-lambda-core",
+    name := "fun-stack-lambda-apigateway",
     libraryDependencies ++=
       Deps.cats.effect.value ::
         Deps.awsLambdaJS.value ::
@@ -102,7 +102,7 @@ lazy val wsCore = project
 
 lazy val lambdaHttpRpc = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(core, lambdaCore)
+  .dependsOn(core, lambdaApigateway)
   .in(file("lambdaHttpRpc"))
   .settings(commonSettings, jsSettings)
   .settings(
@@ -114,8 +114,8 @@ lazy val lambdaHttpRpc = project
 
 lazy val lambdaWsRpc = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(core, lambdaCore, wsCore)
-  .in(file("lambdaWs"))
+  .dependsOn(core, lambdaApigateway, wsCore)
+  .in(file("lambdaWsRpc"))
   .settings(commonSettings, jsSettings)
   .settings(
     name := "fun-stack-lambda-ws-rpc",
@@ -127,7 +127,7 @@ lazy val lambdaWsRpc = project
 
 lazy val lambdaHttpApiTapir = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(core, lambdaCore)
+  .dependsOn(core, lambdaApigateway)
   .in(file("lambdaHttpApiTapir"))
   .settings(commonSettings, jsSettings)
   .settings(

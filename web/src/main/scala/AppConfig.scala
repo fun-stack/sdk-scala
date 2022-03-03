@@ -3,8 +3,9 @@ package funstack.web
 import scala.scalajs.js
 
 @js.native
-trait WebsiteAppConfig extends js.Object {
-  def url: String = js.native
+trait WebsiteAppConfigTyped[T] extends js.Object {
+  def url: String    = js.native
+  def environment: T = js.native
 }
 
 @js.native
@@ -27,11 +28,10 @@ trait HttpAppConfig extends js.Object {
 @js.native
 trait AppConfigTyped[T] extends js.Object {
   def stage: String                      = js.native
-  def website: WebsiteAppConfig          = js.native
+  def website: WebsiteAppConfigTyped[T]  = js.native
   def auth: js.UndefOr[AuthAppConfig]    = js.native
   def http: js.UndefOr[HttpAppConfig]    = js.native
   def ws: js.UndefOr[WsAppConfig]        = js.native
-  def environment: T                     = js.native
 }
 object AppConfig {
   import js.Dynamic.{global => g}

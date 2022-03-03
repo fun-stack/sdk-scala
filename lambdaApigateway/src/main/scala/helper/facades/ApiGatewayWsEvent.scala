@@ -1,10 +1,10 @@
-package funstack.lambda.ws.rpc.helper
+package funstack.lambda.apigateway.helper.facades
 
 import scala.scalajs.js
 import net.exoego.facade.aws_lambda._
 
 @js.native
-trait APIGatewayWSRequestContext extends js.Object {
+trait APIGatewayWsRequestContext extends js.Object {
   def authorizer: js.UndefOr[js.Dictionary[String]] = js.native
   def apiId: String                                 = js.native
   def connectedAt: Double                           = js.native
@@ -23,8 +23,8 @@ trait APIGatewayWSRequestContext extends js.Object {
 }
 
 @js.native
-trait APIGatewayWSEvent extends js.Object {
-  def requestContext: APIGatewayWSRequestContext = js.native
+trait APIGatewayWsEvent extends js.Object {
+  def requestContext: APIGatewayWsRequestContext = js.native
   def body: String                               = js.native
   def isBase64Encoded: Boolean                   = js.native
 }
