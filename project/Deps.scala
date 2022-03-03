@@ -43,19 +43,19 @@ object Deps {
   }
 
   // aws-sdk-js
-  val awsSdkJS = new {
+  val awsSdkJS    = new {
     val version                 = s"0.32.0-v${NpmDeps.awsSdkVersion}"
     val lambda                  = s("net.exoego" %%% "aws-sdk-scalajs-facade-lambda" % version)
     val dynamodb                = s("net.exoego" %%% "aws-sdk-scalajs-facade-dynamodb" % version)
     val apigatewaymanagementapi = s("net.exoego" %%% "aws-sdk-scalajs-facade-apigatewaymanagementapi" % version)
     val cognitoidentityprovider = s("net.exoego" %%% "aws-sdk-scalajs-facade-cognitoidentityprovider" % version)
-    val sns = s("net.exoego" %%% "aws-sdk-scalajs-facade-sns" % version)
+    val sns                     = s("net.exoego" %%% "aws-sdk-scalajs-facade-sns" % version)
   }
   val awsLambdaJS = s("net.exoego" %%% "aws-lambda-scalajs-facade" % "0.12.1")
 }
 
 object NpmDeps {
-  val awsSdkVersion    = "2.798.0"
-  val awsSdk           = "aws-sdk" -> awsSdkVersion
-  val jwtDecode        = "jwt-decode" -> "3.1.2"
+  val awsSdkVersion = "2.798.0"
+  val awsSdk        = "aws-sdk"    -> awsSdkVersion
+  val jwtDecode     = "jwt-decode" -> "3.1.2"
 }

@@ -8,16 +8,15 @@ import mycelium.core.client.IncidentHandler
 final class EventSubscriber(send: String => Unit) extends IncidentHandler[SubscriptionEvent] {
   import scala.collection.mutable
 
-  private def subscribePayload(subscriptionKey: String) =
+  private def subscribePayload(subscriptionKey: String)   =
     s"""{"__action": "subscribe", "subscription_key": "${subscriptionKey}" }"""
   private def unsubscribePayload(subscriptionKey: String) =
     s"""{"__action": "unsubscribe", "subscription_key": "${subscriptionKey}" }"""
 
   private val subscriptionByKey = mutable.HashMap[String, PublishSubject[String]]()
 
-  private def doSubscribe(subscriptionKey: String): Unit = {
+  private def doSubscribe(subscriptionKey: String): Unit =
     send(subscribePayload(subscriptionKey))
-  }
 
   private def doUnsubscribe(subscriptionKey: String): Unit = {
     subscriptionByKey.remove(subscriptionKey)

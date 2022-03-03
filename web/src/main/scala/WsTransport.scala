@@ -14,18 +14,21 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 private object WsTransport {
 
-  def apply[PickleType, F[_]: Async](send: (List[String], PickleType, SendType, FiniteDuration) => Option[Future[Either[PickleType, PickleType]]]): RequestTransport[PickleType, F] =
+  def apply[PickleType, F[_]: Async](
+    send: (List[String], PickleType, SendType, FiniteDuration) => Option[Future[Either[PickleType, PickleType]]],
+  ): RequestTransport[PickleType, F] =
     new RequestTransport[PickleType, F] {
       def apply(request: Request[PickleType]): F[PickleType] =
         Async[F].async[PickleType](cb =>
           send(request.path, request.payload, SendType.WhenConnected, 30.seconds) match {
-            case Some(response) => response.onComplete {
-              case util.Success(Right(value)) => cb(Right(value))
-              case util.Success(Left(error))  => cb(Left(new Exception(s"Request failed: $error")))
-              case util.Failure(ex)           => cb(Left(ex))
-            }
-            case None => cb(Left(new Exception("Websocket connection not started. You need to call 'ws.start'.")))
-          }
+            case Some(response) =>
+              response.onComplete {
+                case util.Success(Right(value)) => cb(Right(value))
+                case util.Success(Left(error))  => cb(Left(new Exception(s"Request failed: $error")))
+                case util.Failure(ex)           => cb(Left(ex))
+              }
+            case None           => cb(Left(new Exception("Websocket connection not started. You need to call 'ws.start'.")))
+          },
         )
     }
 
@@ -37,4 +40,3 @@ private object WsTransport {
       }
     }
 }
-

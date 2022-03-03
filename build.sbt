@@ -2,43 +2,42 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
-inThisBuild(Seq(
-  organization := "io.github.fun-stack",
-  scalaVersion := "2.13.8",
-
-  licenses := Seq("MIT License" -> url("https://opensource.org/licenses/MIT")),
-
-  homepage := Some(url("https://github.com/fun-stack/fun-stack-scala")),
-
-  scmInfo := Some(ScmInfo(
-    url("https://github.com/fun-stack/fun-stack-scala"),
-    "scm:git:git@github.com:fun-stack/fun-stack-scala.git",
-    Some("scm:git:git@github.com:fun-stack/fun-stack-scala.git"))
-  ),
-
-  pomExtra :=
-    <developers>
+inThisBuild(
+  Seq(
+    organization           := "io.github.fun-stack",
+    scalaVersion           := "2.13.8",
+    licenses               := Seq("MIT License" -> url("https://opensource.org/licenses/MIT")),
+    homepage               := Some(url("https://github.com/fun-stack/fun-stack-scala")),
+    scmInfo                := Some(
+      ScmInfo(
+        url("https://github.com/fun-stack/fun-stack-scala"),
+        "scm:git:git@github.com:fun-stack/fun-stack-scala.git",
+        Some("scm:git:git@github.com:fun-stack/fun-stack-scala.git"),
+      ),
+    ),
+    pomExtra               :=
+      <developers>
       <developer>
         <id>jkaroff</id>
         <name>Johannes Karoff</name>
         <url>https://github.com/cornerman</url>
       </developer>
     </developers>,
-
-  sonatypeCredentialHost := "s01.oss.sonatype.org",
-  sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
-))
+    sonatypeCredentialHost := "s01.oss.sonatype.org",
+    sonatypeRepository     := "https://s01.oss.sonatype.org/service/local",
+  ),
+)
 
 lazy val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full),
-  libraryDependencies ++=
+  libraryDependencies  ++=
     Deps.scalatest.value % Test ::
       Nil,
   scalacOptions --= Seq("-Xfatal-warnings", "-Wconf:any&src=src_managed/.*"),
 )
 
 lazy val jsSettings = Seq(
-  useYarn := true,
+  useYarn       := true,
   scalacOptions += {
     val githubRepo    = "fun-stack/fun-stack-scala"
     val local         = baseDirectory.value.toURI
@@ -46,7 +45,7 @@ lazy val jsSettings = Seq(
     val remote        = s"https://raw.githubusercontent.com/${githubRepo}/${git.gitHeadCommit.value.get}"
     s"-P:scalajs:mapSourceURI:$local->$remote/${subProjectDir}/"
   },
-  scalacOptions += "-P:scalajs:nowarnGlobalExecutionContext", //TODO: setImmediate
+  scalacOptions += "-P:scalajs:nowarnGlobalExecutionContext",// TODO: setImmediate
 )
 
 lazy val core = project
@@ -54,9 +53,9 @@ lazy val core = project
   .in(file("core"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-core",
+    name                 := "fun-stack-core",
     libraryDependencies ++=
-        Deps.chameleon.value ::
+      Deps.chameleon.value ::
         Nil,
   )
 
@@ -66,7 +65,7 @@ lazy val backend = project
   .dependsOn(core, wsCore)
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-backend",
+    name                 := "fun-stack-backend",
     libraryDependencies ++=
       Deps.cats.effect.value ::
         Deps.awsSdkJS.sns.value ::
@@ -81,7 +80,7 @@ lazy val lambdaApigateway = project
   .in(file("lambdaApigateway"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-lambda-apigateway",
+    name                 := "fun-stack-lambda-apigateway",
     libraryDependencies ++=
       Deps.cats.effect.value ::
         Deps.awsLambdaJS.value ::
@@ -94,7 +93,7 @@ lazy val wsCore = project
   .in(file("wsCore"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-ws-core",
+    name                 := "fun-stack-ws-core",
     libraryDependencies ++=
       Deps.mycelium.core.value ::
         Nil,
@@ -106,7 +105,7 @@ lazy val lambdaHttpRpc = project
   .in(file("lambdaHttpRpc"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-lambda-http-rpc",
+    name                 := "fun-stack-lambda-http-rpc",
     libraryDependencies ++=
       Deps.sloth.value ::
         Nil,
@@ -118,7 +117,7 @@ lazy val lambdaWsRpc = project
   .in(file("lambdaWsRpc"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-lambda-ws-rpc",
+    name                 := "fun-stack-lambda-ws-rpc",
     libraryDependencies ++=
       Deps.sloth.value ::
         Deps.cats.effect.value ::
@@ -131,7 +130,7 @@ lazy val lambdaHttpApiTapir = project
   .in(file("lambdaHttpApiTapir"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-lambda-http-api-tapir",
+    name                 := "fun-stack-lambda-http-api-tapir",
     libraryDependencies ++=
       Deps.sttp.core.value ::
         Deps.sttp.circe.value ::
@@ -148,7 +147,7 @@ lazy val lambdaWsEventAuthorizer = project
   .in(file("lambdaWsEventAuthorizer"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-lambda-ws-event-authorizer",
+    name                 := "fun-stack-lambda-ws-event-authorizer",
     libraryDependencies ++=
       Deps.cats.effect.value ::
         Deps.awsSdkJS.sns.value ::
@@ -163,14 +162,13 @@ lazy val web = project
   .in(file("web"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-web",
-    libraryDependencies ++=
+    name                       := "fun-stack-web",
+    libraryDependencies       ++=
       Deps.sloth.value ::
         Deps.cats.effect.value ::
         Deps.colibri.value ::
         Deps.mycelium.clientJs.value ::
         Nil,
-
     Compile / npmDependencies ++=
       NpmDeps.jwtDecode ::
         Nil,
@@ -182,7 +180,7 @@ lazy val webTapir = project
   .in(file("webTapir"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-web-tapir",
+    name                 := "fun-stack-web-tapir",
     libraryDependencies ++=
       Deps.sttp.jsClient.value ::
         Deps.sttp.catsClient.value ::

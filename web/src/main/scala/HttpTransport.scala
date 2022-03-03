@@ -8,7 +8,7 @@ import cats.implicits._
 import scala.scalajs.js
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import org.scalajs.dom.{ Fetch, RequestInit, HttpMethod }
+import org.scalajs.dom.{Fetch, HttpMethod, RequestInit}
 
 private object HttpTransport {
 
@@ -19,20 +19,20 @@ private object HttpTransport {
   def apply[T: CanSerialize](http: HttpAppConfig, auth: Option[Auth[IO]]): RequestTransport[T, IO] =
     new RequestTransport[T, IO] {
       def apply(request: Request[T]): IO[T] = {
-        val path = request.path.mkString("/")
-        val url = s"${http.url}/_/$path"
+        val path        = request.path.mkString("/")
+        val url         = s"${http.url}/_/$path"
         val requestBody = CanSerialize[T].serialize(request.payload)
 
         for {
           user <- auth.flatTraverse(_.currentUser.headIO)
 
           requestHeaders = user.fold(js.Array[js.Array[String]]()) { user =>
-            js.Array(js.Array("Authorization", s"${user.token.token_type} ${user.token.access_token}"))
-          }
+                             js.Array(js.Array("Authorization", s"${user.token.token_type} ${user.token.access_token}"))
+                           }
 
           result <- IO.fromFuture(IO {
-            Fetch.fetch(url, new RequestInit { method = HttpMethod.POST; body = requestBody; headers = requestHeaders }).toFuture
-          })
+                      Fetch.fetch(url, new RequestInit { method = HttpMethod.POST; body = requestBody; headers = requestHeaders }).toFuture
+                    })
 
           text <- IO.fromFuture(IO(result.text().toFuture))
 
@@ -43,4 +43,3 @@ private object HttpTransport {
       }
     }
 }
-
