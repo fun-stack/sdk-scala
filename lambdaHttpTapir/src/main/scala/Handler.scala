@@ -95,7 +95,7 @@ object Handler {
     DocServer.serve(fullPath, endpoints) match {
       case Some(docResult) => js.Promise.resolve[APIGatewayProxyStructuredResultV2](docResult)
       case None =>
-        val interpreter = LambdaServerInterpreter[F](endpoints, event)
+        val interpreter = LambdaServerInterpreter[F](endpoints)
 
         val run = interpreter(new LambdaServerRequest(event), new LambdaRequestBody[F](event)).map {
           case RequestResult.Response(response) =>

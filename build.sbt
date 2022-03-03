@@ -135,6 +135,7 @@ lazy val lambdaHttpTapir = project
     libraryDependencies ++=
       Deps.sttp.core.value ::
         Deps.sttp.circe.value ::
+        Deps.sttp.catsClient.value ::
         Deps.sttp.openApi.value ::
         Deps.sttp.openApiCirce.value ::
         Deps.sttp.redoc.value ::

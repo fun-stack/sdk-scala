@@ -68,9 +68,13 @@ object LambdaToResponseBody extends ToResponseBody[APIGatewayProxyStructuredResu
 }
 
 object LambdaServerInterpreter {
-  import funstack.lambda.http.tapir.implicits._
+  import sttp.client3.impl.cats.implicits._
 
-  def apply[F[_]: Sync](endpoints: List[ServerEndpoint[_, F]], event: APIGatewayProxyEventV2) = new ServerInterpreter(
+  private implicit def catsSttpBodyListener[F[_]: Sync, B]: BodyListener[F, B] = new BodyListener[F, B] {
+    def onComplete(body: B)(cb: util.Try[Unit] => F[Unit]): F[B] = Sync[F].defer(cb(util.Success(()))).as(body)
+  }
+
+  def apply[F[_]: Sync](endpoints: List[ServerEndpoint[_, F]]) = new ServerInterpreter(
     serverEndpoints = endpoints.asInstanceOf[List[ServerEndpoint[Any, F]]],
     toResponseBody = LambdaToResponseBody,
     interceptors = Nil,
