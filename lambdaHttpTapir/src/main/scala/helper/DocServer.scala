@@ -1,4 +1,4 @@
-package funstack.lambda.http.tapir
+package funstack.lambda.http.tapir.helper
 
 import net.exoego.facade.aws_lambda._
 import sttp.tapir.server.ServerEndpoint

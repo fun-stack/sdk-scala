@@ -1,5 +1,6 @@
 package funstack.lambda.http.tapir
 
+import funstack.lambda.http.tapir.helper._
 import funstack.lambda.core.{HandlerFunction, HandlerRequest, AuthInfo}
 import net.exoego.facade.aws_lambda._
 import cats.data.Kleisli
