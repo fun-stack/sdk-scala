@@ -100,38 +100,38 @@ lazy val wsCore = project
         Nil,
   )
 
-lazy val lambdaHttp = project
+lazy val lambdaHttpRpc = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(core, lambdaCore)
-  .in(file("lambdaHttp"))
+  .in(file("lambdaHttpRpc"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-lambda-http",
+    name := "fun-stack-lambda-http-rpc",
     libraryDependencies ++=
       Deps.sloth.value ::
         Nil,
   )
 
-lazy val lambdaWs = project
+lazy val lambdaWsRpc = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(core, lambdaCore, wsCore)
   .in(file("lambdaWs"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-lambda-ws",
+    name := "fun-stack-lambda-ws-rpc",
     libraryDependencies ++=
       Deps.sloth.value ::
         Deps.cats.effect.value ::
         Nil,
   )
 
-lazy val lambdaHttpTapir = project
+lazy val lambdaHttpApiTapir = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(core, lambdaCore)
-  .in(file("lambdaHttpTapir"))
+  .in(file("lambdaHttpApiTapir"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-lambda-http-tapir",
+    name := "fun-stack-lambda-http-api-tapir",
     libraryDependencies ++=
       Deps.sttp.core.value ::
         Deps.sttp.circe.value ::
@@ -142,13 +142,13 @@ lazy val lambdaHttpTapir = project
         Nil,
   )
 
-lazy val lambdaEventAuthorizer = project
+lazy val lambdaWsEventAuthorizer = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(core, wsCore)
-  .in(file("lambdaEventAuthorizer"))
+  .in(file("lambdaWsEventAuthorizer"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-lambda-event-authorizer",
+    name := "fun-stack-lambda-ws-event-authorizer",
     libraryDependencies ++=
       Deps.cats.effect.value ::
         Deps.awsSdkJS.sns.value ::

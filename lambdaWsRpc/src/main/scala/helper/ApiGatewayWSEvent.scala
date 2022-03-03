@@ -1,4 +1,4 @@
-package funstack.lambda.ws
+package funstack.lambda.ws.rpc.helper
 
 import scala.scalajs.js
 import net.exoego.facade.aws_lambda._

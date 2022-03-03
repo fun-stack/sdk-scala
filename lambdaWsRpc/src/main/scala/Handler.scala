@@ -1,7 +1,7 @@
-package funstack.lambda.ws
+package funstack.lambda.ws.rpc
 
 import funstack.ws.core.{ClientMessageSerdes, ServerMessageSerdes}
-import funstack.lambda.core.{HandlerFunction, HandlerRequest, AuthInfo}
+import funstack.lambda.core.{RequestOf, AuthInfo}
 import funstack.core.{SubscriptionEvent, CanSerialize}
 
 import net.exoego.facade.aws_lambda._
@@ -17,16 +17,7 @@ import scala.util.control.NonFatal
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object Handler {
-
-  type WsRequest = HandlerRequest[APIGatewayWSEvent]
-
-  type FunctionType = HandlerFunction.Type[APIGatewayWSEvent]
-
-  type FutureFunc[Out]    = WsRequest => Future[Out]
-  type FutureKleisli[Out] = Kleisli[Future, WsRequest, Out]
-  type IOFunc[Out]        = WsRequest => IO[Out]
-  type IOKleisli[Out]     = Kleisli[IO, WsRequest, Out]
+object Handler extends HandlerType[APIGatewayWSEvent] {
 
   def handle[T: CanSerialize](
       router: Router[T, IO],
@@ -42,15 +33,15 @@ object Handler {
   ): FunctionType = handleFWithContext[T, F](router, (f, _) => execute(f))
 
   def handle[T: CanSerialize](
-      router: WsRequest => Router[T, IO],
+      router: Request => Router[T, IO],
   ): FunctionType = handleF[T, IO](router, _.map(Right.apply).unsafeToFuture())
 
   def handleFuture[T: CanSerialize](
-      router: WsRequest => Router[T, Future],
+      router: Request => Router[T, Future],
   ): FunctionType = handleF[T, Future](router, _.map(Right.apply))
 
   def handleF[T: CanSerialize, F[_]](
-      router: WsRequest => Router[T, F],
+      router: Request => Router[T, F],
       execute: F[T] => Future[Either[T, T]],
   ): FunctionType = handleFCustom[T, F](router, (f, _) => execute(f))
 
@@ -72,12 +63,12 @@ object Handler {
 
   def handleFWithContext[T: CanSerialize, F[_]](
       router: Router[T, F],
-      execute: (F[T], WsRequest) => Future[Either[T, T]],
+      execute: (F[T], Request) => Future[Either[T, T]],
   ): FunctionType = handleFCustom[T, F](_ => router, execute)
 
   def handleFCustom[T: CanSerialize, F[_]](
-      routerf: WsRequest => Router[T, F],
-      execute: (F[T], WsRequest) => Future[Either[T, T]],
+      routerf: Request => Router[T, F],
+      execute: (F[T], Request) => Future[Either[T, T]],
   ): FunctionType = { (event, context) =>
     // println(js.JSON.stringify(event))
     // println(js.JSON.stringify(context))
@@ -85,10 +76,9 @@ object Handler {
     val auth = event.requestContext.authorizer.toOption.flatMap { claims =>
       for {
         sub <- claims.get("sub")
-        username <- claims.get("username")
-      } yield AuthInfo(sub = sub, username = username)
+      } yield AuthInfo(sub = sub)
     }
-    val request = HandlerRequest(event, context, auth)
+    val request = RequestOf(event, context, auth)
     val router = routerf(request)
 
     val result = ClientMessageSerdes.deserialize(event.body) match {

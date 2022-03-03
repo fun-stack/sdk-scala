@@ -1,9 +1,10 @@
-package funstack.lambda.eventauthorizer
+package funstack.lambda.ws.eventauthorizer
 
 import net.exoego.facade.aws_lambda._
 import facade.amazonaws.services.sns._
 
 import funstack.core.{SubscriptionEvent, CanSerialize}
+import funstack.lambda.core.{HandlerType, RequestOf, AuthInfo}
 import funstack.ws.core.ServerMessageSerdes
 import mycelium.core.message._
 import scala.scalajs.js
@@ -17,11 +18,9 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object Handler {
-
-  case class EventAuth(sub: String)
-  case class EventRequest(auth: Option[EventAuth])
-
   type FunctionType = js.Function2[SNSEvent, Context, js.Promise[Unit]]
+
+  type EventRequest = RequestOf[SNSEvent]
 
   type FutureFunc[Out]    = (EventRequest, Out) => Future[Boolean]
   type FutureKleisli[Out] = Kleisli[Future, (EventRequest, Out), Boolean]
@@ -110,7 +109,7 @@ object Handler {
       val record = event.Records(0)
 
       val auth = record.Sns.MessageAttributes.get("user_id").map { attr => EventAuth(sub = attr.Value) }
-      val request = EventRequest(auth)
+      val request = RequestOf(auth)
       val router = routerf(request)
 
       val result: Future[Boolean] = ServerMessageSerdes.deserialize(record.Sns.Message) match {

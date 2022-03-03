@@ -2,6 +2,7 @@ package funstack.core
 
 import java.nio.ByteBuffer
 import scala.util.Try
+import funstack.core.helper.Base64Codec
 
 trait CanSerialize[T] {
   def serialize(value: T): String

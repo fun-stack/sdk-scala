@@ -1,28 +1,18 @@
-package funstack.lambda.http
+package funstack.lambda.http.rpc
 
 import net.exoego.facade.aws_lambda._
-import funstack.lambda.core.{HandlerRequest, AuthInfo}
+import funstack.lambda.core.{HandlerType, RequestOf, AuthInfo}
 import funstack.core.CanSerialize
 import scala.scalajs.js
 import sloth._
 import scala.scalajs.js.JSConverters._
-import funstack.lambda.core.HandlerFunction
 import cats.effect.IO
 import cats.data.Kleisli
 import scala.concurrent.Future
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object Handler {
-
-  type HttpRequest = HandlerRequest[APIGatewayProxyEventV2]
-
-  type FunctionType = HandlerFunction.Type[APIGatewayProxyEventV2]
-
-  type FutureFunc[Out]    = HttpRequest => Future[Out]
-  type FutureKleisli[Out] = Kleisli[Future, HttpRequest, Out]
-  type IOFunc[Out]        = HttpRequest => IO[Out]
-  type IOKleisli[Out]     = Kleisli[IO, HttpRequest, Out]
+object Handler extends HandlerType[APIGatewayProxyEventV2] {
 
   def handle[T : CanSerialize](
       router: Router[T, IO],
@@ -38,15 +28,15 @@ object Handler {
   ): FunctionType = handleFWithContext[T, F](router, (f, _) => execute(f))
 
   def handle[T : CanSerialize](
-      router: HttpRequest => Router[T, IO],
+      router: Request => Router[T, IO],
   ): FunctionType = handleF[T, IO](router, _.unsafeToFuture())
 
   def handleFuture[T : CanSerialize](
-      router: HttpRequest => Router[T, Future],
+      router: Request => Router[T, Future],
   ): FunctionType = handleF[T, Future](router, identity)
 
   def handleF[T : CanSerialize, F[_]](
-      router: HttpRequest => Router[T, F],
+      router: Request => Router[T, F],
       execute: F[T] => Future[T],
   ): FunctionType = handleFCustom[T, F](router, (f, _) => execute(f))
 
@@ -68,13 +58,13 @@ object Handler {
 
   def handleFWithContext[T : CanSerialize, F[_]](
       router: Router[T, F],
-      execute: (F[T], HttpRequest) => Future[T],
+      execute: (F[T], Request) => Future[T],
   ): FunctionType = handleFCustom[T, F](_ => router, execute)
 
   def handleFCustom[T : CanSerialize, F[_]](
-      routerf: HttpRequest => Router[T, F],
-      execute: (F[T], HttpRequest) => Future[T],
-  ): FunctionType = setUnderscoreMarker({ (event, context) =>
+      routerf: Request => Router[T, F],
+      execute: (F[T], Request) => Future[T],
+  ): FunctionType = { (event, context) =>
     // println(js.JSON.stringify(event))
     // println(js.JSON.stringify(context))
 
@@ -83,11 +73,10 @@ object Handler {
       for {
         claims <- authDict.get("lambda")
         sub <- claims.get("sub")
-        username <- claims.get("username")
-      } yield AuthInfo(sub = sub, username = username)
+      } yield AuthInfo(sub = sub)
     }
 
-    val request = HandlerRequest(event, context, auth)
+    val request = RequestOf(event, context, auth)
     val router = routerf(request)
 
     val fullPath = event.requestContext.http.path.split("/").toList.drop(2)
@@ -122,10 +111,5 @@ object Handler {
       println(s"Error handling request: $t")
       APIGatewayProxyStructuredResultV2(statusCode = 500)
     }.toJSPromise
-  })
-
-  private def setUnderscoreMarker(func: FunctionType): FunctionType = {
-    func.asInstanceOf[js.Dynamic].__isUnderscore = true
-    func
   }
 }

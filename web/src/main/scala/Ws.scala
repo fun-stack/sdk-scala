@@ -2,6 +2,7 @@ package funstack.web
 
 import funstack.ws.core.{ClientMessageSerdes, ServerMessageSerdes}
 import funstack.core.{SubscriptionEvent, CanSerialize}
+import funstack.web.helper.EventSubscriber
 
 import sloth._
 import colibri._

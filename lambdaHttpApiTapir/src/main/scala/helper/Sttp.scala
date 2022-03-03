@@ -1,4 +1,4 @@
-package funstack.lambda.http.tapir.helper
+package funstack.lambda.http.api.tapir.helper
 
 import cats.effect.Sync
 import cats.implicits._

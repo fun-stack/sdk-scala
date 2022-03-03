@@ -1,6 +1,7 @@
 package funstack.web
 
 import funstack.core.CanSerialize
+import funstack.web.helper.EventSubscriber
 
 import colibri.Observable
 import sloth.{Request, RequestTransport}

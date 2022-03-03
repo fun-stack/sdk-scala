@@ -1,7 +1,7 @@
-package funstack.lambda.http.tapir
+package funstack.lambda.http.api.tapir
 
-import funstack.lambda.http.tapir.helper._
-import funstack.lambda.core.{HandlerFunction, HandlerRequest, AuthInfo}
+import funstack.lambda.http.api.tapir.helper._
+import funstack.lambda.core.{HandlerType, RequestOf, AuthInfo}
 import net.exoego.facade.aws_lambda._
 import cats.data.Kleisli
 import cats.effect.{IO, Sync, ExitCase}
@@ -14,17 +14,8 @@ import scala.scalajs.js.JSConverters._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object Handler {
+object Handler extends HandlerType[APIGatewayProxyEventV2] {
   import SyncInstances._
-
-  type HttpRequest = HandlerRequest[APIGatewayProxyEventV2]
-
-  type FunctionType = HandlerFunction.Type[APIGatewayProxyEventV2]
-
-  type FutureFunc[Out]    = HttpRequest => Future[Out]
-  type FutureKleisli[Out] = Kleisli[Future, HttpRequest, Out]
-  type IOFunc[Out]        = HttpRequest => IO[Out]
-  type IOKleisli[Out]     = Kleisli[IO, HttpRequest, Out]
 
   def handle(
       endpoints: List[ServerEndpoint[_, IO]],
@@ -40,15 +31,15 @@ object Handler {
   ): FunctionType = handleFWithContext[F](endpoints, (f, _) => execute(f))
 
   def handle(
-      endpoints: HttpRequest => List[ServerEndpoint[_, IO]],
+      endpoints: Request => List[ServerEndpoint[_, IO]],
   ): FunctionType = handleFCustom[IO](endpoints, (f, _) => f.unsafeToFuture())
 
   def handleFuture(
-      endpoints: HttpRequest => List[ServerEndpoint[_, Future]],
+      endpoints: Request => List[ServerEndpoint[_, Future]],
   ): FunctionType = handleFCustom[Future](endpoints, (f, _) => f)
 
   def handleF[F[_]: Sync](
-      endpoints: HttpRequest => List[ServerEndpoint[_, F]],
+      endpoints: Request => List[ServerEndpoint[_, F]],
       execute: F[APIGatewayProxyStructuredResultV2] => Future[APIGatewayProxyStructuredResultV2],
   ): FunctionType = handleFCustom[F](endpoints, (f, _) => execute(f))
 
@@ -70,12 +61,12 @@ object Handler {
 
   def handleFWithContext[F[_]: Sync](
       endpoints: List[ServerEndpoint[_, F]],
-      execute: (F[APIGatewayProxyStructuredResultV2], HttpRequest) => Future[APIGatewayProxyStructuredResultV2],
+      execute: (F[APIGatewayProxyStructuredResultV2], Request) => Future[APIGatewayProxyStructuredResultV2],
   ): FunctionType = handleFCustom[F](_ => endpoints, execute)
 
   def handleFCustom[F[_]: Sync](
-      endpointsf: HttpRequest => List[ServerEndpoint[_, F]],
-      execute: (F[APIGatewayProxyStructuredResultV2], HttpRequest) => Future[APIGatewayProxyStructuredResultV2],
+      endpointsf: Request => List[ServerEndpoint[_, F]],
+      execute: (F[APIGatewayProxyStructuredResultV2], Request) => Future[APIGatewayProxyStructuredResultV2],
   ): FunctionType = { (event, context) =>
     // println(js.JSON.stringify(event))
     // println(js.JSON.stringify(context))
@@ -85,10 +76,9 @@ object Handler {
       for {
         claims <- authDict.get("lambda")
         sub <- claims.get("sub")
-        username <- claims.get("username")
-      } yield AuthInfo(sub = sub, username = username)
+      } yield AuthInfo(sub = sub)
     }
-    val request = HandlerRequest(event, context, auth)
+    val request = RequestOf(event, context, auth)
     val endpoints   = endpointsf(request)
 
     val fullPath = event.requestContext.http.path.split("/").toList.drop(2)

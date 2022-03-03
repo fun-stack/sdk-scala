@@ -1,4 +1,4 @@
-package funstack.lambda.eventauthorizer
+package funstack.lambda.ws.eventauthorizer
 
 import scala.scalajs.js
 import cats.implicits._
