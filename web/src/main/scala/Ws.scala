@@ -54,6 +54,8 @@ class Ws(ws: WsAppConfig, auth: Option[Auth[IO]]) {
     var currentUser: Option[User] = None
     var connectionCancelable      = MyceliumCancelable.empty
 
+    val trimmedUrl = ws.url.replaceFirst("/$", "")
+
     def runServer(): Unit = {
       connectionCancelable.cancel()
       connectionCancelable =
@@ -61,7 +63,7 @@ class Ws(ws: WsAppConfig, auth: Option[Auth[IO]]) {
         else
           wsClient.run { () =>
             val tokenParam = currentUser.fold("")(user => s"?token=${user.token.access_token}")
-            s"${ws.url}/${tokenParam}"
+            s"${trimmedUrl}/${tokenParam}"
           }
     }
 
