@@ -18,9 +18,11 @@ private object HttpTransport {
 
   def apply[T: CanSerialize](http: HttpAppConfig, auth: Option[Auth[IO]]): RequestTransport[T, IO] =
     new RequestTransport[T, IO] {
+      private val trimmedUrl = http.url.replaceFirst("/$", "")
+
       def apply(request: Request[T]): IO[T] = {
         val path        = request.path.mkString("/")
-        val url         = s"${http.url}/_/$path"
+        val url         = s"${trimmedUrl}/_/$path"
         val requestBody = CanSerialize[T].serialize(request.payload)
 
         for {
