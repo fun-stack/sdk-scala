@@ -26,10 +26,11 @@ private object HttpTransport {
         val requestBody = CanSerialize[T].serialize(request.payload)
 
         for {
-          user <- auth.flatTraverse(_.currentUser.headIO)
+          user      <- auth.flatTraverse(_.currentUser.headIO)
+          userToken <- user.traverse(_.token)
 
-          requestHeaders = user.fold(js.Array[js.Array[String]]()) { user =>
-                             js.Array(js.Array("Authorization", s"${user.token.token_type} ${user.token.access_token}"))
+          requestHeaders = userToken.fold(js.Array[js.Array[String]]()) { token =>
+                             js.Array(js.Array("Authorization", s"${token.token_type} ${token.access_token}"))
                            }
 
           result <- IO.fromFuture(IO {

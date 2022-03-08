@@ -13,10 +13,11 @@ class HttpTapir(http: HttpAppConfig, auth: Option[Auth[IO]]) {
   private implicit val cs = IO.contextShift(ExecutionContext.global)
 
   private val backend = for {
-    currentUser <- auth.flatTraverse(_.currentUser.headIO)
+    currentUser  <- auth.flatTraverse(_.currentUser.headIO)
+    currentToken <- currentUser.traverse(_.token)
   } yield FetchCatsBackend[IO](customizeRequest = request => {
-    currentUser.foreach { user =>
-      request.headers.append("Authorization", s"${user.token.token_type} ${user.token.access_token}")
+    currentToken.foreach { token =>
+      request.headers.append("Authorization", s"${token.token_type} ${token.access_token}")
     }
     request
   })
