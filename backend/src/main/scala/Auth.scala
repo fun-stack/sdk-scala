@@ -3,6 +3,7 @@ package funstack.backend
 import facade.amazonaws.services.cognitoidentityprovider._
 import cats.effect.IO
 import scala.scalajs.js
+import scala.scalajs.js.JSConverters._
 
 @js.native
 trait UserInfoResponse extends js.Object {
@@ -28,7 +29,9 @@ class Auth(cognitoUserPoolId: String) {
     )
     .map(
       _.UserAttributes
-        .fold(js.Dictionary.empty[String])(attrs => js.Dictionary(attrs.flatMap(attr => attr.Value.map(value => (attr.Name, value)).toOption).toSeq: _*))
+        .fold(js.Dictionary.empty[String]) { attrs =>
+          attrs.flatMap(attr => attr.Value.map(value => (attr.Name, value)).toOption).toMap.toJSDictionary
+        }
         .asInstanceOf[UserInfoResponse],
     )
 }
