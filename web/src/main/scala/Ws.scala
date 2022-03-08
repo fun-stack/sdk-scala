@@ -51,20 +51,26 @@ class Ws(ws: WsAppConfig, auth: Option[Auth[IO]]) {
       eventSubscriber,
     )
 
-    var currentUser: Option[User] = None
-    var connectionCancelable      = MyceliumCancelable.empty
+    var currentUser: Option[User]        = None
+    var connectionCancelable: Cancelable = Cancelable.empty
 
-    val trimmedUrl = ws.url.replaceFirst("/$", "")
+    val baseUrl = ws.url.replaceFirst("/$", "")
 
     def runServer(): Unit = {
       connectionCancelable.cancel()
       connectionCancelable =
-        if (currentUser.isEmpty && !ws.allowUnauthenticated) MyceliumCancelable.empty
-        else
-          wsClient.run { () =>
-            val tokenParam = currentUser.fold("")(user => s"?token=${user.token.access_token}")
-            s"${trimmedUrl}/${tokenParam}"
+        if (currentUser.isEmpty && !ws.allowUnauthenticated) Cancelable.empty
+        else {
+          val tokenRunCancel = Cancelable.variable()
+          val clientCancel   = wsClient.runFromFuture { () =>
+            currentUser
+              .fold(IO.pure(baseUrl))(_.token.map { token =>
+                s"${baseUrl}?token=${token.access_token}"
+              })
+              .unsafeToFuture()
           }
+          Cancelable.composite(tokenRunCancel, Cancelable(clientCancel.cancel))
+        }
     }
 
     val subscriptionCancelable = auth match {
@@ -75,7 +81,7 @@ class Ws(ws: WsAppConfig, auth: Option[Auth[IO]]) {
         auth.currentUser.foreach { user =>
           val prevUser = currentUser
           currentUser = user
-          if (connectionCancelable == MyceliumCancelable.empty || prevUser.map(_.info.sub) != user.map(_.info.sub)) runServer()
+          if (connectionCancelable == Cancelable.empty || prevUser.map(_.info.sub) != user.map(_.info.sub)) runServer()
         }
     }
 

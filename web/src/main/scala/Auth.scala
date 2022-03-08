@@ -1,24 +1,27 @@
 package funstack.web
 
-import cats.implicits._
 import colibri._
 import cats.effect.{Async, IO, Sync}
+import cats.effect.concurrent.Ref
 import funstack.web.helper.facades.JwtDecode
+
+import cats.effect.IO
+import cats.implicits._
 
 import org.scalajs.dom
 import org.scalajs.dom.{Fetch, HttpMethod, RequestInit, Response, URLSearchParams}
-import scala.scalajs.js
-import scala.scalajs.js.annotation.JSName
 import org.scalajs.dom.window.localStorage
 
+import scala.scalajs.js
+import scala.scalajs.js.annotation.JSName
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 @js.native
 trait TokenResponse extends js.Object {
-  def access_token: String  = js.native
   def id_token: String      = js.native
   def refresh_token: String = js.native
+  def access_token: String  = js.native
   def expires_in: Double    = js.native
   def token_type: String    = js.native
 }
@@ -34,72 +37,71 @@ trait UserInfoResponse extends js.Object {
 
 case class User(
   info: UserInfoResponse,
-  token: TokenResponse,
+  token: IO[TokenResponse],
 )
-
-private sealed trait Authentication
-private object Authentication {
-  case class AuthCode(code: String)      extends Authentication
-  case class RefreshToken(token: String) extends Authentication
-}
 
 class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
   private val redirectUrl = dom.window.location.origin.getOrElse(website.url)
 
+  import ExecutionContext.Implicits.global
   private implicit val cs = IO.contextShift(ExecutionContext.global)
 
   private val storageKeyRefreshToken = "auth.refresh_token"
 
-  private val authentication: Option[Authentication] = {
+  private val authentication: Option[IO[TokenResponse]] = {
     val code = new URLSearchParams(dom.window.location.search).get("code")
+
     if (code == null) {
       val refreshToken = localStorage.getItem(storageKeyRefreshToken)
       if (refreshToken == null) None
-      else Some(Authentication.RefreshToken(refreshToken))
+      else Some(refreshAccessToken(refreshToken))
     }
     else {
       localStorage.removeItem(storageKeyRefreshToken)
       dom.window.history.replaceState(null, "", dom.window.location.origin.get)
-      Some(Authentication.AuthCode(code))
+      Some(getToken(code))
     }
   }
 
-  def signup: F[Unit] = Sync[F].delay {
-    val url = s"${auth.url}/signup?response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
-    dom.window.location.href = url
+  private val scopeString = {
+    val additionalScope = "openid"
+    val allScope        = auth.apiScope.fold(additionalScope)(apiScope => s"$apiScope $additionalScope")
+    allScope.replace(" ", "%20")
   }
 
-  def login: F[Unit] = Sync[F].delay {
-    val url = s"${auth.url}/login?response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
-    dom.window.location.href = url
-  }
+  val signupUrl       = s"${auth.url}/signup?scope=${scopeString}&response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
+  val signup: F[Unit] = Sync[F].delay(dom.window.location.href = signupUrl)
 
-  def logout: F[Unit] = Sync[F].delay {
+  val loginUrl       = s"${auth.url}/login?scope=${scopeString}&response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
+  val login: F[Unit] = Sync[F].delay(dom.window.location.href = loginUrl)
+
+  val logoutUrl       = s"${auth.url}/logout?client_id=${auth.clientId}&logout_uri=${redirectUrl}"
+  val logout: F[Unit] = Sync[F].delay {
     localStorage.removeItem(storageKeyRefreshToken)
-    val url = s"${auth.url}/logout?client_id=${auth.clientId}&logout_uri=${redirectUrl}"
-    dom.window.location.href = url
+    dom.window.location.href = logoutUrl
   }
 
   val currentUser: Observable[Option[User]] =
     authentication
       .fold[Observable[Option[User]]](Observable(None)) { authentication =>
-        Observable(authentication).mapAsync {
-          case Authentication.AuthCode(code)      => getToken(code)
-          case Authentication.RefreshToken(token) => refreshToken(token)
-        }.switchMap { token =>
-          val user = User(getUserInfo(token), token)
-          localStorage.setItem(storageKeyRefreshToken, token.refresh_token)
-          Observable
-            .interval((token.expires_in * 0.8).seconds) // TODO: dynamic per token
-            .drop(1)
-            .mapAsync(_ => refreshToken(token.refresh_token))
-            .map(token => Option(user.copy(token = token)))
-            .prepend(Option(user))
-        }.recover { case t =>
-          dom.console.error("Error in user handling: " + t)
-          localStorage.removeItem(storageKeyRefreshToken)
-          None
-        }
+        Observable
+          .fromAsync(authentication) // TODO: localstorage events across tabs
+          .map[Option[User]] { initialToken =>
+            var currentToken: TokenResponse = initialToken
+            var currentTokenTime            = js.Date.now()
+            val tokenGetter                 = IO.defer {
+              val timeDiff = (js.Date.now() - currentTokenTime + currentToken.expires_in) / currentToken.expires_in
+              if (timeDiff < 0.8) IO.pure(currentToken)
+              else refreshAccessToken(currentToken.refresh_token)
+            }
+
+            Some(User(getUserInfo(initialToken), tokenGetter))
+          }
+          .recover { case t =>
+            dom.console.error("Error in user handling: " + t)
+            localStorage.removeItem(storageKeyRefreshToken)
+            None
+          }
       }
       .replay
       .hot
@@ -127,7 +129,7 @@ class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
     .flatMap(handleResponse)
     .flatMap(r => IO(r.asInstanceOf[TokenResponse]))
 
-  private def refreshToken(refreshToken: String): IO[TokenResponse] = IO
+  private def refreshAccessToken(refreshToken: String): IO[TokenResponse] = IO
     .fromFuture(IO {
       val url = s"${auth.url}/oauth2/token"
       Fetch
