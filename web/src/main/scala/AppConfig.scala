@@ -17,7 +17,6 @@ object WebsiteAppConfig {
 trait AuthAppConfig extends js.Object {
   def url: String                  = js.native
   def clientId: String             = js.native
-  def apiScope: js.UndefOr[String] = js.native
 }
 
 @js.native
