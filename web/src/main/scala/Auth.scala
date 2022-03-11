@@ -29,8 +29,8 @@ trait TokenResponse extends js.Object {
 @js.native
 trait UserInfoResponse extends js.Object {
   def sub: String             = js.native
-  @JSName("cognito:username")
-  def username: String        = js.native
+  // @JSName("cognito:username")
+  // def username: String        = js.native
   def email: String           = js.native
   def email_verified: Boolean = js.native
 }
@@ -41,12 +41,17 @@ case class User(
 )
 
 class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
-  private val redirectUrl = dom.window.location.origin.getOrElse(website.url)
 
   import ExecutionContext.Implicits.global
   private implicit val cs = IO.contextShift(ExecutionContext.global)
 
   private val storageKeyRefreshToken = "auth.refresh_token"
+
+  private val redirectUrl = dom.window.location.origin.getOrElse(website.url)
+
+  private def withQueryParams(baseUrl: String, queryParams: String) =
+    if (baseUrl.contains("?")) s"$baseUrl&$queryParams"
+    else s"$baseUrl?$queryParams"
 
   private val authentication: Option[IO[TokenResponse]] = {
     val code = new URLSearchParams(dom.window.location.search).get("code")
@@ -63,19 +68,22 @@ class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
     }
   }
 
-  private val scopeString = {
-    val additionalScope = "openid"
-    val allScope        = auth.apiScope.fold(additionalScope)(apiScope => s"$apiScope $additionalScope")
-    allScope.replace(" ", "%20")
-  }
-
-  val signupUrl       = s"${auth.url}/signup?scope=${scopeString}&response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
+  val signupUrl       = withQueryParams(
+    s"${auth.url}/signup",
+    s"response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}",
+  )
   val signup: F[Unit] = Sync[F].delay(dom.window.location.href = signupUrl)
 
-  val loginUrl       = s"${auth.url}/login?scope=${scopeString}&response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
+  val loginUrl       = withQueryParams(
+    s"${auth.url}/login",
+    s"response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}",
+  )
   val login: F[Unit] = Sync[F].delay(dom.window.location.href = loginUrl)
 
-  val logoutUrl       = s"${auth.url}/logout?client_id=${auth.clientId}&logout_uri=${redirectUrl}"
+  val logoutUrl       = withQueryParams(
+    s"${auth.url}/logout",
+    s"client_id=${auth.clientId}&logout_uri=${redirectUrl}",
+  )
   val logout: F[Unit] = Sync[F].delay {
     localStorage.removeItem(storageKeyRefreshToken)
     dom.window.location.href = logoutUrl
@@ -87,13 +95,26 @@ class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
         Observable
           .fromAsync(authentication) // TODO: localstorage events across tabs
           .map[Option[User]] { initialToken =>
-            var currentToken: TokenResponse = initialToken
-            var currentTokenTime            = js.Date.now()
-            val tokenGetter                 = IO.defer {
-              val timeDiff = (js.Date.now() - currentTokenTime + currentToken.expires_in) / currentToken.expires_in
-              if (timeDiff < 0.8) IO.pure(currentToken)
-              else refreshAccessToken(currentToken.refresh_token)
-            }
+            println("INITIAL TOKEN " + initialToken)
+            localStorage.setItem(storageKeyRefreshToken, initialToken.refresh_token)
+            var currentToken     = Future.successful(initialToken)
+            var currentTokenTime = js.Date.now()
+            val tokenGetter      = IO.fromFuture(IO {
+              currentToken = currentToken.flatMap { currentToken =>
+                val timeDiffSecs = (js.Date.now() - currentTokenTime) / 1000
+                val canUse       = timeDiffSecs < currentToken.expires_in * 0.8
+                if (canUse) Future.successful(currentToken)
+                else {
+                  currentTokenTime = js.Date.now()
+                  val refresh = refreshAccessToken(currentToken.refresh_token).unsafeToFuture()
+                  refresh.foreach { response =>
+                    localStorage.setItem(storageKeyRefreshToken, response.refresh_token)
+                  }
+                  refresh
+                }
+              }
+              currentToken
+            })
 
             Some(User(getUserInfo(initialToken), tokenGetter))
           }
@@ -110,31 +131,34 @@ class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
     if (response.status == 200) IO.fromFuture(IO(response.json().toFuture))
     else IO.raiseError(new Exception(s"Got Error Response: ${response.status}"))
 
-  private def getUserInfo(token: TokenResponse): UserInfoResponse = JwtDecode(token.id_token).asInstanceOf[UserInfoResponse]
+  private def getUserInfo(token: TokenResponse): UserInfoResponse = {
+    val decoded = JwtDecode(token.id_token)
+    js.Dynamic.global.console.log("DECODED", decoded)
+    decoded.asInstanceOf[UserInfoResponse]
+  }
 
-  private def getToken(authCode: String): IO[TokenResponse] = IO
-    .fromFuture(IO {
-      val url = s"${auth.url}/oauth2/token"
-      Fetch
-        .fetch(
-          url,
-          new RequestInit {
-            method = HttpMethod.POST
-            body = s"grant_type=authorization_code&client_id=${auth.clientId}&code=${authCode}&redirect_uri=${redirectUrl}"
-            headers = js.Array(js.Array("Content-Type", "application/x-www-form-urlencoded"))
-          },
-        )
-        .toFuture
-    })
-    .flatMap(handleResponse)
-    .flatMap(r => IO(r.asInstanceOf[TokenResponse]))
+  private def getToken(authCode: String): IO[TokenResponse] =
+    IO
+      .fromFuture(IO {
+        Fetch
+          .fetch(
+            s"${auth.url}/oauth2/token",
+            new RequestInit {
+              method = HttpMethod.POST
+              body = s"grant_type=authorization_code&client_id=${auth.clientId}&code=${authCode}&redirect_uri=${redirectUrl}"
+              headers = js.Array(js.Array("Content-Type", "application/x-www-form-urlencoded"))
+            },
+          )
+          .toFuture
+      })
+      .flatMap(handleResponse)
+      .flatMap(r => IO(r.asInstanceOf[TokenResponse]))
 
   private def refreshAccessToken(refreshToken: String): IO[TokenResponse] = IO
     .fromFuture(IO {
-      val url = s"${auth.url}/oauth2/token"
       Fetch
         .fetch(
-          url,
+          s"${auth.url}/oauth2/token",
           new RequestInit {
             method = HttpMethod.POST
             body = s"grant_type=refresh_token&client_id=${auth.clientId}&refresh_token=${refreshToken}"
