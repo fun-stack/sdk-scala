@@ -8,7 +8,9 @@ object Fun {
   val wsOption =
     config.fun.eventsSnsTopic
       .map(new WsOperationsAWS(_))
-      .orElse(config.fun.devEnvironment.map(env => new WsOperationsDev(env.send_subscription)))
+      .orElse(config.fun.devEnvironment.flatMap { env =>
+        env.sendSubscription.map(new WsOperationsDev(_)).toOption
+      })
       .map(new Ws(_))
 
   case class MissingModuleException(name: String) extends Exception(s"Missing module: $name")
