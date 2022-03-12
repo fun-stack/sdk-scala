@@ -5,7 +5,7 @@ import cats.implicits._
 
 @js.native
 private[eventauthorizer] trait FunDevEnvironment extends js.Object {
-  def send_connection(@annotation.nowarn connectionId: String, @annotation.nowarn data: String): Unit = js.native
+  val sendConnection: js.UndefOr[js.Function2[String, String, Unit]] = js.native
 }
 
 private[eventauthorizer] case class FunConfig(

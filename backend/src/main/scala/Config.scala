@@ -7,7 +7,7 @@ import cats.implicits._
 
 @js.native
 trait FunDevEnvironment extends js.Object {
-  def send_subscription(@annotation.nowarn subscriptionKey: String, @annotation.nowarn data: String): Unit = js.native
+  val sendSubscription: js.UndefOr[js.Function2[String, String, Unit]] = js.native
 }
 
 case class FunConfig(

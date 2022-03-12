@@ -75,7 +75,7 @@ object Handler {
   ): FunctionType = {
     val config = FunConfig.load()
 
-    val sendEvent: (String, String) => Future[Unit] = (config.eventsSnsTopic, config.devEnvironment) match {
+    val sendEvent: (String, String) => Future[Unit] = (config.eventsSnsTopic, config.devEnvironment.flatMap(_.sendConnection.toOption)) match {
       case (Some(eventsSnsTopic), _) =>
         val snsClient = new SNS()
 
@@ -89,9 +89,9 @@ object Handler {
           snsClient.publishFuture(params).map(_ => ())
         }
 
-      case (None, Some(dev)) =>
+      case (None, Some(sendConnection)) =>
         (connectionId, data) =>
-          dev.send_connection(connectionId, data)
+          sendConnection(connectionId, data)
           Future.successful(())
 
       case _ =>
