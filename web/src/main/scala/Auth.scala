@@ -42,6 +42,8 @@ case class User(
   token: IO[TokenResponse],
 )
 
+case class AuthTokenEndpointError(status: Int) extends Exception(s"Error from endpoint: ${status}")
+
 class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
 
   import ExecutionContext.Implicits.global
@@ -50,22 +52,18 @@ class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
   private val storageKeyRefreshToken = "auth.refresh_token"
 
   private val initialAuthentication: Option[IO[TokenResponse]] = {
-    val code   = new URLSearchParams(dom.window.location.search).get("code")
-    val logout = new URLSearchParams(dom.window.location.search).get("logout")
+    val searchParams = new URLSearchParams(dom.window.location.search)
+    val code         = Option(searchParams.get("code"))
+    val logout       = Option(searchParams.get("logout"))
 
-    if (logout != null) {
-      localStorage.removeItem(storageKeyRefreshToken)
-    }
-
-    if (code == null) {
-      val refreshToken = localStorage.getItem(storageKeyRefreshToken)
-      if (refreshToken == null) None
-      else Some(refreshAccessToken(refreshToken))
-    }
-    else {
+    if (logout.isDefined || code.isDefined) {
       localStorage.removeItem(storageKeyRefreshToken)
       dom.window.history.replaceState(null, "", dom.window.location.origin.get)
-      Some(getToken(code))
+    }
+
+    code match {
+      case None       => Option(localStorage.getItem(storageKeyRefreshToken)).map(refreshAccessToken(_))
+      case Some(code) => Some(getToken(code))
     }
   }
 
@@ -97,11 +95,9 @@ class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
                 if (canUse) Future.successful(currentToken)
                 else {
                   currentTokenTime = js.Date.now()
-                  val refresh = refreshAccessToken(currentToken.refresh_token).unsafeToFuture()
-                  refresh.foreach { response =>
-                    localStorage.setItem(storageKeyRefreshToken, response.refresh_token)
-                  }
-                  refresh
+                  refreshAccessToken(currentToken.refresh_token).flatTap { response =>
+                    IO(localStorage.setItem(storageKeyRefreshToken, response.refresh_token))
+                  }.unsafeToFuture()
                 }
               }
               currentToken
@@ -113,14 +109,14 @@ class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
             dom.console.error("Error in user handling: " + t)
             localStorage.removeItem(storageKeyRefreshToken)
             None
-          }
+      }
       }
       .replay
       .hot
 
   private def handleResponse(response: Response): IO[js.Any] =
     if (response.status == 200) IO.fromFuture(IO(response.json().toFuture))
-    else IO.raiseError(new Exception(s"Got Error Response: ${response.status}"))
+    else IO.raiseError(AuthTokenEndpointError(response.status))
 
   private def getUserInfo(token: TokenResponse): UserInfoResponse = {
     val decoded = JwtDecode(token.id_token)
