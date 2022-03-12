@@ -11,7 +11,11 @@ trait UserInfoResponse extends js.Object {
   def email_verified: String = js.native
 }
 
-class Auth(cognitoUserPoolId: String) {
+trait Auth {
+  def getUser(username: String): IO[UserInfoResponse]
+}
+
+class AuthAws(cognitoUserPoolId: String) extends Auth {
   private val cognito = new CognitoIdentityProvider()
 
   private implicit val cs = IO.contextShift(scala.concurrent.ExecutionContext.global)
@@ -34,4 +38,15 @@ class Auth(cognitoUserPoolId: String) {
         }
         .asInstanceOf[UserInfoResponse],
     )
+}
+
+class AuthDev(getEmailFromUser: String => String) extends Auth {
+  def getUser(username: String): IO[UserInfoResponse] = IO {
+    js.Dynamic
+      .literal(
+        email = getEmailFromUser(username),
+        email_verified = true,
+      )
+      .asInstanceOf[UserInfoResponse]
+  }
 }

@@ -8,6 +8,7 @@ import cats.implicits._
 @js.native
 trait FunDevEnvironment extends js.Object {
   val sendSubscription: js.UndefOr[js.Function2[String, String, Unit]] = js.native
+  val getEmail: js.UndefOr[js.Function1[String, String]]               = js.native
 }
 
 case class FunConfig(
