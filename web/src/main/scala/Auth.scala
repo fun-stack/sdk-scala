@@ -28,11 +28,13 @@ trait TokenResponse extends js.Object {
 
 @js.native
 trait UserInfoResponse extends js.Object {
-  def sub: String             = js.native
-  // @JSName("cognito:username")
-  // def username: String        = js.native
-  def email: String           = js.native
-  def email_verified: Boolean = js.native
+  def sub: String                          = js.native
+  def email: String                        = js.native
+  def email_verified: Boolean              = js.native
+  @JSName("cognito:username")
+  def username: String                     = js.native
+  @JSName("cognito:groups")
+  def groups: js.UndefOr[js.Array[String]] = js.native
 }
 
 case class User(
@@ -47,14 +49,13 @@ class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
 
   private val storageKeyRefreshToken = "auth.refresh_token"
 
-  private val redirectUrl = dom.window.location.origin.getOrElse(website.url)
+  private val initialAuthentication: Option[IO[TokenResponse]] = {
+    val code   = new URLSearchParams(dom.window.location.search).get("code")
+    val logout = new URLSearchParams(dom.window.location.search).get("logout")
 
-  private def withQueryParams(baseUrl: String, queryParams: String) =
-    if (baseUrl.contains("?")) s"$baseUrl&$queryParams"
-    else s"$baseUrl?$queryParams"
-
-  private val authentication: Option[IO[TokenResponse]] = {
-    val code = new URLSearchParams(dom.window.location.search).get("code")
+    if (logout != null) {
+      localStorage.removeItem(storageKeyRefreshToken)
+    }
 
     if (code == null) {
       val refreshToken = localStorage.getItem(storageKeyRefreshToken)
@@ -68,29 +69,19 @@ class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
     }
   }
 
-  val signupUrl       = withQueryParams(
-    s"${auth.url}/signup",
-    s"response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}",
-  )
+  private val redirectUrl = dom.window.location.origin.getOrElse(website.url)
+
+  val signupUrl       = s"${auth.url}/signup?response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
   val signup: F[Unit] = Sync[F].delay(dom.window.location.href = signupUrl)
 
-  val loginUrl       = withQueryParams(
-    s"${auth.url}/login",
-    s"response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}",
-  )
+  val loginUrl       = s"${auth.url}/login?response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
   val login: F[Unit] = Sync[F].delay(dom.window.location.href = loginUrl)
 
-  val logoutUrl       = withQueryParams(
-    s"${auth.url}/logout",
-    s"client_id=${auth.clientId}&logout_uri=${redirectUrl}",
-  )
-  val logout: F[Unit] = Sync[F].delay {
-    localStorage.removeItem(storageKeyRefreshToken)
-    dom.window.location.href = logoutUrl
-  }
+  val logoutUrl       = s"${auth.url}/logout?client_id=${auth.clientId}&logout_uri=${redirectUrl}%3Flogout"
+  val logout: F[Unit] = Sync[F].delay(dom.window.location.href = logoutUrl)
 
   val currentUser: Observable[Option[User]] =
-    authentication
+    initialAuthentication
       .fold[Observable[Option[User]]](Observable(None)) { authentication =>
         Observable
           .fromAsync(authentication) // TODO: localstorage events across tabs
