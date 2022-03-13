@@ -87,9 +87,9 @@ object Handler extends apigateway.Handler[APIGatewayProxyEventV2] {
     DocServer.serve(fullPath, endpoints) match {
       case Some(docResult) => js.Promise.resolve[APIGatewayProxyStructuredResultV2](docResult)
       case None            =>
-        val interpreter = LambdaServerInterpreter[F](endpoints)
+        val interpreter = LambdaServerInterpreter[F](endpoints, event)
 
-        val run = interpreter(new LambdaServerRequest(event), new LambdaRequestBody[F](event)).map {
+        val run = interpreter(new LambdaServerRequest(event)).map {
           case RequestResult.Response(response) =>
             println(response)
             response.body.getOrElse(APIGatewayProxyStructuredResultV2(statusCode = 404))

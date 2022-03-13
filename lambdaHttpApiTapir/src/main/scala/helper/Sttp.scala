@@ -46,19 +46,20 @@ object LambdaToResponseBody extends ToResponseBody[APIGatewayProxyStructuredResu
 }
 
 class LambdaRequestBody[F[_]: Sync](event: APIGatewayProxyEventV2) extends RequestBody[F, Unit] {
-  val streams                                            = UnitStreams
-  def toRaw[R](bodyType: RawBodyType[R]): F[RawValue[R]] =
+  val streams                                                                          = UnitStreams
+  def toRaw[R](serverRequest: ServerRequest, bodyType: RawBodyType[R]): F[RawValue[R]] =
     bodyType match {
       case RawBodyType.StringBody(charset) => Sync[F].pure(RawValue(new String(event.body.getOrElse("").getBytes(charset))))
       case _                               => Sync[F].raiseError(new NotImplementedError)
     }
-  def toStream(): streams.BinaryStream                   = ()
+  def toStream(serverRequest: ServerRequest): streams.BinaryStream                     = ()
 }
 
 class LambdaServerRequest(event: APIGatewayProxyEventV2) extends ServerRequest {
-  def protocol: String               = event.requestContext.http.protocol
-  def connectionInfo: ConnectionInfo = ConnectionInfo(local = None, remote = None, secure = None) // TODO?
-  def underlying: Any                = event
+  def protocol: String                               = event.requestContext.http.protocol
+  def connectionInfo: ConnectionInfo                 = ConnectionInfo(local = None, remote = None, secure = None) // TODO?
+  def underlying: Any                                = event
+  def withUnderlying(underlying: Any): ServerRequest = this
 
   def pathSegments: List[String]   = event.requestContext.http.path.split("/").toList.drop(2)
   def queryParameters: QueryParams = QueryParams.fromMap(event.queryStringParameters.fold(Map.empty[String, String])(_.toMap))
@@ -75,8 +76,9 @@ object LambdaServerInterpreter {
     def onComplete(body: B)(cb: util.Try[Unit] => F[Unit]): F[B] = Sync[F].defer(cb(util.Success(()))).as(body)
   }
 
-  def apply[F[_]: Sync](endpoints: List[ServerEndpoint[_, F]]) = new ServerInterpreter(
+  def apply[F[_]: Sync](endpoints: List[ServerEndpoint[_, F]], event: APIGatewayProxyEventV2) = new ServerInterpreter(
     serverEndpoints = endpoints.asInstanceOf[List[ServerEndpoint[Any, F]]],
+    requestBody = new LambdaRequestBody[F](event),
     toResponseBody = LambdaToResponseBody,
     interceptors = Nil,
     deleteFile = _ => Sync[F].unit,
