@@ -105,14 +105,14 @@ class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
 
             Some(User(getUserInfo(initialToken), tokenGetter))
           }
-          .recover { case t =>
-            dom.console.error("Error in user handling: " + t)
-            localStorage.removeItem(storageKeyRefreshToken)
-            None
-      }
       }
       .replay
       .hot
+      .recover { case t => // TODO: why does the recover need to be behind hot? colibri?
+        dom.console.error("Error in user handling: " + t)
+        localStorage.removeItem(storageKeyRefreshToken)
+        None
+      }
 
   private def handleResponse(response: Response): IO[js.Any] =
     if (response.status == 200) IO.fromFuture(IO(response.json().toFuture))
