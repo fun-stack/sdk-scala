@@ -1,11 +1,9 @@
 package funstack.web
 
-import colibri._
-import cats.effect.{Async, IO, Sync}
-import cats.effect.concurrent.Ref
 import funstack.web.helper.facades.JwtDecode
 
-import cats.effect.IO
+import colibri._
+import cats.effect.{Async, IO, Sync, SyncIO}
 import cats.implicits._
 
 import org.scalajs.dom
@@ -14,7 +12,6 @@ import org.scalajs.dom.window.localStorage
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSName
-import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
 @js.native
@@ -49,7 +46,19 @@ class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
   import ExecutionContext.Implicits.global
   private implicit val cs = IO.contextShift(ExecutionContext.global)
 
-  private val storageKeyRefreshToken = "auth.refresh_token"
+  private val authTokenInLocalStorage = website.authTokenInLocalStorage.getOrElse(true)
+
+  private val storageKeyRefreshToken  = "auth.refresh_token"
+  private val storageKeyAuthenticated = "auth.authenticated"
+
+  private def storeTokenInLocalStorage(token: String): Unit =
+    if (authTokenInLocalStorage) localStorage.setItem(storageKeyRefreshToken, token)
+    else localStorage.setItem(storageKeyAuthenticated, "true")
+
+  private def cleanupLocalStorage(): Unit = {
+    localStorage.removeItem(storageKeyRefreshToken)
+    localStorage.removeItem(storageKeyAuthenticated)
+  }
 
   private val initialAuthentication: Option[IO[TokenResponse]] = {
     val searchParams = new URLSearchParams(dom.window.location.search)
@@ -57,7 +66,7 @@ class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
     val logout       = Option(searchParams.get("logout"))
 
     if (logout.isDefined || code.isDefined) {
-      localStorage.removeItem(storageKeyRefreshToken)
+      cleanupLocalStorage()
       dom.window.history.replaceState(null, "", dom.window.location.origin.get)
     }
 
@@ -72,20 +81,27 @@ class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
   val signupUrl       = s"${auth.url}/signup?response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
   val signup: F[Unit] = Sync[F].delay(dom.window.location.href = signupUrl)
 
-  val loginUrl       = s"${auth.url}/login?response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
+  val loginUrl       = s"${auth.url}/oauth2/authorize?response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
   val login: F[Unit] = Sync[F].delay(dom.window.location.href = loginUrl)
 
   val logoutUrl       = s"${auth.url}/logout?client_id=${auth.clientId}&logout_uri=${redirectUrl}%3Flogout"
   val logout: F[Unit] = Sync[F].delay(dom.window.location.href = logoutUrl)
+
+  val redirectForReauthentication = Sync[F].defer {
+    def isAuthenticated = Option(localStorage.getItem(storageKeyAuthenticated)).flatMap(_.toBooleanOption).getOrElse(false)
+    if (!authTokenInLocalStorage && isAuthenticated) {
+      localStorage.removeItem(storageKeyAuthenticated)
+      login.as(true)
+    }
+    else Sync[F].pure(false)
+  }
 
   val currentUser: Observable[Option[User]] =
     initialAuthentication
       .fold[Observable[Option[User]]](Observable(None)) { authentication =>
         Observable
           .fromAsync(authentication) // TODO: localstorage events across tabs
-          .map[Option[User]] { initialToken =>
-            println("INITIAL TOKEN " + initialToken)
-            localStorage.setItem(storageKeyRefreshToken, initialToken.refresh_token)
+          .mapSync { initialToken =>
             var currentToken     = Future.successful(initialToken)
             var currentTokenTime = js.Date.now()
             val tokenGetter      = IO.fromFuture(IO {
@@ -96,21 +112,22 @@ class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
                 else {
                   currentTokenTime = js.Date.now()
                   refreshAccessToken(currentToken.refresh_token).flatTap { response =>
-                    IO(localStorage.setItem(storageKeyRefreshToken, response.refresh_token))
+                    IO(storeTokenInLocalStorage(response.refresh_token))
                   }.unsafeToFuture()
                 }
               }
               currentToken
             })
 
-            Some(User(getUserInfo(initialToken), tokenGetter))
+            val user = User(getUserInfo(initialToken), tokenGetter)
+            SyncIO(storeTokenInLocalStorage(initialToken.refresh_token)).as(Option(user))
           }
       }
       .replay
       .hot
       .recover { case t => // TODO: why does the recover need to be behind hot? colibri?
         dom.console.error("Error in user handling: " + t)
-        localStorage.removeItem(storageKeyRefreshToken)
+        cleanupLocalStorage()
         None
       }
 
