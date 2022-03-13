@@ -4,8 +4,9 @@ import scala.scalajs.js
 
 @js.native
 trait WebsiteAppConfig extends js.Object {
-  def url: String                        = js.native
-  def environment: js.Dictionary[String] = js.native
+  def url: String                                  = js.native
+  def authTokenInLocalStorage: js.UndefOr[Boolean] = js.native
+  def environment: js.Dictionary[String]           = js.native
 }
 object WebsiteAppConfig {
   implicit class Ops(private val self: WebsiteAppConfig) extends AnyVal {
@@ -15,8 +16,8 @@ object WebsiteAppConfig {
 
 @js.native
 trait AuthAppConfig extends js.Object {
-  def url: String                  = js.native
-  def clientId: String             = js.native
+  def url: String      = js.native
+  def clientId: String = js.native
 }
 
 @js.native
