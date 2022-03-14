@@ -73,7 +73,7 @@ object Handler {
     routerf: Message => Router[T, F],
     execute: (F[T], T, Message) => Future[Boolean],
   ): FunctionType = {
-    val config = Config.load()
+    val config = FunConfig.load()
 
     val sendEvent: (String, String) => Future[Unit] = (config.eventsSnsTopic, config.devEnvironment) match {
       case (Some(eventsSnsTopic), _) =>
