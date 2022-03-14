@@ -30,8 +30,6 @@ trait UserInfoResponse extends js.Object {
   def email_verified: Boolean              = js.native
   @JSName("cognito:username")
   def username: String                     = js.native
-  @JSName("cognito:groups")
-  def groups: js.UndefOr[js.Array[String]] = js.native
 }
 
 case class User(
