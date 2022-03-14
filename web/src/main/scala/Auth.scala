@@ -3,7 +3,7 @@ package funstack.web
 import funstack.web.helper.facades.JwtDecode
 
 import colibri._
-import cats.effect.{Async, IO, Sync, SyncIO}
+import cats.effect.{IO, Sync, SyncIO}
 import cats.implicits._
 
 import org.scalajs.dom
@@ -41,7 +41,7 @@ case class User(
 
 case class AuthTokenEndpointError(status: Int) extends Exception(s"Error from endpoint: ${status}")
 
-class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
+class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
 
   import ExecutionContext.Implicits.global
   private implicit val cs = IO.contextShift(ExecutionContext.global)
@@ -79,19 +79,23 @@ class Auth[F[_]: Async](val auth: AuthAppConfig, website: WebsiteAppConfig) {
   private val redirectUrl = dom.window.location.origin.getOrElse(website.url)
 
   val signupUrl       = s"${auth.url}/signup?response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
-  val signup: F[Unit] = Sync[F].delay(dom.window.location.href = signupUrl)
+  val signup: IO[Unit]             = signupF[IO]
+  def signupF[F[_]: Sync]: F[Unit] = Sync[F].delay(dom.window.location.href = signupUrl)
 
   val loginUrl       = s"${auth.url}/oauth2/authorize?response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
-  val login: F[Unit] = Sync[F].delay(dom.window.location.href = loginUrl)
+  val login: IO[Unit]             = loginF[IO]
+  def loginF[F[_]: Sync]: F[Unit] = Sync[F].delay(dom.window.location.href = loginUrl)
 
   val logoutUrl       = s"${auth.url}/logout?client_id=${auth.clientId}&logout_uri=${redirectUrl}%3Flogout"
-  val logout: F[Unit] = Sync[F].delay(dom.window.location.href = logoutUrl)
+  val logout: IO[Unit]             = logoutF[IO]
+  def logoutF[F[_]: Sync]: F[Unit] = Sync[F].delay(dom.window.location.href = logoutUrl)
 
-  val redirectForReauthentication = Sync[F].defer {
+  val redirectForReauthentication              = redirectForReauthenticationF[IO]
+  def redirectForReauthenticationF[F[_]: Sync] = Sync[F].defer {
     def isAuthenticated = Option(localStorage.getItem(storageKeyAuthenticated)).flatMap(_.toBooleanOption).getOrElse(false)
     if (!authTokenInLocalStorage && isAuthenticated) {
       localStorage.removeItem(storageKeyAuthenticated)
-      login.as(true)
+      loginF[F].as(true)
     }
     else Sync[F].pure(false)
   }

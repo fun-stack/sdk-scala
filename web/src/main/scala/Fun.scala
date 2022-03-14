@@ -1,11 +1,9 @@
 package funstack.web
 
-import cats.effect.IO
-
 object Fun {
   val config = AppConfig.load()
 
-  val authOption = config.auth.map(new Auth[IO](_, config.website)).toOption
+  val authOption = config.auth.map(new Auth(_, config.website)).toOption
   val httpOption = config.http.map(new Http(_, authOption)).toOption
   val wsOption   = config.ws.map(new Ws(_, authOption)).toOption
 
