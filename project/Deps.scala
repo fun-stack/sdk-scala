@@ -22,7 +22,7 @@ object Deps {
 
   // websocket connecitivity
   val mycelium = new {
-    val version  = "0.3.0"
+    val version  = "0.3.1"
     val core     = s("com.github.cornerman" %%% "mycelium-core" % version)
     val clientJs = s("com.github.cornerman" %%% "mycelium-client-js" % version)
   }
