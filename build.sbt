@@ -166,7 +166,8 @@ lazy val web = project
     libraryDependencies       ++=
       Deps.sloth.value ::
         Deps.cats.effect.value ::
-        Deps.colibri.value ::
+        Deps.colibri.core.value ::
+        Deps.colibri.jsdom.value ::
         Deps.mycelium.clientJs.value ::
         Nil,
     Compile / npmDependencies ++=

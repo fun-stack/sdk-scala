@@ -3,11 +3,11 @@ package funstack.web
 import funstack.web.helper.facades.JwtDecode
 
 import colibri._
-import cats.effect.{IO, Sync, SyncIO}
+import colibri.jsdom.EventObservable
+import cats.effect.{ContextShift, IO, Sync}
 import cats.implicits._
 
 import org.scalajs.dom
-import org.scalajs.dom.{Fetch, HttpMethod, RequestInit, Response, URLSearchParams}
 import org.scalajs.dom.window.localStorage
 
 import scala.scalajs.js
@@ -25,11 +25,11 @@ trait TokenResponse extends js.Object {
 
 @js.native
 trait UserInfoResponse extends js.Object {
-  def sub: String                          = js.native
-  def email: String                        = js.native
-  def email_verified: Boolean              = js.native
+  def sub: String             = js.native
+  def email: String           = js.native
+  def email_verified: Boolean = js.native
   @JSName("cognito:username")
-  def username: String                     = js.native
+  def username: String        = js.native
 }
 
 case class User(
@@ -46,84 +46,127 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
 
   private val authTokenInLocalStorage = website.authTokenInLocalStorage.getOrElse(true)
 
-  private val storageKeyRefreshToken  = "auth.refresh_token"
-  private val storageKeyAuthenticated = "auth.authenticated"
+  private val redirectUrl  = dom.window.location.origin.getOrElse(website.url)
+  private val authRequests = new AuthRequests(auth, redirectUrl)
+
+  private object StorageKey {
+    val refreshToken      = "auth.refresh_token"
+    val authenticatedFlag = "auth.authenticated"
+  }
 
   private def storeTokenInLocalStorage(token: String): Unit =
-    if (authTokenInLocalStorage) localStorage.setItem(storageKeyRefreshToken, token)
-    else localStorage.setItem(storageKeyAuthenticated, "true")
+    if (authTokenInLocalStorage) localStorage.setItem(StorageKey.refreshToken, token)
+    else localStorage.setItem(StorageKey.authenticatedFlag, "true")
 
   private def cleanupLocalStorage(): Unit = {
-    localStorage.removeItem(storageKeyRefreshToken)
-    localStorage.removeItem(storageKeyAuthenticated)
+    localStorage.removeItem(StorageKey.refreshToken)
+    localStorage.removeItem(StorageKey.authenticatedFlag)
   }
 
   private val initialAuthentication: Option[IO[TokenResponse]] = {
-    val searchParams = new URLSearchParams(dom.window.location.search)
+    val searchParams = new dom.URLSearchParams(dom.window.location.search)
     val code         = Option(searchParams.get("code"))
     val logout       = Option(searchParams.get("logout"))
 
-    if (logout.isDefined || code.isDefined) {
+    def resetUrl(): Unit = dom.window.history.replaceState(null, "", dom.window.location.origin.get)
+
+    if (logout.isDefined) {
       cleanupLocalStorage()
-      dom.window.history.replaceState(null, "", dom.window.location.origin.get)
+      resetUrl()
+    }
+
+    if (code.isDefined) {
+      resetUrl()
     }
 
     code match {
-      case None       => Option(localStorage.getItem(storageKeyRefreshToken)).map(refreshAccessToken(_))
-      case Some(code) => Some(getToken(code))
+      case None       => Option(localStorage.getItem(StorageKey.refreshToken)).map(authRequests.getTokenFromRefreshToken(_))
+      case Some(code) => Some(authRequests.getTokenFromAuthCode(code))
     }
   }
 
-  private val redirectUrl = dom.window.location.origin.getOrElse(website.url)
+  private def doRedirectForReauthentication(onlyOnce: Boolean): Boolean = {
+    def isAuthenticated = Option(localStorage.getItem(StorageKey.authenticatedFlag)).flatMap(_.toBooleanOption).getOrElse(false)
+    if (!authTokenInLocalStorage && initialAuthentication.isEmpty && isAuthenticated) {
+      if (onlyOnce) localStorage.removeItem(StorageKey.authenticatedFlag)
+      dom.window.location.href = loginUrl
+      true
+    }
+    else false
+  }
 
-  val signupUrl       = s"${auth.url}/signup?response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
+  private def askForReauthentication(): Unit = {
+    val agree = dom.window.confirm("You have logged in inside another tab. Do you want to reload this tab?")
+    if (agree) {
+      doRedirectForReauthentication(onlyOnce = false)
+      ()
+    }
+  }
+
+  private def localStorageEvent(key: String) = EventObservable[dom.StorageEvent](dom.window, "storage")
+    .distinctByOnEquals(_.newValue)
+    .filter(ev => ev.key == key && ev.storageArea == localStorage)
+
+  private val localStorageEventAuthenticatedFlag = localStorageEvent(StorageKey.authenticatedFlag).map {
+    case ev if ev.newValue == "true" => Some(askForReauthentication())
+    case _                           => None
+  }.collect { case None => None }
+
+  private val localStorageEventRefreshToken = localStorageEvent(StorageKey.refreshToken).mapAsync {
+    case ev if ev.newValue != null => authRequests.getTokenFromRefreshToken(ev.newValue).map(Some.apply)
+    case _                         => IO.pure(None)
+  }
+
+  val signupUrl                    = s"${auth.url}/signup?response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
   val signup: IO[Unit]             = signupF[IO]
   def signupF[F[_]: Sync]: F[Unit] = Sync[F].delay(dom.window.location.href = signupUrl)
 
-  val loginUrl       = s"${auth.url}/oauth2/authorize?response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
+  val loginUrl                    = s"${auth.url}/oauth2/authorize?response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
   val login: IO[Unit]             = loginF[IO]
   def loginF[F[_]: Sync]: F[Unit] = Sync[F].delay(dom.window.location.href = loginUrl)
 
-  val logoutUrl       = s"${auth.url}/logout?client_id=${auth.clientId}&logout_uri=${redirectUrl}%3Flogout"
+  val logoutUrl                    = s"${auth.url}/logout?client_id=${auth.clientId}&logout_uri=${redirectUrl}%3Flogout"
   val logout: IO[Unit]             = logoutF[IO]
   def logoutF[F[_]: Sync]: F[Unit] = Sync[F].delay(dom.window.location.href = logoutUrl)
 
   val redirectForReauthentication              = redirectForReauthenticationF[IO]
-  def redirectForReauthenticationF[F[_]: Sync] = Sync[F].defer {
-    def isAuthenticated = Option(localStorage.getItem(storageKeyAuthenticated)).flatMap(_.toBooleanOption).getOrElse(false)
-    if (!authTokenInLocalStorage && isAuthenticated) {
-      localStorage.removeItem(storageKeyAuthenticated)
-      loginF[F].as(true)
-    }
-    else Sync[F].pure(false)
-  }
+  def redirectForReauthenticationF[F[_]: Sync] = Sync[F].delay(doRedirectForReauthentication(onlyOnce = true))
 
   val currentUser: Observable[Option[User]] =
-    initialAuthentication
-      .fold[Observable[Option[User]]](Observable(None)) { authentication =>
-        Observable
-          .fromAsync(authentication) // TODO: localstorage events across tabs
-          .mapSync { initialToken =>
-            var currentToken     = Future.successful(initialToken)
-            var currentTokenTime = js.Date.now()
-            val tokenGetter      = IO.fromFuture(IO {
-              currentToken = currentToken.flatMap { currentToken =>
-                val timeDiffSecs = (js.Date.now() - currentTokenTime) / 1000
-                val canUse       = timeDiffSecs < currentToken.expires_in * 0.8
-                if (canUse) Future.successful(currentToken)
-                else {
-                  currentTokenTime = js.Date.now()
-                  refreshAccessToken(currentToken.refresh_token).flatTap { response =>
-                    IO(storeTokenInLocalStorage(response.refresh_token))
-                  }.unsafeToFuture()
-                }
-              }
-              currentToken
-            })
+    Observable
+      .merge(
+        initialAuthentication.fold[Observable[Option[TokenResponse]]](Observable(None))(authentication => Observable.fromAsync(authentication).map(Some.apply)),
+        if (authTokenInLocalStorage) localStorageEventRefreshToken else localStorageEventAuthenticatedFlag,
+      )
+      .map {
+        case None               => None
+        case Some(initialToken) =>
+          storeTokenInLocalStorage(initialToken.refresh_token)
 
-            val user = User(getUserInfo(initialToken), tokenGetter)
-            SyncIO(storeTokenInLocalStorage(initialToken.refresh_token)).as(Option(user))
-          }
+          var currentToken     = Future.successful(initialToken)
+          var currentTokenTime = js.Date.now()
+          val tokenGetter      = IO.fromFuture(IO {
+            currentToken = currentToken.flatMap { currentToken =>
+              val timeDiffSecs = (js.Date.now() - currentTokenTime) / 1000
+              val canUse       = timeDiffSecs < currentToken.expires_in * 0.8
+              if (canUse) Future.successful(currentToken)
+              else {
+                currentTokenTime = js.Date.now()
+                authRequests
+                  .getTokenFromRefreshToken(currentToken.refresh_token)
+                  .map { response =>
+                    if (initialToken.refresh_token != response.refresh_token) storeTokenInLocalStorage(response.refresh_token)
+                    response
+                  }
+                  .unsafeToFuture()
+              }
+            }
+            currentToken
+          })
+
+          val userInfo = JwtDecode(initialToken.id_token).asInstanceOf[UserInfoResponse]
+
+          Some(User(userInfo, tokenGetter))
       }
       .replay
       .hot
@@ -132,18 +175,16 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
         cleanupLocalStorage()
         None
       }
+}
 
-  private def handleResponse(response: Response): IO[js.Any] =
+private class AuthRequests(auth: AuthAppConfig, redirectUrl: String) {
+  import org.scalajs.dom.{Fetch, HttpMethod, RequestInit, Response}
+
+  private def handleResponse(response: Response)(implicit cs: ContextShift[IO]): IO[js.Any] =
     if (response.status == 200) IO.fromFuture(IO(response.json().toFuture))
     else IO.raiseError(AuthTokenEndpointError(response.status))
 
-  private def getUserInfo(token: TokenResponse): UserInfoResponse = {
-    val decoded = JwtDecode(token.id_token)
-    js.Dynamic.global.console.log("DECODED", decoded)
-    decoded.asInstanceOf[UserInfoResponse]
-  }
-
-  private def getToken(authCode: String): IO[TokenResponse] =
+  def getTokenFromAuthCode(authCode: String)(implicit cs: ContextShift[IO]): IO[TokenResponse] =
     IO
       .fromFuture(IO {
         Fetch
@@ -160,7 +201,7 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
       .flatMap(handleResponse)
       .flatMap(r => IO(r.asInstanceOf[TokenResponse]))
 
-  private def refreshAccessToken(refreshToken: String): IO[TokenResponse] = IO
+  def getTokenFromRefreshToken(refreshToken: String)(implicit cs: ContextShift[IO]): IO[TokenResponse] = IO
     .fromFuture(IO {
       Fetch
         .fetch(

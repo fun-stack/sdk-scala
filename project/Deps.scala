@@ -14,7 +14,11 @@ object Deps {
   }
 
   // frp
-  val colibri = s("com.github.cornerman" %%% "colibri" % "0.2.6")
+  val colibri = new {
+    val version = "0.2.6"
+    val core    = s("com.github.cornerman" %%% "colibri" % version)
+    val jsdom   = s("com.github.cornerman" %%% "colibri-jsdom" % version)
+  }
 
   // rpc
   val sloth     = s("com.github.cornerman" %%% "sloth" % "0.6.1")
