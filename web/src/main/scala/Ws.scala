@@ -9,34 +9,39 @@ import mycelium.js.client.JsWebsocketConnection
 import mycelium.core.{Cancelable => MyceliumCancelable}
 import mycelium.core.client.{WebsocketClient, WebsocketClientConfig}
 
-import cats.effect.{Async, IO}
+import cats.effect.{Async, IO, Sync}
 
 import scala.concurrent.duration._
 import scala.concurrent.Future
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class Ws(ws: WsAppConfig, auth: Option[Auth[IO]]) {
+class Ws(ws: WsAppConfig, auth: Option[Auth]) {
 
   private var wsClientConnection: Option[(Cancelable, WebsocketClient[String, SubscriptionEvent, String])] = None
   private def wsClient                                                                                     = wsClientConnection.map(_._2)
 
-  val start: IO[Unit] = IO {
+  private val eventSubscriber = new EventSubscriber(x => wsClient.foreach(_.rawSend(x)))
+
+  val start: IO[Unit] = startF[IO]
+
+  def startF[F[_]: Sync]: F[Unit] = Sync[F].delay {
     wsClientConnection.foreach(_._1.cancel())
     wsClientConnection = Some(createWsClient())
   }
 
-  private val eventSubscriber = new EventSubscriber(x => wsClient.foreach(_.rawSend(x)))
-
-  def transport[T: CanSerialize]               = transportF[T, IO]
-  def transportF[T: CanSerialize, F[_]: Async] = WsTransport[T, F]((a, b, c, d) =>
+  def transport[T: CanSerialize] = WsTransport[T]((a, b, c, d) =>
     wsClient.map(_.send(a, CanSerialize[T].serialize(b), c, d).flatMap {
       case Right(value) => Future.fromTry(CanSerialize[T].deserialize(value).map(Right.apply).toTry)
       case Left(value)  => Future.fromTry(CanSerialize[T].deserialize(value).map(Left.apply).toTry)
     }),
   )
-  def transportFuture[T: CanSerialize]         = transport[T].map(_.unsafeToFuture())
-  def streamsTransport[T: CanSerialize]        = WsTransport.subscriptions(eventSubscriber)
+
+  def transportF[T: CanSerialize, F[_]: Async] = transport[T].map(Async[F].liftIO)
+
+  def transportFuture[T: CanSerialize] = transport[T].map(_.unsafeToFuture())
+
+  def streamsTransport[T: CanSerialize] = WsTransport.subscriptions(eventSubscriber)
 
   private def createWsClient(): (Cancelable, WebsocketClient[String, SubscriptionEvent, String]) = {
     import ServerMessageSerdes.implicits._, ClientMessageSerdes.implicits._

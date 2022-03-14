@@ -16,7 +16,7 @@ private object HttpTransport {
 
   private implicit val cs = IO.contextShift(global)
 
-  def apply[T: CanSerialize](http: HttpAppConfig, auth: Option[Auth[IO]]): RequestTransport[T, IO] =
+  def apply[T: CanSerialize](http: HttpAppConfig, auth: Option[Auth]): RequestTransport[T, IO] =
     new RequestTransport[T, IO] {
       private val trimmedUrl = http.url.replaceFirst("/$", "")
 

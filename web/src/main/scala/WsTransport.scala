@@ -6,7 +6,7 @@ import funstack.web.helper.EventSubscriber
 import colibri.Observable
 import sloth.{Request, RequestTransport}
 import mycelium.core.client.SendType
-import cats.effect.Async
+import cats.effect.IO
 import scala.concurrent.duration._
 
 import scala.concurrent.Future
@@ -14,22 +14,21 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 private object WsTransport {
 
-  def apply[PickleType, F[_]: Async](
+  private implicit val cs = IO.contextShift(global)
+
+  def apply[PickleType](
     send: (List[String], PickleType, SendType, FiniteDuration) => Option[Future[Either[PickleType, PickleType]]],
-  ): RequestTransport[PickleType, F] =
-    new RequestTransport[PickleType, F] {
-      def apply(request: Request[PickleType]): F[PickleType] =
-        Async[F].async[PickleType](cb =>
-          send(request.path, request.payload, SendType.WhenConnected, 30.seconds) match {
-            case Some(response) =>
-              response.onComplete {
-                case util.Success(Right(value)) => cb(Right(value))
-                case util.Success(Left(error))  => cb(Left(new Exception(s"Request failed: $error")))
-                case util.Failure(ex)           => cb(Left(ex))
-              }
-            case None           => cb(Left(new Exception("Websocket connection not started. You need to call 'ws.start'.")))
-          },
-        )
+  ): RequestTransport[PickleType, IO] =
+    new RequestTransport[PickleType, IO] {
+      def apply(request: Request[PickleType]): IO[PickleType] =
+        IO.fromFuture(IO(send(request.path, request.payload, SendType.WhenConnected, 30.seconds) match {
+          case Some(response) => response
+          case None           => Future.failed(new Exception("Websocket connection not started. You need to call 'Fun.ws.start'."))
+        }))
+          .flatMap {
+            case Right(value) => IO.pure(value)
+            case Left(error)  => IO.raiseError(new Exception(s"Request failed: $error"))
+          }
     }
 
   def subscriptions[T: CanSerialize](eventSubscriber: EventSubscriber): RequestTransport[T, Observable] =

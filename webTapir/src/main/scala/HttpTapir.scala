@@ -9,7 +9,7 @@ import sttp.tapir.PublicEndpoint
 import sttp.model.Uri
 import scala.concurrent.{ExecutionContext, Future}
 
-class HttpTapir(http: HttpAppConfig, auth: Option[Auth[IO]]) {
+class HttpTapir(http: HttpAppConfig, auth: Option[Auth]) {
   private implicit val cs = IO.contextShift(ExecutionContext.global)
 
   private val backend = for {
