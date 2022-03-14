@@ -69,6 +69,8 @@ lazy val backend = project
     libraryDependencies ++=
       Deps.cats.effect.value ::
         Deps.awsSdkJS.sns.value ::
+        Deps.awsSdkJS.ssm.value ::
+        Deps.awsSdkJS.secretsmanager.value ::
         Deps.awsSdkJS.cognitoidentityprovider.value ::
         Deps.sloth.value ::
         Deps.mycelium.core.value ::
