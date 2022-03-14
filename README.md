@@ -1,15 +1,17 @@
-# fun-stack
+# sdk-scala
 
-Client library in scala for working with fun-stack infrastructure.
+SDK in scala for working with the fun-stack infrastructure.
 
-See Example for how to use it:
-- Scala Project Template: [fun-stack-example](https://github.com/fun-stack/fun-stack-example)
+## Links
 
-See terraform module for the corresponding AWS infrastructure:
-- Terraform Module: [terraform-aws-fun](https://github.com/fun-stack/terraform-aws-fun) (version `>= 0.5.0`)
+Example on how to use it:
+- Fun Scala Template: [example](https://github.com/fun-stack/example)
+
+Terraform module for the corresponding AWS infrastructure:
+- Fun Terraform Module: [terraform-aws-fun](https://github.com/fun-stack/terraform-aws-fun) (version `>= 0.5.0`)
 
 See local development module for mocking the AWS infrastructure locally:
-- Local Module: [fun-stack-local](https://github.com/fun-stack/fun-stack-local) (version `>= 0.3.0`)
+- Fun Local Environment: [local-env](https://github.com/fun-stack/local-env) (version `>= 0.3.0`)
 
 ## Get started
 
