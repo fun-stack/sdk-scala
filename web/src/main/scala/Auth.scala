@@ -91,20 +91,25 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
     else false
   }
 
-  private def askForReauthentication(): Boolean =
-    redirectForReauthentication {
+  private val askForReauthentication: IO[Boolean] = {
+    def askAndRedirect(): Boolean = redirectForReauthentication {
       dom.window.confirm("You have logged in inside another tab. Do you want to reload this tab?")
     }
+
+    // we can only call confirm inside of a user-event in chrome
+    if (dom.document.hasFocus()) IO(askAndRedirect())
+    else EventObservable[dom.Event](dom.window, "focus").headIO.map(_ => askAndRedirect())
+  }
 
   private def localStorageEvent(key: String) = EventObservable[dom.StorageEvent](dom.window, "storage")
     .filter(ev => ev.key == key && ev.storageArea == localStorage)
     .filter(ev => ev.oldValue != ev.newValue)
     .distinctByOnEquals(_.newValue)
 
-  private val localStorageEventUserId = localStorageEvent(StorageKey.userId).map {
-    case ev if ev.newValue != null => Some(askForReauthentication())
-    case _                         => None
-  }.collect { case Some(false) | None => None }
+  private val localStorageEventUserId = localStorageEvent(StorageKey.userId).mapAsync {
+    case ev if ev.newValue != null => askForReauthentication
+    case _                         => IO.pure(false)
+  }.collect { case false => None }
 
   private val localStorageEventRefreshToken = localStorageEvent(StorageKey.refreshToken).mapAsync {
     case ev if ev.newValue != null => authRequests.getTokenFromRefreshToken(ev.newValue).map(Some.apply)
