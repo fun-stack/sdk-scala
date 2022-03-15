@@ -62,7 +62,7 @@ object WebsocketTransport {
       )
 
       def apply(request: Request[PickleType]): F[PickleType] =
-        Async[F].async_[PickleType](cb =>
+        Async[F].async[PickleType](cb =>
           client.send(request.path, request.payload, SendType.WhenConnected, 30.seconds).onComplete {
             case util.Success(Right(value)) => cb(Right(value))
             case util.Success(Left(error))  => cb(Left(new Exception(s"Request failed: $error")))

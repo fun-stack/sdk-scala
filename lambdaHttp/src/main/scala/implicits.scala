@@ -16,6 +16,6 @@ object implicits {
     def flatMap[T, T2](fa: F[T])(f: T => F[T2]): F[T2]                             = fa.flatMap(f)
     def error[T](t: Throwable): F[T]                                               = Sync[F].raiseError(t)
     def handleWrappedError[T](rt: F[T])(h: PartialFunction[Throwable, F[T]]): F[T] = Sync[F].handleErrorWith(rt)(h)
-    def ensure[T](f: F[T], e: => F[Unit]): F[T]                                    = Sync[F].guarantee(f, e)
+    def ensure[T](f: F[T], e: => F[Unit]): F[T]                                    = Sync[F].guarantee(f)(e)
   }
 }
