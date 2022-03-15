@@ -4,7 +4,7 @@ import funstack.web.helper.facades.JwtDecode
 
 import colibri._
 import colibri.jsdom.EventObservable
-import cats.effect.{ContextShift, IO, Sync}
+import cats.effect.{IO, Sync}
 import cats.implicits._
 
 import org.scalajs.dom
@@ -208,11 +208,11 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
 private class AuthRequests(auth: AuthAppConfig, redirectUrl: String) {
   import org.scalajs.dom.{Fetch, HttpMethod, RequestInit, Response}
 
-  private def handleResponse(response: Response)(implicit cs: ContextShift[IO]): IO[js.Any] =
+  private def handleResponse(response: Response): IO[js.Any] =
     if (response.status == 200) IO.fromFuture(IO(response.json().toFuture))
     else IO.raiseError(AuthTokenEndpointError(response.status))
 
-  def getTokenFromAuthCode(authCode: String)(implicit cs: ContextShift[IO]): IO[TokenResponse] =
+  def getTokenFromAuthCode(authCode: String): IO[TokenResponse] =
     IO
       .fromFuture(IO {
         Fetch
@@ -229,7 +229,7 @@ private class AuthRequests(auth: AuthAppConfig, redirectUrl: String) {
       .flatMap(handleResponse)
       .flatMap(r => IO(r.asInstanceOf[TokenResponse]))
 
-  def getTokenFromRefreshToken(refreshToken: String)(implicit cs: ContextShift[IO]): IO[TokenResponse] = IO
+  def getTokenFromRefreshToken(refreshToken: String): IO[TokenResponse] = IO
     .fromFuture(IO {
       Fetch
         .fetch(
