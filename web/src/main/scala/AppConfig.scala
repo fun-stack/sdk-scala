@@ -4,13 +4,20 @@ import scala.scalajs.js
 
 @js.native
 trait WebsiteAppConfig extends js.Object {
-  def url: String = js.native
+  def url: String                                  = js.native
+  def authTokenInLocalStorage: js.UndefOr[Boolean] = js.native
+  def environment: js.Dictionary[String]           = js.native
+}
+object WebsiteAppConfig {
+  implicit class Ops(private val self: WebsiteAppConfig) extends AnyVal {
+    def environmentTyped[Env <: js.Any] = self.environment.asInstanceOf[Env]
+  }
 }
 
 @js.native
 trait AuthAppConfig extends js.Object {
-  def url: String         = js.native
-  def clientId: String    = js.native
+  def url: String      = js.native
+  def clientId: String = js.native
 }
 
 @js.native
@@ -25,17 +32,15 @@ trait HttpAppConfig extends js.Object {
 }
 
 @js.native
-trait AppConfigTyped[T] extends js.Object {
-  def stage: String                      = js.native
-  def website: WebsiteAppConfig          = js.native
-  def auth: js.UndefOr[AuthAppConfig]    = js.native
-  def http: js.UndefOr[HttpAppConfig]    = js.native
-  def ws: js.UndefOr[WsAppConfig]        = js.native
-  def environment: T                     = js.native
+trait AppConfig extends js.Object {
+  def stage: String                   = js.native
+  def website: WebsiteAppConfig       = js.native
+  def auth: js.UndefOr[AuthAppConfig] = js.native
+  def http: js.UndefOr[HttpAppConfig] = js.native
+  def ws: js.UndefOr[WsAppConfig]     = js.native
 }
 object AppConfig {
   import js.Dynamic.{global => g}
 
-  def load() = loadTyped[js.Dictionary[String]]()
-  def loadTyped[T]() = g.AppConfig.asInstanceOf[AppConfigTyped[T]]
+  def load() = g.AppConfig.asInstanceOf[AppConfig]
 }

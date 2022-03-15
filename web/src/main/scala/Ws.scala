@@ -1,31 +1,95 @@
 package funstack.web
 
-import funstack.core.StringSerdes
-import colibri.{Subject, Observable}
-import cats.effect.{IO, Async}
-import sloth.{Client, ClientException}
-import mycelium.core.message._
-import chameleon.{Serializer, Deserializer}
+import funstack.ws.core.{ClientMessageSerdes, ServerMessageSerdes}
+import funstack.core.{CanSerialize, SubscriptionEvent}
+import funstack.web.helper.EventSubscriber
+
+import colibri._
+import mycelium.js.client.JsWebsocketConnection
+import mycelium.core.{Cancelable => MyceliumCancelable}
+import mycelium.core.client.{WebsocketClient, WebsocketClientConfig}
+
+import cats.effect.{Async, IO, Sync}
+
+import scala.concurrent.duration._
 import scala.concurrent.Future
 
-class Ws[Event](ws: WsAppConfig, auth: Option[Auth[IO]]) {
-  import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext.Implicits.global
 
-  private val eventsSubject     = Subject.publish[Event]
-  def events: Observable[Event] = eventsSubject
+class Ws(ws: WsAppConfig, auth: Option[Auth]) {
 
-  def client[PickleType](implicit
-      serializer: Serializer[ClientMessage[PickleType], StringSerdes],
-      deserializer: Deserializer[ServerMessage[PickleType, Event, Unit], StringSerdes],
-  ) = clientF[PickleType, IO]
+  private var wsClientConnection: Option[(Cancelable, WebsocketClient[String, SubscriptionEvent, String])] = None
+  private def wsClient                                                                                     = wsClientConnection.map(_._2)
 
-  def clientF[PickleType, F[_]: Async](implicit
-      serializer: Serializer[ClientMessage[PickleType], StringSerdes],
-      deserializer: Deserializer[ServerMessage[PickleType, Event, Unit], StringSerdes],
-  ) = Client[PickleType, F](WebsocketTransport[Event, Unit, PickleType, F](ws, auth, eventsSubject))
+  private val eventSubscriber = new EventSubscriber(x => wsClient.foreach(_.rawSend(x)))
 
-  def clientFuture[PickleType](implicit
-      serializer: Serializer[ClientMessage[PickleType], StringSerdes],
-      deserializer: Deserializer[ServerMessage[PickleType, Event, Unit], StringSerdes],
-  ) = Client[PickleType, Future](WebsocketTransport[Event, Unit, PickleType, IO](ws, auth, eventsSubject).map(_.unsafeToFuture()))
+  val start: IO[Unit] = startF[IO]
+
+  def startF[F[_]: Sync]: F[Unit] = Sync[F].delay {
+    wsClientConnection.foreach(_._1.cancel())
+    wsClientConnection = Some(createWsClient())
+  }
+
+  def transport[T: CanSerialize] = WsTransport[T]((a, b, c, d) =>
+    wsClient.map(_.send(a, CanSerialize[T].serialize(b), c, d).flatMap {
+      case Right(value) => Future.fromTry(CanSerialize[T].deserialize(value).map(Right.apply).toTry)
+      case Left(value)  => Future.fromTry(CanSerialize[T].deserialize(value).map(Left.apply).toTry)
+    }),
+  )
+
+  def transportF[T: CanSerialize, F[_]: Async] = transport[T].map(Async[F].liftIO)
+
+  def transportFuture[T: CanSerialize] = transport[T].map(_.unsafeToFuture())
+
+  def streamsTransport[T: CanSerialize] = WsTransport.subscriptions(eventSubscriber)
+
+  private def createWsClient(): (Cancelable, WebsocketClient[String, SubscriptionEvent, String]) = {
+    import ServerMessageSerdes.implicits._, ClientMessageSerdes.implicits._
+
+    val wsClient = WebsocketClient[String, SubscriptionEvent, String](
+      new JsWebsocketConnection[String],
+      WebsocketClientConfig(
+        // idle timeout is 10 minutes on api gateway: https://docs.aws.amazon.com/apigateway/latest/developerguide/limits.html
+        // TODO should this be more often to work through all the possible proxies in between?
+        pingInterval = 9.minutes,
+      ),
+      eventSubscriber,
+    )
+
+    var currentUser: Option[User]        = None
+    var connectionCancelable: Cancelable = Cancelable.empty
+
+    val baseUrl = ws.url.replaceFirst("/$", "")
+
+    def runServer(): Unit = {
+      connectionCancelable.cancel()
+      connectionCancelable =
+        if (currentUser.isEmpty && !ws.allowUnauthenticated) Cancelable.empty
+        else {
+          val tokenRunCancel = Cancelable.variable()
+          val clientCancel   = wsClient.runFromFuture { () =>
+            currentUser
+              .fold(IO.pure(baseUrl))(_.token.map { token =>
+                s"${baseUrl}?token=${token.access_token}"
+              })
+              .unsafeToFuture()
+          }
+          Cancelable.composite(tokenRunCancel, Cancelable(clientCancel.cancel))
+        }
+    }
+
+    val subscriptionCancelable = auth match {
+      case None       =>
+        runServer()
+        Cancelable.empty
+      case Some(auth) =>
+        auth.currentUser.foreach { user =>
+          val prevUser = currentUser
+          currentUser = user
+          if (connectionCancelable == Cancelable.empty || prevUser.map(_.info.sub) != user.map(_.info.sub)) runServer()
+        }
+    }
+
+    (Cancelable.composite(Cancelable(() => connectionCancelable.cancel()), subscriptionCancelable), wsClient)
+  }
 }

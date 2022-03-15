@@ -2,43 +2,42 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
-inThisBuild(Seq(
-  organization := "io.github.fun-stack",
-  scalaVersion := "2.13.8",
-
-  licenses := Seq("MIT License" -> url("https://opensource.org/licenses/MIT")),
-
-  homepage := Some(url("https://github.com/fun-stack/fun-stack-scala")),
-
-  scmInfo := Some(ScmInfo(
-    url("https://github.com/fun-stack/fun-stack-scala"),
-    "scm:git:git@github.com:fun-stack/fun-stack-scala.git",
-    Some("scm:git:git@github.com:fun-stack/fun-stack-scala.git"))
-  ),
-
-  pomExtra :=
-    <developers>
+inThisBuild(
+  Seq(
+    organization           := "io.github.fun-stack",
+    scalaVersion           := "2.13.8",
+    licenses               := Seq("MIT License" -> url("https://opensource.org/licenses/MIT")),
+    homepage               := Some(url("https://github.com/fun-stack/fun-stack-scala")),
+    scmInfo                := Some(
+      ScmInfo(
+        url("https://github.com/fun-stack/fun-stack-scala"),
+        "scm:git:git@github.com:fun-stack/fun-stack-scala.git",
+        Some("scm:git:git@github.com:fun-stack/fun-stack-scala.git"),
+      ),
+    ),
+    pomExtra               :=
+      <developers>
       <developer>
         <id>jkaroff</id>
         <name>Johannes Karoff</name>
         <url>https://github.com/cornerman</url>
       </developer>
     </developers>,
-
-  sonatypeCredentialHost := "s01.oss.sonatype.org",
-  sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
-))
+    sonatypeCredentialHost := "s01.oss.sonatype.org",
+    sonatypeRepository     := "https://s01.oss.sonatype.org/service/local",
+  ),
+)
 
 lazy val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full),
-  libraryDependencies ++=
+  libraryDependencies  ++=
     Deps.scalatest.value % Test ::
       Nil,
   scalacOptions --= Seq("-Xfatal-warnings", "-Wconf:any&src=src_managed/.*"),
 )
 
 lazy val jsSettings = Seq(
-  useYarn := true,
+  useYarn       := true,
   scalacOptions += {
     val githubRepo    = "fun-stack/fun-stack-scala"
     val local         = baseDirectory.value.toURI
@@ -46,7 +45,7 @@ lazy val jsSettings = Seq(
     val remote        = s"https://raw.githubusercontent.com/${githubRepo}/${git.gitHeadCommit.value.get}"
     s"-P:scalajs:mapSourceURI:$local->$remote/${subProjectDir}/"
   },
-  scalacOptions += "-P:scalajs:nowarnGlobalExecutionContext", //TODO: setImmediate
+  scalacOptions += "-P:scalajs:nowarnGlobalExecutionContext",// TODO: setImmediate
 )
 
 lazy val core = project
@@ -54,100 +53,137 @@ lazy val core = project
   .in(file("core"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-core",
+    name                 := "fun-stack-core",
     libraryDependencies ++=
-      Deps.base64.value ::
-        Deps.chameleon.value ::
+      Deps.chameleon.value ::
         Nil,
   )
 
 lazy val backend = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .in(file("backend"))
-  .dependsOn(core)
+  .dependsOn(core, wsCore)
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-backend",
+    name                 := "fun-stack-backend",
     libraryDependencies ++=
       Deps.cats.effect.value ::
-        Deps.awsSdkJS.dynamodb.value ::
-        Deps.awsSdkJS.apigatewaymanagementapi.value ::
+        Deps.awsSdkJS.sns.value ::
+        Deps.awsSdkJS.cognitoidentityprovider.value ::
+        Deps.sloth.value ::
         Deps.mycelium.core.value ::
-        Deps.chameleon.value ::
         Nil,
   )
 
-lazy val lambdaHttp = project
+lazy val lambdaApigateway = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(core)
-  .in(file("lambdaHttp"))
+  .in(file("lambdaApigateway"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-lambda-http",
+    name                 := "fun-stack-lambda-apigateway",
     libraryDependencies ++=
       Deps.cats.effect.value ::
-        Deps.awsSdkJS.lambda.value ::
         Deps.awsLambdaJS.value ::
-        Deps.sttp.core.value ::
-        Deps.sttp.circe.value ::
-        /* Deps.sttp.openApi.value :: */
-        /* Deps.sttp.circeOpenApi.value :: */
         Nil,
-
-    // The aws-sdk is provided in lambda environment.
-    // Not depending on it explicitly makes the bundle size smaller.
-    // But we do not know whether our facades are on the correct version.
-    /* Compile / npmDependencies ++= */
-    /*   NpmDeps.awsSdk :: */
-    /*   Nil */
   )
 
-lazy val lambdaWs = project
+lazy val wsCore = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(core)
-  .in(file("lambdaWs"))
+  .in(file("wsCore"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-lambda-ws",
+    name                 := "fun-stack-ws-core",
+    libraryDependencies ++=
+      Deps.mycelium.core.value ::
+        Nil,
+  )
+
+lazy val lambdaHttpRpc = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(core, lambdaApigateway)
+  .in(file("lambdaHttpRpc"))
+  .settings(commonSettings, jsSettings)
+  .settings(
+    name                 := "fun-stack-lambda-http-rpc",
+    libraryDependencies ++=
+      Deps.sloth.value ::
+        Nil,
+  )
+
+lazy val lambdaWsRpc = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(core, lambdaApigateway, wsCore)
+  .in(file("lambdaWsRpc"))
+  .settings(commonSettings, jsSettings)
+  .settings(
+    name                 := "fun-stack-lambda-ws-rpc",
     libraryDependencies ++=
       Deps.sloth.value ::
         Deps.cats.effect.value ::
-        Deps.mycelium.core.value ::
-        Deps.awsSdkJS.lambda.value ::
-        Deps.awsLambdaJS.value ::
         Nil,
+  )
 
-    // The aws-sdk is provided in lambda environment.
-    // Not depending on it explicitly makes the bundle size smaller.
-    // But we do not know whether our facades are on the correct version.
-    /* Compile / npmDependencies ++= */
-    /*   NpmDeps.awsSdk :: */
-    /*   Nil */
+lazy val lambdaHttpApiTapir = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(core, lambdaApigateway)
+  .in(file("lambdaHttpApiTapir"))
+  .settings(commonSettings, jsSettings)
+  .settings(
+    name                 := "fun-stack-lambda-http-api-tapir",
+    libraryDependencies ++=
+      Deps.sttp.core.value ::
+        Deps.sttp.circe.value ::
+        Deps.sttp.catsClient.value ::
+        Deps.sttp.openApi.value ::
+        Deps.sttp.openApiCirce.value ::
+        Deps.sttp.redoc.value ::
+        Nil,
+  )
+
+lazy val lambdaWsEventAuthorizer = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(core, wsCore)
+  .in(file("lambdaWsEventAuthorizer"))
+  .settings(commonSettings, jsSettings)
+  .settings(
+    name                 := "fun-stack-lambda-ws-event-authorizer",
+    libraryDependencies ++=
+      Deps.cats.effect.value ::
+        Deps.awsSdkJS.sns.value ::
+        Deps.awsLambdaJS.value ::
+        Deps.sloth.value ::
+        Nil,
   )
 
 lazy val web = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(core)
+  .dependsOn(core, wsCore)
   .in(file("web"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name := "fun-stack-web",
-    libraryDependencies ++=
+    name                       := "fun-stack-web",
+    libraryDependencies       ++=
       Deps.sloth.value ::
         Deps.cats.effect.value ::
-        Deps.colibri.value ::
-        /* Deps.jsTime.value :: */
-        Deps.sttp.jsClient.value ::
-        Deps.sttp.catsClient.value ::
+        Deps.colibri.core.value ::
+        Deps.colibri.jsdom.value ::
         Deps.mycelium.clientJs.value ::
         Nil,
     Compile / npmDependencies ++=
+      NpmDeps.jwtDecode ::
         Nil,
   )
 
-lazy val root = project
-  .in(file("."))
+lazy val webTapir = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(core, web)
+  .in(file("webTapir"))
+  .settings(commonSettings, jsSettings)
   .settings(
-    publish / skip := true,
+    name                 := "fun-stack-web-tapir",
+    libraryDependencies ++=
+      Deps.sttp.jsClient.value ::
+        Deps.sttp.catsClient.value ::
+        Nil,
   )
-  .aggregate(core, lambdaWs, lambdaHttp, web, backend)
