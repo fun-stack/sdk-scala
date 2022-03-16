@@ -151,6 +151,8 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
     }
   }
 
+  private val customAuthentication = Subject.publish[Option[TokenResponse]]
+
   val isRedirecting: Boolean = initialAuthentication == InitialAuth.Redirect
 
   val signup: IO[Unit]             = signupF[IO]
@@ -162,6 +164,12 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
   val logout: IO[Unit]             = logoutF[IO]
   def logoutF[F[_]: Sync]: F[Unit] = Sync[F].delay(dom.window.location.href = logoutUrl)
 
+  def customLogin(tokenResponse: TokenResponse): IO[Unit]             = customLoginF[IO](tokenResponse)
+  def customLoginF[F[_]: Sync](tokenResponse: TokenResponse): F[Unit] = Sync[F].delay(customAuthentication.onNext(Some(tokenResponse)))
+
+  val customLogout: IO[Unit]             = customLogoutF[IO]
+  def customLogoutF[F[_]: Sync]: F[Unit] = Sync[F].delay(customAuthentication.onNext(None))
+
   val currentUser: Observable[Option[User]] = Observable
     .merge(
       initialAuthentication match {
@@ -170,6 +178,7 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
         case InitialAuth.Token(getToken) => Observable.fromAsync(getToken).map(Some.apply)
       },
       if (authTokenInLocalStorage) localStorageEventRefreshToken else localStorageEventUserId,
+      customAuthentication,
     )
     .map {
       case None               => None
