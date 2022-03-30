@@ -1,16 +1,15 @@
 package funstack.web.tapir
 
 import funstack.web.{Auth, HttpAppConfig}
-import cats.effect.IO
+import cats.effect.{unsafe, IO}
 import cats.implicits._
 import sttp.client3.impl.cats.FetchCatsBackend
 import sttp.tapir.client.sttp.{SttpClientInterpreter, SttpClientOptions}
 import sttp.tapir.PublicEndpoint
 import sttp.model.Uri
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 class HttpTapir(http: HttpAppConfig, auth: Option[Auth]) {
-  private implicit val cs = IO.contextShift(ExecutionContext.global)
 
   private val backend = for {
     currentUser  <- auth.flatTraverse(_.currentUser.headIO)
@@ -32,6 +31,6 @@ class HttpTapir(http: HttpAppConfig, auth: Option[Auth]) {
 
   def clientFuture[I, E, O](endpoint: PublicEndpoint[I, E, O, Any]): I => Future[Either[E, O]] = {
     val ioClient = client(endpoint)
-    i => ioClient(i).unsafeToFuture()
+    i => ioClient(i).unsafeToFuture()(unsafe.IORuntime.global)
   }
 }

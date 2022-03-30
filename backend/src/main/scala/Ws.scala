@@ -8,7 +8,6 @@ import sloth._
 
 import cats.data.Kleisli
 import cats.effect.IO
-import cats.implicits._
 
 class Ws(operations: WsOperations) {
   def sendTransport[T: CanSerialize] = new WsTransport[T](operations)
@@ -20,8 +19,7 @@ private trait WsOperations {
 
 private class WsOperationsAWS(eventsSnsTopic: String) extends WsOperations {
 
-  private implicit val cs = IO.contextShift(scala.concurrent.ExecutionContext.global)
-  private val snsClient   = new SNS()
+  private val snsClient = new SNS()
 
   def sendToSubscription(subscriptionKey: String, data: SubscriptionEvent): IO[Unit] = {
     val serializedData = ServerMessageSerdes.serializer.notification(data)

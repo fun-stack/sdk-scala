@@ -8,18 +8,20 @@ import facade.amazonaws.services.sns._
 import mycelium.core.message._
 import sloth._
 
-import cats.effect.IO
+import cats.effect.{unsafe, IO}
 import cats.data.Kleisli
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 
 case class AuthInfo(sub: String)
 case class Message(auth: Option[AuthInfo])
 
 object Handler {
+
+  import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits.global
+
   type FunctionType = js.Function2[SNSEvent, Context, js.Promise[Unit]]
 
   type FutureFunc[Out]    = (Message, Out) => Future[Boolean]
@@ -34,11 +36,11 @@ object Handler {
 
   def handleFunc[T: CanSerialize](
     router: Router[T, IOFunc],
-  ): FunctionType = handleFWithContext[T, IOFunc](router, (f, arg, ctx) => f(ctx, arg).unsafeToFuture())
+  ): FunctionType = handleFWithContext[T, IOFunc](router, (f, arg, ctx) => f(ctx, arg).unsafeToFuture()(unsafe.IORuntime.global))
 
   def handleKleisli[T: CanSerialize](
     router: Router[T, IOKleisli],
-  ): FunctionType = handleFWithContext[T, IOKleisli](router, (f, arg, ctx) => f(ctx -> arg).unsafeToFuture())
+  ): FunctionType = handleFWithContext[T, IOKleisli](router, (f, arg, ctx) => f(ctx -> arg).unsafeToFuture()(unsafe.IORuntime.global))
 
   def handleFutureKleisli[T: CanSerialize](
     router: Router[T, FutureKleisli],
@@ -50,11 +52,11 @@ object Handler {
 
   def handleFunc[T: CanSerialize](
     router: Message => Router[T, IOFunc1],
-  ): FunctionType = handleFCustom[T, IOFunc1](router, (f, arg, _) => f(arg).unsafeToFuture())
+  ): FunctionType = handleFCustom[T, IOFunc1](router, (f, arg, _) => f(arg).unsafeToFuture()(unsafe.IORuntime.global))
 
   def handleKleisli[T: CanSerialize](
     router: Message => Router[T, IOKleisli1],
-  ): FunctionType = handleFCustom[T, IOKleisli1](router, (f, arg, _) => f(arg).unsafeToFuture())
+  ): FunctionType = handleFCustom[T, IOKleisli1](router, (f, arg, _) => f(arg).unsafeToFuture()(unsafe.IORuntime.global))
 
   def handleFutureKleisli[T: CanSerialize](
     router: Message => Router[T, FutureKleisli1],

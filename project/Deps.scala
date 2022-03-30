@@ -9,13 +9,12 @@ object Deps {
 
   // core libraries
   val cats = new {
-    val core   = s("org.typelevel" %%% "cats-core" % "2.1.1")
-    val effect = s("org.typelevel" %%% "cats-effect" % "2.5.4")
+    val effect = s("org.typelevel" %%% "cats-effect" % "3.3.9")
   }
 
   // frp
   val colibri = new {
-    val version = "0.2.6"
+    val version = "0.4.4"
     val core    = s("com.github.cornerman" %%% "colibri" % version)
     val jsdom   = s("com.github.cornerman" %%% "colibri-jsdom" % version)
   }
@@ -36,14 +35,15 @@ object Deps {
 
   // sttp
   val sttp = new {
-    val version      = "1.0.0-M1"
+    val version      = "1.0.0-M6"
     val core         = s("com.softwaremill.sttp.tapir" %%% "tapir-core" % version)
+    val lambda       = s("com.softwaremill.sttp.tapir" %%% "tapir-aws-lambda" % version)
     val circe        = s("com.softwaremill.sttp.tapir" %%% "tapir-json-circe" % version)
     val openApi      = s("com.softwaremill.sttp.tapir" %%% "tapir-openapi-docs" % version)
     val openApiCirce = s("com.softwaremill.sttp.tapir" %%% "tapir-openapi-circe" % version)
     val redoc        = s("com.softwaremill.sttp.tapir" %%% "tapir-redoc" % version)
     val jsClient     = s("com.softwaremill.sttp.tapir" %%% "tapir-sttp-client" % version)
-    val catsClient   = s("com.softwaremill.sttp.client3" %%% "catsce2" % "3.5.1")
+    val catsClient   = s("com.softwaremill.sttp.client3" %%% "cats" % "3.5.1")
   }
 
   // aws-sdk-js

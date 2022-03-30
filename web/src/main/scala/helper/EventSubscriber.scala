@@ -27,17 +27,16 @@ final class EventSubscriber(send: String => Unit) extends IncidentHandler[Subscr
 
   override def onClose(): Unit = ()
 
-  override def onEvent(event: SubscriptionEvent): Unit = subscriptionByKey.get(event.subscriptionKey).foreach(_.onNext(event.body))
+  override def onEvent(event: SubscriptionEvent): Unit = subscriptionByKey.get(event.subscriptionKey).foreach(_.unsafeOnNext(event.body))
 
   def subscribe(subscriptionKey: String, observer: Observer[String]): Cancelable = {
-    val subject = subscriptionByKey.getOrElseUpdate(subscriptionKey, Subject.publish)
+    val subject = subscriptionByKey.getOrElseUpdate(subscriptionKey, Subject.publish())
     if (!subject.hasSubscribers) doSubscribe(subscriptionKey)
 
-    val cancelable = subject.subscribe(observer)
+    val cancelable = subject.unsafeSubscribe(observer)
 
-    Cancelable { () =>
-      cancelable.cancel()
-      if (!subject.hasSubscribers) doUnsubscribe(subscriptionKey)
-    }
+    val unsubscribe = Cancelable(() => if (!subject.hasSubscribers) doUnsubscribe(subscriptionKey))
+
+    Cancelable.composite(cancelable, unsubscribe)
   }
 }

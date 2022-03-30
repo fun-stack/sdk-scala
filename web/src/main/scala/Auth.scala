@@ -4,7 +4,7 @@ import funstack.web.helper.facades.JwtDecode
 
 import colibri._
 import colibri.jsdom.EventObservable
-import cats.effect.{ContextShift, IO, Sync}
+import cats.effect.{unsafe, IO, Sync}
 import cats.implicits._
 
 import org.scalajs.dom
@@ -12,7 +12,7 @@ import org.scalajs.dom.window.{localStorage, sessionStorage}
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSName
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 @js.native
 trait TokenResponse extends js.Object {
@@ -80,8 +80,7 @@ private object InitialAuth {
 
 class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
 
-  import ExecutionContext.Implicits.global
-  private implicit val cs = IO.contextShift(ExecutionContext.global)
+  import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits.global
 
   private val authTokenInLocalStorage = website.authTokenInLocalStorage.getOrElse(true)
 
@@ -138,12 +137,12 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
     .filter(ev => ev.oldValue != ev.newValue)
     .distinctByOnEquals(_.newValue)
 
-  private val localStorageEventUserId = localStorageEvent(StorageKey.userId).mapAsync {
+  private val localStorageEventUserId = localStorageEvent(StorageKey.userId).mapEffect {
     case ev if ev.newValue != null => askForReauthentication
     case _                         => IO.pure(false)
   }.collect { case false => None }
 
-  private val localStorageEventRefreshToken = localStorageEvent(StorageKey.refreshToken).mapAsync {
+  private val localStorageEventRefreshToken = localStorageEvent(StorageKey.refreshToken).mapEffect {
     case ev if ev.newValue != null => authRequests.getTokenFromRefreshToken(ev.newValue).map(Some.apply)
     case _                         => IO.pure(None)
   }
@@ -183,7 +182,7 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
     }
   }
 
-  private val customAuthentication = Subject.publish[Option[TokenResponse]]
+  private val customAuthentication = Subject.publish[Option[TokenResponse]]()
 
   val isRedirecting: Boolean = initialAuthentication == InitialAuth.Redirect
 
@@ -197,17 +196,17 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
   def logoutF[F[_]: Sync]: F[Unit] = Sync[F].delay(dom.window.location.href = logoutUrl)
 
   def customLogin(tokenResponse: TokenResponse): IO[Unit]             = customLoginF[IO](tokenResponse)
-  def customLoginF[F[_]: Sync](tokenResponse: TokenResponse): F[Unit] = Sync[F].delay(customAuthentication.onNext(Some(tokenResponse)))
+  def customLoginF[F[_]: Sync](tokenResponse: TokenResponse): F[Unit] = customAuthentication.onNextF[F](Some(tokenResponse))
 
   val customLogout: IO[Unit]             = customLogoutF[IO]
-  def customLogoutF[F[_]: Sync]: F[Unit] = Sync[F].delay(customAuthentication.onNext(None))
+  def customLogoutF[F[_]: Sync]: F[Unit] = customAuthentication.onNextF[F](None)
 
   val currentUser: Observable[Option[User]] = Observable
     .merge(
       initialAuthentication match {
         case InitialAuth.None            => Observable(None)
         case InitialAuth.Redirect        => Observable.empty
-        case InitialAuth.Token(getToken) => Observable.fromAsync(getToken).map(Some.apply)
+        case InitialAuth.Token(getToken) => Observable.fromEffect(getToken).map(Some.apply)
       },
       if (authTokenInLocalStorage) localStorageEventRefreshToken else localStorageEventUserId,
       customAuthentication,
@@ -234,7 +233,7 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
                   storeTokenInLocalStorage(userId = userInfo.sub, token = response.refresh_token)
                   response
                 }
-                .unsafeToFuture()
+                .unsafeToFuture()(unsafe.IORuntime.global)
             }
           }
           currentToken
@@ -242,7 +241,7 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
 
         Some(User(userInfo, tokenGetter))
     }
-    .replay
+    .replayLatest
     .hot
     .recover { case t => // TODO: why does the recover need to be behind hot? colibri?
       dom.console.error("Error in user handling: " + t)
@@ -254,11 +253,11 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
 private class AuthRequests(auth: AuthAppConfig, redirectUrl: String) {
   import org.scalajs.dom.{Fetch, HttpMethod, RequestInit, Response}
 
-  private def handleResponse(response: Response)(implicit cs: ContextShift[IO]): IO[js.Any] =
+  private def handleResponse(response: Response): IO[js.Any] =
     if (response.status == 200) IO.fromFuture(IO(response.json().toFuture))
     else IO.raiseError(AuthTokenEndpointError(response.status))
 
-  def getTokenFromAuthCode(authCode: String)(implicit cs: ContextShift[IO]): IO[TokenResponse] =
+  def getTokenFromAuthCode(authCode: String): IO[TokenResponse] =
     IO
       .fromFuture(IO {
         Fetch
@@ -275,7 +274,7 @@ private class AuthRequests(auth: AuthAppConfig, redirectUrl: String) {
       .flatMap(handleResponse)
       .flatMap(r => IO(r.asInstanceOf[TokenResponse]))
 
-  def getTokenFromRefreshToken(refreshToken: String)(implicit cs: ContextShift[IO]): IO[TokenResponse] = IO
+  def getTokenFromRefreshToken(refreshToken: String): IO[TokenResponse] = IO
     .fromFuture(IO {
       Fetch
         .fetch(

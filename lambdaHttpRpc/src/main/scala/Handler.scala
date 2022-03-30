@@ -6,18 +6,19 @@ import funstack.core.CanSerialize
 import net.exoego.facade.aws_lambda._
 import sloth._
 
-import cats.effect.IO
+import cats.effect.{unsafe, IO}
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 
 object Handler extends apigateway.Handler[APIGatewayProxyEventV2] {
 
+  import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits.global
+
   def handle[T: CanSerialize](
     router: Router[T, IO],
-  ): FunctionType = handleF[T, IO](router, _.unsafeToFuture())
+  ): FunctionType = handleF[T, IO](router, _.unsafeToFuture()(unsafe.IORuntime.global))
 
   def handleFuture[T: CanSerialize](
     router: Router[T, Future],
@@ -30,7 +31,7 @@ object Handler extends apigateway.Handler[APIGatewayProxyEventV2] {
 
   def handle[T: CanSerialize](
     router: Request => Router[T, IO],
-  ): FunctionType = handleF[T, IO](router, _.unsafeToFuture())
+  ): FunctionType = handleF[T, IO](router, _.unsafeToFuture()(unsafe.IORuntime.global))
 
   def handleFuture[T: CanSerialize](
     router: Request => Router[T, Future],
@@ -43,11 +44,11 @@ object Handler extends apigateway.Handler[APIGatewayProxyEventV2] {
 
   def handleFunc[T: CanSerialize](
     router: Router[T, IOFunc],
-  ): FunctionType = handleFWithContext[T, IOFunc](router, (f, ctx) => f(ctx).unsafeToFuture())
+  ): FunctionType = handleFWithContext[T, IOFunc](router, (f, ctx) => f(ctx).unsafeToFuture()(unsafe.IORuntime.global))
 
   def handleKleisli[T: CanSerialize](
     router: Router[T, IOKleisli],
-  ): FunctionType = handleFWithContext[T, IOKleisli](router, (f, ctx) => f(ctx).unsafeToFuture())
+  ): FunctionType = handleFWithContext[T, IOKleisli](router, (f, ctx) => f(ctx).unsafeToFuture()(unsafe.IORuntime.global))
 
   def handleFutureKleisli[T: CanSerialize](
     router: Router[T, FutureKleisli],
