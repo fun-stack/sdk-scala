@@ -9,19 +9,19 @@ import net.exoego.facade.aws_lambda._
 import mycelium.core.message._
 import sloth._
 
-import cats.effect.IO
+import cats.effect.{unsafe, IO}
 
 import scala.scalajs.js.JSConverters._
 import scala.concurrent.Future
 import scala.util.control.NonFatal
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
 object Handler extends apigateway.Handler[APIGatewayWsEvent] {
+
+  import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits.global
 
   def handle[T: CanSerialize](
     router: Router[T, IO],
-  ): FunctionType = handleF[T, IO](router, _.map(Right.apply).unsafeToFuture())
+  ): FunctionType = handleF[T, IO](router, _.map(Right.apply).unsafeToFuture()(unsafe.IORuntime.global))
 
   def handleFuture[T: CanSerialize](
     router: Router[T, Future],
@@ -34,7 +34,7 @@ object Handler extends apigateway.Handler[APIGatewayWsEvent] {
 
   def handle[T: CanSerialize](
     router: Request => Router[T, IO],
-  ): FunctionType = handleF[T, IO](router, _.map(Right.apply).unsafeToFuture())
+  ): FunctionType = handleF[T, IO](router, _.map(Right.apply).unsafeToFuture()(unsafe.IORuntime.global))
 
   def handleFuture[T: CanSerialize](
     router: Request => Router[T, Future],
@@ -47,11 +47,11 @@ object Handler extends apigateway.Handler[APIGatewayWsEvent] {
 
   def handleFunc[T: CanSerialize](
     router: Router[T, IOFunc],
-  ): FunctionType = handleFWithContext[T, IOFunc](router, (f, ctx) => f(ctx).map(Right.apply).unsafeToFuture())
+  ): FunctionType = handleFWithContext[T, IOFunc](router, (f, ctx) => f(ctx).map(Right.apply).unsafeToFuture()(unsafe.IORuntime.global))
 
   def handleKleisli[T: CanSerialize](
     router: Router[T, IOKleisli],
-  ): FunctionType = handleFWithContext[T, IOKleisli](router, (f, ctx) => f(ctx).map(Right.apply).unsafeToFuture())
+  ): FunctionType = handleFWithContext[T, IOKleisli](router, (f, ctx) => f(ctx).map(Right.apply).unsafeToFuture()(unsafe.IORuntime.global))
 
   def handleFutureKleisli[T: CanSerialize](
     router: Router[T, FutureKleisli],

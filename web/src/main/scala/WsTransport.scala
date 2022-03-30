@@ -10,11 +10,8 @@ import cats.effect.IO
 import scala.concurrent.duration._
 
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 
 private object WsTransport {
-
-  private implicit val cs = IO.contextShift(global)
 
   def apply[PickleType](
     send: (List[String], PickleType, SendType, FiniteDuration) => Option[Future[Either[PickleType, PickleType]]],

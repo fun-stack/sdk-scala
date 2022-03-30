@@ -18,8 +18,6 @@ trait Auth {
 class AuthAws(cognitoUserPoolId: String) extends Auth {
   private val cognito = new CognitoIdentityProvider()
 
-  private implicit val cs = IO.contextShift(scala.concurrent.ExecutionContext.global)
-
   def getUser(username: String): IO[UserInfoResponse] = IO
     .fromFuture(
       IO(

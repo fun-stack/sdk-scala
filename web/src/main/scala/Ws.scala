@@ -6,17 +6,16 @@ import funstack.web.helper.EventSubscriber
 
 import colibri._
 import mycelium.js.client.JsWebsocketConnection
-import mycelium.core.{Cancelable => MyceliumCancelable}
 import mycelium.core.client.{WebsocketClient, WebsocketClientConfig}
 
-import cats.effect.{Async, IO, Sync}
+import cats.effect.{unsafe, IO, LiftIO, Sync}
 
 import scala.concurrent.duration._
 import scala.concurrent.Future
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
 class Ws(ws: WsAppConfig, auth: Option[Auth]) {
+
+  import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits.global
 
   private var wsClientConnection: Option[(Cancelable, WebsocketClient[String, SubscriptionEvent, String])] = None
   private def wsClient                                                                                     = wsClientConnection.map(_._2)
@@ -26,7 +25,7 @@ class Ws(ws: WsAppConfig, auth: Option[Auth]) {
   val start: IO[Unit] = startF[IO]
 
   def startF[F[_]: Sync]: F[Unit] = Sync[F].delay {
-    wsClientConnection.foreach(_._1.cancel())
+    wsClientConnection.foreach(_._1.unsafeCancel())
     wsClientConnection = Some(createWsClient())
   }
 
@@ -37,9 +36,10 @@ class Ws(ws: WsAppConfig, auth: Option[Auth]) {
     }),
   )
 
-  def transportF[T: CanSerialize, F[_]: Async] = transport[T].map(Async[F].liftIO)
+  // TODO Async
+  def transportF[T: CanSerialize, F[_]: LiftIO] = transport[T].map(LiftIO[F].liftIO)
 
-  def transportFuture[T: CanSerialize] = transport[T].map(_.unsafeToFuture())
+  def transportFuture[T: CanSerialize] = transport[T].map(_.unsafeToFuture()(unsafe.IORuntime.global))
 
   def streamsTransport[T: CanSerialize] = WsTransport.subscriptions(eventSubscriber)
 
@@ -62,7 +62,7 @@ class Ws(ws: WsAppConfig, auth: Option[Auth]) {
     val baseUrl = ws.url.replaceFirst("/$", "")
 
     def runServer(): Unit = {
-      connectionCancelable.cancel()
+      connectionCancelable.unsafeCancel()
       connectionCancelable =
         if (currentUser.isEmpty && !ws.allowUnauthenticated) Cancelable.empty
         else {
@@ -72,7 +72,7 @@ class Ws(ws: WsAppConfig, auth: Option[Auth]) {
               .fold(IO.pure(baseUrl))(_.token.map { token =>
                 s"${baseUrl}?token=${token.access_token}"
               })
-              .unsafeToFuture()
+              .unsafeToFuture()(unsafe.IORuntime.global)
           }
           Cancelable.composite(tokenRunCancel, Cancelable(clientCancel.cancel))
         }
@@ -83,13 +83,13 @@ class Ws(ws: WsAppConfig, auth: Option[Auth]) {
         runServer()
         Cancelable.empty
       case Some(auth) =>
-        auth.currentUser.foreach { user =>
+        auth.currentUser.unsafeForeach { user =>
           val prevUser = currentUser
           currentUser = user
           if (connectionCancelable == Cancelable.empty || prevUser.map(_.info.sub) != user.map(_.info.sub)) runServer()
         }
     }
 
-    (Cancelable.composite(Cancelable(() => connectionCancelable.cancel()), subscriptionCancelable), wsClient)
+    (Cancelable.composite(Cancelable(() => connectionCancelable.unsafeCancel()), subscriptionCancelable), wsClient)
   }
 }

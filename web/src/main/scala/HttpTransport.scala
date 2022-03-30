@@ -6,15 +6,12 @@ import cats.effect.IO
 import cats.implicits._
 
 import scala.scalajs.js
-import scala.concurrent.ExecutionContext.Implicits.global
 
 import org.scalajs.dom.{Fetch, HttpMethod, RequestInit}
 
 private object HttpTransport {
 
   case class HttpResponseError(msg: String) extends Exception(msg)
-
-  private implicit val cs = IO.contextShift(global)
 
   def apply[T: CanSerialize](http: HttpAppConfig, auth: Option[Auth]): RequestTransport[T, IO] =
     new RequestTransport[T, IO] {
