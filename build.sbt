@@ -45,7 +45,6 @@ lazy val jsSettings = Seq(
     val remote        = s"https://raw.githubusercontent.com/${githubRepo}/${git.gitHeadCommit.value.get}"
     s"-P:scalajs:mapSourceURI:$local->$remote/${subProjectDir}/"
   },
-  scalacOptions += "-P:scalajs:nowarnGlobalExecutionContext",// TODO: setImmediate
 )
 
 lazy val core = project
