@@ -37,14 +37,16 @@ private object NativeCodec {
 object Base64Codec {
 
   def encode(buffer: ByteBuffer): String = {
+    buffer.rewind()
+
     val n = buffer.limit()
     val s = new StringBuilder(n)
-    var i = 0
-    while (i < n) {
-      val c = buffer.get
+    while (buffer.hasRemaining()) {
+      val c = buffer.get()
       s ++= NativeCodec.string.fromCharCode(c & 0xff).asInstanceOf[String]
-      i  += 1
     }
+
+    buffer.rewind()
 
     NativeCodec.btoa(s.result())
   }
