@@ -8,7 +8,7 @@ Example on how to use it:
 - Fun Scala Template: [example](https://github.com/fun-stack/example)
 
 Terraform module for the corresponding AWS infrastructure:
-- Fun Terraform Module: [terraform-aws-fun](https://github.com/fun-stack/terraform-aws-fun) (version `>= 0.5.0`)
+- Fun Terraform Module: [terraform-aws-fun](https://github.com/fun-stack/terraform-aws-fun) (version `>= 0.6.0`)
 
 See local development module for mocking the AWS infrastructure locally:
 - Fun Local Environment: [local-env](https://github.com/fun-stack/local-env) (version `>= 0.3.0`)
