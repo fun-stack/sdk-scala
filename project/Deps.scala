@@ -35,7 +35,7 @@ object Deps {
 
   // sttp
   val sttp = new {
-    val version      = "1.0.0-M7"
+    val version      = "1.0.0-M9"
     val core         = s("com.softwaremill.sttp.tapir" %%% "tapir-core" % version)
     val lambda       = s("com.softwaremill.sttp.tapir" %%% "tapir-aws-lambda" % version)
     val circe        = s("com.softwaremill.sttp.tapir" %%% "tapir-json-circe" % version)
