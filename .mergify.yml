@@ -20,7 +20,7 @@ pull_request_rules:
       - and:
         - label=dependencies
         - base=master
-        - check-success=build
+        - check-success~=build \(2.13.\d+\)
     actions:
       queue:
         name: default
