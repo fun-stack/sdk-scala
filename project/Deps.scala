@@ -9,7 +9,7 @@ object Deps {
 
   // core libraries
   val cats = new {
-    val effect = s("org.typelevel" %%% "cats-effect" % "3.3.13")
+    val effect = s("org.typelevel" %%% "cats-effect" % "3.3.14")
   }
 
   // frp
@@ -43,7 +43,7 @@ object Deps {
     val openApiCirce = s("com.softwaremill.sttp.tapir" %%% "tapir-openapi-circe" % version)
     val redoc        = s("com.softwaremill.sttp.tapir" %%% "tapir-redoc" % version)
     val jsClient     = s("com.softwaremill.sttp.tapir" %%% "tapir-sttp-client" % version)
-    val catsClient   = s("com.softwaremill.sttp.client3" %%% "cats" % "3.6.2")
+    val catsClient   = s("com.softwaremill.sttp.client3" %%% "cats" % "3.7.0")
   }
 
   // aws-sdk-js
