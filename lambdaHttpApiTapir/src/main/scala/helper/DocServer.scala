@@ -2,11 +2,10 @@ package funstack.lambda.http.api.tapir.helper
 
 import net.exoego.facade.aws_lambda._
 import sttp.tapir.server.ServerEndpoint
-import sttp.tapir.openapi.Info
 import sttp.tapir.docs.openapi.{OpenAPIDocsInterpreter, OpenAPIDocsOptions}
 import io.circe.syntax._
 import sttp.tapir.redoc.Redoc
-import sttp.tapir.openapi.circe._
+import sttp.apispec.openapi.circe._
 
 import scala.scalajs.js
 
@@ -27,7 +26,7 @@ object DocServer {
 
     case List("openapi.json") =>
       val openapi = OpenAPIDocsInterpreter(OpenAPIDocsOptions.default)
-        .serverEndpointsToOpenAPI[F](endpoints, Info(title = title, version = version))
+        .serverEndpointsToOpenAPI[F](endpoints, title = title, version = version)
       val json    = openapi.asJson.spaces2SortKeys
       Some(result(json, "application/json"))
 

@@ -131,12 +131,13 @@ lazy val lambdaHttpApiTapir = project
   .settings(
     name                 := "fun-stack-lambda-http-api-tapir",
     libraryDependencies ++=
-      Deps.sttp.core.value ::
-        Deps.sttp.circe.value ::
-        Deps.sttp.catsClient.value ::
-        Deps.sttp.lambda.value ::
-        Deps.sttp.openApi.value ::
-        Deps.sttp.redoc.value ::
+      Deps.tapir.core.value ::
+        Deps.tapir.circe.value ::
+        Deps.tapir.catsClient.value ::
+        Deps.tapir.lambda.value ::
+        Deps.tapir.openApi.value ::
+        Deps.tapir.redoc.value ::
+        Deps.apiSpec.circe.value ::
         Nil,
   )
 
@@ -182,7 +183,7 @@ lazy val webTapir = project
   .settings(
     name                 := "fun-stack-web-tapir",
     libraryDependencies ++=
-      Deps.sttp.jsClient.value ::
-        Deps.sttp.catsClient.value ::
+      Deps.tapir.jsClient.value ::
+        Deps.tapir.catsClient.value ::
         Nil,
   )
