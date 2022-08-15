@@ -34,16 +34,20 @@ object Deps {
   val jsTime = s("io.github.cquiroz" %%% "scala-java-time" % "2.3.0")
 
   // sttp
-  val sttp = new {
-    val version      = "1.0.0-M7"
-    val core         = s("com.softwaremill.sttp.tapir" %%% "tapir-core" % version)
-    val lambda       = s("com.softwaremill.sttp.tapir" %%% "tapir-aws-lambda" % version)
-    val circe        = s("com.softwaremill.sttp.tapir" %%% "tapir-json-circe" % version)
-    val openApi      = s("com.softwaremill.sttp.tapir" %%% "tapir-openapi-docs" % version)
-    val openApiCirce = s("com.softwaremill.sttp.tapir" %%% "tapir-openapi-circe" % version)
-    val redoc        = s("com.softwaremill.sttp.tapir" %%% "tapir-redoc" % version)
-    val jsClient     = s("com.softwaremill.sttp.tapir" %%% "tapir-sttp-client" % version)
-    val catsClient   = s("com.softwaremill.sttp.client3" %%% "cats" % "3.7.4")
+  val apiSpec = new {
+    val version = "0.2.1"
+    val circe   = s("com.softwaremill.sttp.apispec" %%% "openapi-circe" % version)
+  }
+
+  val tapir = new {
+    val version    = "1.0.4"
+    val core       = s("com.softwaremill.sttp.tapir" %%% "tapir-core" % version)
+    val lambda     = s("com.softwaremill.sttp.tapir" %%% "tapir-aws-lambda" % version)
+    val circe      = s("com.softwaremill.sttp.tapir" %%% "tapir-json-circe" % version)
+    val openApi    = s("com.softwaremill.sttp.tapir" %%% "tapir-openapi-docs" % version)
+    val redoc      = s("com.softwaremill.sttp.tapir" %%% "tapir-redoc" % version)
+    val jsClient   = s("com.softwaremill.sttp.tapir" %%% "tapir-sttp-client" % version)
+    val catsClient = s("com.softwaremill.sttp.client3" %%% "cats" % "3.7.4")
   }
 
   // aws-sdk-js
