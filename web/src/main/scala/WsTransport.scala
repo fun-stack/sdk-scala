@@ -10,6 +10,7 @@ import cats.effect.IO
 import scala.concurrent.duration._
 
 import scala.concurrent.Future
+import scala.scalajs.js
 
 private object WsTransport {
 
