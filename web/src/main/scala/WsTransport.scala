@@ -31,7 +31,7 @@ private object WsTransport {
   def subscriptions[T: CanSerialize](eventSubscriber: EventSubscriber): RequestTransport[T, Observable] =
     new RequestTransport[T, Observable] {
       def apply(request: Request[T]): Observable[T] = {
-        val subscriptionKey = s"${request.path.mkString("/")}/${CanSerialize[T].serialize(request.payload)}"
+        val subscriptionKey = s"${request.path.mkString("/")}/${js.Dynamic.global.escape(CanSerialize[T].serialize(request.payload))}"
         Observable.create[T](observer => eventSubscriber.subscribe(subscriptionKey, observer.contramapEither[String](CanSerialize[T].deserialize)))
       }
     }

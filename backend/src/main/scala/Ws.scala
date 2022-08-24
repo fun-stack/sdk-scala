@@ -49,7 +49,7 @@ private class WsOperationsDev(send: (String, String) => Unit) extends WsOperatio
 class WsTransport[T: CanSerialize](operations: WsOperations) extends RequestTransport[T, Kleisli[IO, *, Unit]] {
 
   def apply(request: Request[T]): Kleisli[IO, T, Unit] = Kleisli { body =>
-    val subscriptionKey = s"${request.path.mkString("/")}/${CanSerialize[T].serialize(request.payload)}"
+    val subscriptionKey = s"${request.path.mkString("/")}/${js.Dynamic.global.escape(CanSerialize[T].serialize(request.payload))}"
     operations.sendToSubscription(subscriptionKey, SubscriptionEvent(subscriptionKey, CanSerialize[T].serialize(body)))
   }
 }
