@@ -1,17 +1,15 @@
 package funstack.web
 
-import funstack.ws.core.{ClientMessageSerdes, ServerMessageSerdes}
+import cats.effect.{unsafe, IO, LiftIO, Sync}
+import colibri._
 import funstack.core.{CanSerialize, SubscriptionEvent}
 import funstack.web.helper.EventSubscriber
-
-import colibri._
-import mycelium.js.client.JsWebsocketConnection
+import funstack.ws.core.{ClientMessageSerdes, ServerMessageSerdes}
 import mycelium.core.client.{WebsocketClient, WebsocketClientConfig}
+import mycelium.js.client.JsWebsocketConnection
 
-import cats.effect.{unsafe, IO, LiftIO, Sync}
-
-import scala.concurrent.duration._
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 class Ws(ws: WsAppConfig, auth: Option[Auth]) {
 
@@ -44,7 +42,8 @@ class Ws(ws: WsAppConfig, auth: Option[Auth]) {
   def streamsTransport[T: CanSerialize] = WsTransport.subscriptions(eventSubscriber)
 
   private def createWsClient(): (Cancelable, WebsocketClient[String, SubscriptionEvent, String]) = {
-    import ServerMessageSerdes.implicits._, ClientMessageSerdes.implicits._
+    import ClientMessageSerdes.implicits._
+    import ServerMessageSerdes.implicits._
 
     val wsClient = WebsocketClient[String, SubscriptionEvent, String](
       new JsWebsocketConnection[String],

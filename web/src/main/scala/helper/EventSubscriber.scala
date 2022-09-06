@@ -1,8 +1,7 @@
 package funstack.web.helper
 
-import funstack.core.SubscriptionEvent
 import colibri._
-
+import funstack.core.SubscriptionEvent
 import mycelium.core.client.IncidentHandler
 
 final class EventSubscriber(send: String => Unit) extends IncidentHandler[SubscriptionEvent] {

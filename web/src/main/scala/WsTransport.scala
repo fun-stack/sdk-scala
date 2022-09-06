@@ -1,15 +1,14 @@
 package funstack.web
 
+import cats.effect.IO
+import colibri.Observable
 import funstack.core.CanSerialize
 import funstack.web.helper.EventSubscriber
-
-import colibri.Observable
-import sloth.{Request, RequestTransport}
 import mycelium.core.client.SendType
-import cats.effect.IO
-import scala.concurrent.duration._
+import sloth.{Request, RequestTransport}
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.scalajs.js
 
 private object WsTransport {

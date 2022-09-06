@@ -1,25 +1,23 @@
 package funstack.lambda.http.api.tapir
 
-import funstack.lambda.http.api.tapir.helper.DocServer
-import funstack.lambda.apigateway
-import net.exoego.facade.aws_lambda._
 import cats.data.Kleisli
 import cats.effect.{unsafe, IO, Sync}
 import cats.implicits._
+import funstack.lambda.apigateway
+import funstack.lambda.http.api.tapir.helper.DocServer
+import net.exoego.facade.aws_lambda._
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.serverless.aws.lambda._
 import sttp.tapir.serverless.aws.lambda.js._
 
+import scala.concurrent.Future
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
-import scala.concurrent.Future
 
 object Handler {
+  import HandlerInstances._
   import apigateway.Handler._
   import apigateway.Request
-
-  import HandlerInstances._
-
   import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits.global
 
   def handle(
@@ -115,9 +113,10 @@ object Handler {
 }
 
 private object HandlerInstances {
+  import cats.effect.kernel
+
   import scala.concurrent.ExecutionContext
   import scala.concurrent.duration.FiniteDuration
-  import cats.effect.kernel
 
   // TODO: this is totally unsafe, we are doing this to reuse the Sync methods
   // for this Handler for Future. This sync instance will only be used by sttp,

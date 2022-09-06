@@ -1,7 +1,8 @@
 package funstack.lambda.apigateway.helper.facades
 
-import scala.scalajs.js
 import net.exoego.facade.aws_lambda._
+
+import scala.scalajs.js
 
 @js.native
 trait APIGatewayWsRequestContext extends js.Object {

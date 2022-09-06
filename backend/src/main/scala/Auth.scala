@@ -1,7 +1,8 @@
 package funstack.backend
 
-import facade.amazonaws.services.cognitoidentityprovider._
 import cats.effect.IO
+import facade.amazonaws.services.cognitoidentityprovider._
+
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 

@@ -1,19 +1,17 @@
 package funstack.lambda.ws.eventauthorizer
 
+import cats.data.Kleisli
+import cats.effect.{unsafe, IO}
+import facade.amazonaws.services.sns._
 import funstack.core.{CanSerialize, SubscriptionEvent}
 import funstack.ws.core.ServerMessageSerdes
-
-import net.exoego.facade.aws_lambda._
-import facade.amazonaws.services.sns._
 import mycelium.core.message._
+import net.exoego.facade.aws_lambda._
 import sloth._
 
-import cats.effect.{unsafe, IO}
-import cats.data.Kleisli
-
+import scala.concurrent.Future
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
-import scala.concurrent.Future
 
 case class AuthInfo(sub: String)
 case class Message(auth: Option[AuthInfo])

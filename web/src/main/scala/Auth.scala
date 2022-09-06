@@ -1,18 +1,16 @@
 package funstack.web
 
-import funstack.web.helper.facades.JwtDecode
-
-import colibri._
-import colibri.jsdom.EventObservable
 import cats.effect.{unsafe, IO, Sync}
 import cats.implicits._
-
+import colibri._
+import colibri.jsdom.EventObservable
+import funstack.web.helper.facades.JwtDecode
 import org.scalajs.dom
 import org.scalajs.dom.window.{localStorage, sessionStorage}
 
+import scala.concurrent.Future
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSName
-import scala.concurrent.Future
 
 @js.native
 trait TokenResponse extends js.Object {

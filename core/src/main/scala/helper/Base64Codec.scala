@@ -1,7 +1,6 @@
 package funstack.core.helper
 
 import java.nio.ByteBuffer
-
 import scala.scalajs.js
 
 private object NativeCodec {

@@ -1,15 +1,14 @@
 package funstack.backend
 
-import funstack.ws.core.ServerMessageSerdes
-import funstack.core.{CanSerialize, SubscriptionEvent}
-import facade.amazonaws.services.sns._
-
-import scala.scalajs.js
-import sloth._
 import cats.data.Kleisli
 import cats.effect.IO
+import facade.amazonaws.services.sns._
+import funstack.core.{CanSerialize, SubscriptionEvent}
+import funstack.ws.core.ServerMessageSerdes
+import sloth._
 
 import scala.concurrent.Future
+import scala.scalajs.js
 
 class Ws(operations: WsOperations) {
   def sendTransport[T: CanSerialize]       = new WsTransport[T](operations)

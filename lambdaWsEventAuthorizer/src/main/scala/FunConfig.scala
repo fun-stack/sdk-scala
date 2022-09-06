@@ -1,7 +1,8 @@
 package funstack.lambda.ws.eventauthorizer
 
-import scala.scalajs.js
 import cats.implicits._
+
+import scala.scalajs.js
 
 @js.native
 private[eventauthorizer] trait FunDevEnvironment extends js.Object {

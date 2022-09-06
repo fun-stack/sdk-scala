@@ -1,9 +1,8 @@
 package funstack.lambda.apigateway
 
-import net.exoego.facade.aws_lambda._
-
-import cats.effect.IO
 import cats.data.Kleisli
+import cats.effect.IO
+import net.exoego.facade.aws_lambda._
 
 import scala.concurrent.Future
 import scala.scalajs.js

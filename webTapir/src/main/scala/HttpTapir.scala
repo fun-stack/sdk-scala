@@ -1,12 +1,13 @@
 package funstack.web.tapir
 
-import funstack.web.{Auth, HttpAppConfig}
 import cats.effect.{unsafe, IO}
 import cats.implicits._
+import funstack.web.{Auth, HttpAppConfig}
 import sttp.client3.impl.cats.FetchCatsBackend
-import sttp.tapir.client.sttp.{SttpClientInterpreter, SttpClientOptions}
-import sttp.tapir.PublicEndpoint
 import sttp.model.Uri
+import sttp.tapir.PublicEndpoint
+import sttp.tapir.client.sttp.{SttpClientInterpreter, SttpClientOptions}
+
 import scala.concurrent.Future
 
 class HttpTapir(http: HttpAppConfig, auth: Option[Auth]) {

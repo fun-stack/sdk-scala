@@ -1,11 +1,11 @@
 package funstack.lambda.http.api.tapir.helper
 
-import net.exoego.facade.aws_lambda._
-import sttp.tapir.server.ServerEndpoint
-import sttp.tapir.docs.openapi.{OpenAPIDocsInterpreter, OpenAPIDocsOptions}
 import io.circe.syntax._
-import sttp.tapir.redoc.Redoc
+import net.exoego.facade.aws_lambda._
 import sttp.apispec.openapi.circe._
+import sttp.tapir.docs.openapi.{OpenAPIDocsInterpreter, OpenAPIDocsOptions}
+import sttp.tapir.redoc.Redoc
+import sttp.tapir.server.ServerEndpoint
 
 import scala.scalajs.js
 

@@ -1,13 +1,12 @@
 package funstack.web
 
-import funstack.core.CanSerialize
-import sloth.{Request, RequestTransport}
 import cats.effect.IO
 import cats.implicits._
+import funstack.core.CanSerialize
+import org.scalajs.dom.{Fetch, HttpMethod, RequestInit}
+import sloth.{Request, RequestTransport}
 
 import scala.scalajs.js
-
-import org.scalajs.dom.{Fetch, HttpMethod, RequestInit}
 
 private object HttpTransport {
 

@@ -1,12 +1,11 @@
 package funstack.ws.core
 
-import funstack.core.{CanSerialize, SubscriptionEvent}
-
-import mycelium.core.message._
 import chameleon.{Deserializer, Serializer}
+import funstack.core.{CanSerialize, SubscriptionEvent}
+import mycelium.core.message._
 
-import scala.util.Try
 import scala.scalajs.js
+import scala.util.Try
 
 object ServerMessageSerdes {
   case class UnknownMessage(msg: String) extends Exception

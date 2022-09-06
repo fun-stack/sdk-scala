@@ -1,21 +1,18 @@
 package funstack.lambda.http.rpc
 
-import funstack.lambda.apigateway
+import cats.effect.{unsafe, IO}
 import funstack.core.CanSerialize
-
+import funstack.lambda.apigateway
 import net.exoego.facade.aws_lambda._
 import sloth._
 
-import cats.effect.{unsafe, IO}
-
+import scala.concurrent.Future
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
-import scala.concurrent.Future
 
 object Handler {
   import apigateway.Handler._
   import apigateway.Request
-
   import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits.global
 
   def handle[T: CanSerialize](

@@ -1,7 +1,8 @@
 package funstack.backend
 
-import scala.scalajs.js
 import cats.implicits._
+
+import scala.scalajs.js
 
 @js.native
 trait FunDevEnvironment extends js.Object {

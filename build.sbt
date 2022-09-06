@@ -1,5 +1,3 @@
-import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
-
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
 inThisBuild(

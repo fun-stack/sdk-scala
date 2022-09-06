@@ -1,24 +1,21 @@
 package funstack.lambda.ws.rpc
 
-import funstack.ws.core.{ClientMessageSerdes, ServerMessageSerdes}
-import funstack.lambda.apigateway.helper.facades._
-import funstack.lambda.apigateway
+import cats.effect.{unsafe, IO}
 import funstack.core.{CanSerialize, SubscriptionEvent}
-
-import net.exoego.facade.aws_lambda._
+import funstack.lambda.apigateway
+import funstack.lambda.apigateway.helper.facades._
+import funstack.ws.core.{ClientMessageSerdes, ServerMessageSerdes}
 import mycelium.core.message._
+import net.exoego.facade.aws_lambda._
 import sloth._
 
-import cats.effect.{unsafe, IO}
-
-import scala.scalajs.js.JSConverters._
 import scala.concurrent.Future
+import scala.scalajs.js.JSConverters._
 import scala.util.control.NonFatal
 
 object Handler {
   import apigateway.Handler._
   import apigateway.Request
-
   import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits.global
 
   def handle[T: CanSerialize](
