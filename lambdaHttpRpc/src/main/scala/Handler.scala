@@ -12,7 +12,9 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import scala.concurrent.Future
 
-object Handler extends apigateway.Handler[APIGatewayProxyEventV2] {
+object Handler {
+  import apigateway.Handler._
+  import apigateway.Request
 
   import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits.global
 
@@ -66,11 +68,12 @@ object Handler extends apigateway.Handler[APIGatewayProxyEventV2] {
   def handleFCustom[T: CanSerialize, F[_]](
     routerf: Request => Router[T, F],
     execute: (F[T], Request) => Future[T],
-  ): FunctionType = { (event, context) =>
+  ): FunctionType = { (eventAny, context) =>
     // println(js.JSON.stringify(event))
     // println(js.JSON.stringify(context))
 
-    val auth = event.requestContext.authorizer.toOption.flatMap { auth =>
+    val event = eventAny.asInstanceOf[APIGatewayProxyEventV2]
+    val auth  = event.requestContext.authorizer.toOption.flatMap { auth =>
       val authDict = auth.asInstanceOf[js.Dictionary[js.Dictionary[String]]]
       for {
         claims <- authDict.get("lambda")
@@ -78,7 +81,7 @@ object Handler extends apigateway.Handler[APIGatewayProxyEventV2] {
       } yield apigateway.AuthInfo(sub = sub)
     }
 
-    val request = apigateway.RequestOf(event, context, auth)
+    val request = Request(event, context, auth)
     val router  = routerf(request)
 
     val fullPath = event.requestContext.http.path.split("/").toList.drop(2)
@@ -87,7 +90,7 @@ object Handler extends apigateway.Handler[APIGatewayProxyEventV2] {
       case "_" :: path =>
         CanSerialize[T].deserialize(body) match {
           case Right(payload) =>
-            router(Request(path, payload)) match {
+            router(sloth.Request(path, payload)) match {
               case Right(result)                            =>
                 execute(result, request).map { value =>
                   APIGatewayProxyStructuredResultV2(body = CanSerialize[T].serialize(value), statusCode = 200)

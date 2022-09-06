@@ -15,7 +15,9 @@ import scala.scalajs.js.JSConverters._
 import scala.concurrent.Future
 import scala.util.control.NonFatal
 
-object Handler extends apigateway.Handler[APIGatewayWsEvent] {
+object Handler {
+  import apigateway.Handler._
+  import apigateway.Request
 
   import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits.global
 
@@ -69,16 +71,17 @@ object Handler extends apigateway.Handler[APIGatewayWsEvent] {
   def handleFCustom[T: CanSerialize, F[_]](
     routerf: Request => Router[T, F],
     execute: (F[T], Request) => Future[Either[T, T]],
-  ): FunctionType = { (event, context) =>
+  ): FunctionType = { (eventAny, context) =>
     // println(js.JSON.stringify(event))
     // println(js.JSON.stringify(context))
 
+    val event   = eventAny.asInstanceOf[APIGatewayWsEvent]
     val auth    = event.requestContext.authorizer.toOption.flatMap { claims =>
       for {
         sub <- claims.get("sub")
       } yield apigateway.AuthInfo(sub = sub)
     }
-    val request = apigateway.RequestOf(event, context, auth)
+    val request = Request(event, context, auth)
     val router  = routerf(request)
 
     val result = ClientMessageSerdes.deserialize(event.body) match {
@@ -87,7 +90,7 @@ object Handler extends apigateway.Handler[APIGatewayWsEvent] {
       case Right(Ping) => Future.successful(Pong)
 
       case Right(CallRequest(seqNumber, path, payload)) =>
-        val result = router(Request(path, payload)) match {
+        val result = router(sloth.Request(path, payload)) match {
           case Right(result)       =>
             execute(result, request).map[ServerMessage[T, SubscriptionEvent, T]] {
               case Right(value)  => CallResponse(seqNumber, value)

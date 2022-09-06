@@ -2,7 +2,6 @@ package funstack.lambda.http.api.tapir
 
 import funstack.lambda.http.api.tapir.helper.DocServer
 import funstack.lambda.apigateway
-
 import net.exoego.facade.aws_lambda._
 import cats.data.Kleisli
 import cats.effect.{unsafe, IO, Sync}
@@ -15,7 +14,9 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import scala.concurrent.Future
 
-object Handler extends apigateway.Handler[APIGatewayProxyEventV2] {
+object Handler {
+  import apigateway.Handler._
+  import apigateway.Request
 
   import HandlerInstances._
 
@@ -71,10 +72,11 @@ object Handler extends apigateway.Handler[APIGatewayProxyEventV2] {
   def handleFCustom[F[_]: Sync](
     endpointsf: Request => List[ServerEndpoint[Any, F]],
     execute: (F[APIGatewayProxyStructuredResultV2], Request) => Future[APIGatewayProxyStructuredResultV2],
-  ): FunctionType = { (event, context) =>
+  ): FunctionType = { (eventAny, context) =>
     // println(js.JSON.stringify(event))
     // println(js.JSON.stringify(context))
 
+    val event     = eventAny.asInstanceOf[APIGatewayProxyEventV2]
     val auth      = event.requestContext.authorizer.toOption.flatMap { auth =>
       val authDict = auth.asInstanceOf[js.Dictionary[js.Dictionary[String]]]
       for {
@@ -82,7 +84,7 @@ object Handler extends apigateway.Handler[APIGatewayProxyEventV2] {
         sub    <- claims.get("sub")
       } yield apigateway.AuthInfo(sub = sub)
     }
-    val request   = apigateway.RequestOf(event, context, auth)
+    val request   = Request(event, context, auth)
     val endpoints = endpointsf(request)
 
     val fullPath = event.requestContext.http.path.split("/").toList.drop(2)

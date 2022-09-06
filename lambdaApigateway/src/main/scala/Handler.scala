@@ -9,17 +9,13 @@ import scala.concurrent.Future
 import scala.scalajs.js
 
 case class AuthInfo(sub: String)
-case class RequestOf[+T](event: T, context: Context, auth: Option[AuthInfo])
+case class Request(event: js.Any, context: Context, auth: Option[AuthInfo])
 
-trait Handler[Event] {
-  type Request = RequestOf[Event]
+object Handler {
+  type FunctionType = js.Function2[js.Any, Context, js.Promise[APIGatewayProxyStructuredResultV2]]
 
-  type FunctionType = js.Function2[Event, Context, js.Promise[APIGatewayProxyStructuredResultV2]]
-
-  type FutureFunc[Out]    = RequestOf[Event] => Future[Out]
-  type FutureKleisli[Out] = Kleisli[Future, RequestOf[Event], Out]
-  type IOFunc[Out]        = RequestOf[Event] => IO[Out]
-  type IOKleisli[Out]     = Kleisli[IO, RequestOf[Event], Out]
+  type FutureFunc[Out]    = Request => Future[Out]
+  type FutureKleisli[Out] = Kleisli[Future, Request, Out]
+  type IOFunc[Out]        = Request => IO[Out]
+  type IOKleisli[Out]     = Kleisli[IO, Request, Out]
 }
-
-object Handler extends Handler[Any]
