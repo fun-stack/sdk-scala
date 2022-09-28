@@ -22,54 +22,79 @@ object Handler {
 
   def handle(
     endpoints: List[ServerEndpoint[Any, IO]],
-  ): FunctionType = handleF[IO](endpoints, _.unsafeToFuture()(unsafe.IORuntime.global))
+    docInfo: DocInfo = DocInfo.default,
+  ): FunctionType = handleF[IO](endpoints, _.unsafeToFuture()(unsafe.IORuntime.global), docInfo)
 
   def handleFuture(
     endpoints: List[ServerEndpoint[Any, Future]],
-  ): FunctionType = handleF[Future](endpoints, identity)
+    docInfo: DocInfo = DocInfo.default,
+  ): FunctionType = handleF[Future](endpoints, identity, docInfo)
 
   def handleF[F[_]: Sync](
     endpoints: List[ServerEndpoint[Any, F]],
     execute: F[APIGatewayProxyStructuredResultV2] => Future[APIGatewayProxyStructuredResultV2],
-  ): FunctionType = handleFWithContext[F](endpoints, (f, _) => execute(f))
+    docInfo: DocInfo = DocInfo.default,
+  ): FunctionType = handleFWithContext[F](endpoints, (f, _) => execute(f), docInfo)
 
   def handle(
     endpoints: Request => List[ServerEndpoint[Any, IO]],
-  ): FunctionType = handleFCustom[IO](endpoints, (f, _) => f.unsafeToFuture()(unsafe.IORuntime.global))
+  ): FunctionType = handle(endpoints, DocInfo.default)
+
+  def handle(
+    endpoints: Request => List[ServerEndpoint[Any, IO]],
+    docInfo: DocInfo,
+  ): FunctionType = handleFCustom[IO](endpoints, (f, _) => f.unsafeToFuture()(unsafe.IORuntime.global), docInfo)
 
   def handleFuture(
     endpoints: Request => List[ServerEndpoint[Any, Future]],
-  ): FunctionType = handleFCustom[Future](endpoints, (f, _) => f)
+  ): FunctionType = handleFuture(endpoints, DocInfo.default)
+
+  def handleFuture(
+    endpoints: Request => List[ServerEndpoint[Any, Future]],
+    docInfo: DocInfo,
+  ): FunctionType = handleFCustom[Future](endpoints, (f, _) => f, docInfo)
 
   def handleF[F[_]: Sync](
     endpoints: Request => List[ServerEndpoint[Any, F]],
     execute: F[APIGatewayProxyStructuredResultV2] => Future[APIGatewayProxyStructuredResultV2],
-  ): FunctionType = handleFCustom[F](endpoints, (f, _) => execute(f))
+  ): FunctionType = handleF(endpoints, execute, DocInfo.default)
+
+  def handleF[F[_]: Sync](
+    endpoints: Request => List[ServerEndpoint[Any, F]],
+    execute: F[APIGatewayProxyStructuredResultV2] => Future[APIGatewayProxyStructuredResultV2],
+    docInfo: DocInfo,
+  ): FunctionType = handleFCustom[F](endpoints, (f, _) => execute(f), docInfo)
 
   def handleFunc(
     endpoints: List[ServerEndpoint[Any, IOFunc]],
-  ): FunctionType = handleFWithContext[IOFunc](endpoints, (f, ctx) => f(ctx).unsafeToFuture()(unsafe.IORuntime.global))
+    docInfo: DocInfo = DocInfo.default,
+  ): FunctionType = handleFWithContext[IOFunc](endpoints, (f, ctx) => f(ctx).unsafeToFuture()(unsafe.IORuntime.global), docInfo)
 
   def handleKleisli(
     endpoints: List[ServerEndpoint[Any, IOKleisli]],
-  ): FunctionType = handleFWithContext[IOKleisli](endpoints, (f, ctx) => f(ctx).unsafeToFuture()(unsafe.IORuntime.global))
+    docInfo: DocInfo = DocInfo.default,
+  ): FunctionType = handleFWithContext[IOKleisli](endpoints, (f, ctx) => f(ctx).unsafeToFuture()(unsafe.IORuntime.global), docInfo)
 
   def handleFutureKleisli(
     endpoints: List[ServerEndpoint[Any, FutureKleisli]],
-  ): FunctionType = handleFWithContext[FutureKleisli](endpoints, (f, ctx) => f(ctx))
+    docInfo: DocInfo = DocInfo.default,
+  ): FunctionType = handleFWithContext[FutureKleisli](endpoints, (f, ctx) => f(ctx), docInfo)
 
   def handleFutureFunc(
     endpoints: List[ServerEndpoint[Any, FutureFunc]],
-  ): FunctionType = handleFWithContext[FutureFunc](endpoints, (f, ctx) => f(ctx))
+    docInfo: DocInfo = DocInfo.default,
+  ): FunctionType = handleFWithContext[FutureFunc](endpoints, (f, ctx) => f(ctx), docInfo)
 
   def handleFWithContext[F[_]: Sync](
     endpoints: List[ServerEndpoint[Any, F]],
     execute: (F[APIGatewayProxyStructuredResultV2], Request) => Future[APIGatewayProxyStructuredResultV2],
-  ): FunctionType = handleFCustom[F](_ => endpoints, execute)
+    docInfo: DocInfo = DocInfo.default,
+  ): FunctionType = handleFCustom[F](_ => endpoints, execute, docInfo)
 
   def handleFCustom[F[_]: Sync](
     endpointsf: Request => List[ServerEndpoint[Any, F]],
     execute: (F[APIGatewayProxyStructuredResultV2], Request) => Future[APIGatewayProxyStructuredResultV2],
+    docInfo: DocInfo = DocInfo.default,
   ): FunctionType = { (eventAny, context) =>
     // println(js.JSON.stringify(event))
     // println(js.JSON.stringify(context))
@@ -87,7 +112,7 @@ object Handler {
 
     val fullPath = event.requestContext.http.path.split("/").toList.drop(2)
 
-    DocServer.serve(fullPath, endpoints, DocInfo.default) match {
+    DocServer.serve(fullPath, endpoints, docInfo) match {
       case Some(docResult) =>
         js.Promise.resolve[APIGatewayProxyStructuredResultV2](docResult)
 
