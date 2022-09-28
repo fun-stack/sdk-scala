@@ -134,7 +134,6 @@ lazy val lambdaHttpApiTapir = project
         Deps.tapir.catsClient.value ::
         Deps.tapir.lambda.value ::
         Deps.tapir.openApi.value ::
-        Deps.tapir.redoc.value ::
         Deps.apiSpec.circe.value ::
         Nil,
   )

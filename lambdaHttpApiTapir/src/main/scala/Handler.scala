@@ -4,7 +4,7 @@ import cats.data.Kleisli
 import cats.effect.{unsafe, IO, Sync}
 import cats.implicits._
 import funstack.lambda.apigateway
-import funstack.lambda.http.api.tapir.helper.DocServer
+import funstack.lambda.http.api.tapir.helper.{DocInfo, DocServer}
 import net.exoego.facade.aws_lambda._
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.serverless.aws.lambda._
@@ -87,7 +87,7 @@ object Handler {
 
     val fullPath = event.requestContext.http.path.split("/").toList.drop(2)
 
-    DocServer.serve(fullPath, endpoints) match {
+    DocServer.serve(fullPath, endpoints, DocInfo.default) match {
       case Some(docResult) =>
         js.Promise.resolve[APIGatewayProxyStructuredResultV2](docResult)
 
