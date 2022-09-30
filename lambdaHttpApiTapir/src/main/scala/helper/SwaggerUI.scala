@@ -17,10 +17,14 @@ object SwaggerUI {
   <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@${version}/swagger-ui.css" />
   <style>input#client_secret, label[for="client_secret"] { display: none; }</style>
   <script>
-    const appHost = window.location.host.replace(/^api\\./, "");
-    const elem = document.createElement('script');
-    elem.src = window.location.protocol + "//" + appHost + "/app_config.js";
-    document.head.appendChild(elem);
+    if (!window.location.host != "localhost" && !window.location.host.startsWith("localhost:")) {
+      const appHost = window.location.host.replace(/^api\\./, "");
+      const elem = document.createElement('script');
+      elem.src = window.location.protocol + "//" + appHost + "/app_config.js";
+      document.head.appendChild(elem);
+    } else {
+      window.AppConfig = { auth: { clientId: "fun", apiScopes: "user/api" } }; // mock for local-env
+    }
   </script>
 </head>
 <body>
@@ -37,7 +41,7 @@ object SwaggerUI {
       window.ui.initOAuth({
         appName: '${title}',
         clientId: AppConfig.auth.clientId,
-        scopes: "user/api"
+        scopes: AppConfig.auth.apiScopes
       });
     }
   };
