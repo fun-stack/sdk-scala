@@ -29,7 +29,7 @@ object DocServer {
       val html = SwaggerUI.html(docInfo.info.title, "openapi.json")
       Some(result(html, "text/html"))
 
-    case List("oauth2_redirect.html") =>
+    case List("oauth2-redirect.html") =>
       val html = SwaggerUI.oauth2RedirectHtml(docInfo.info.title)
       Some(result(html, "text/html"))
 
