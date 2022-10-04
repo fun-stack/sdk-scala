@@ -4,16 +4,17 @@ import io.circe.syntax._
 import net.exoego.facade.aws_lambda._
 import sttp.apispec.openapi.Info
 import sttp.apispec.openapi.circe._
+import sttp.tapir.{EndpointMetaOps, EndpointInfoOps}
 import sttp.tapir.docs.openapi.{OpenAPIDocsInterpreter, OpenAPIDocsOptions}
 import sttp.tapir.server.ServerEndpoint
 
 import scala.scalajs.js
 
-case class DocInfo(info: Info)
+case class DocInfo(info: Info, filterEndpoints: EndpointInfoOps[_] with EndpointMetaOps => Boolean)
 object DocInfo {
   def default = DocInfo(title = "API", version = "latest")
 
-  def apply(title: String, version: String): DocInfo = DocInfo(Info(title = title, version = version))
+  def apply(title: String, version: String): DocInfo = DocInfo(Info(title = title, version = version), filterEndpoints = _ => true)
 }
 
 object DocServer {
@@ -35,7 +36,7 @@ object DocServer {
 
     case List("openapi.json") =>
       val openapi = OpenAPIDocsInterpreter(OpenAPIDocsOptions.default)
-        .serverEndpointsToOpenAPI[F](endpoints, docInfo.info)
+        .serverEndpointsToOpenAPI[F](endpoints.filter(docInfo.filterEndpoints), docInfo.info)
       val json    = openapi.asJson.spaces2SortKeys
       Some(result(json, "application/json"))
 
