@@ -132,7 +132,10 @@ object Handler {
         val route  = AwsCatsEffectServerInterpreter[F](config).toRoute(endpoints)
 
         val responseSttp: F[AwsJsResponse] = route(AwsJsRequest.toAwsRequest(jsRequest)).map(AwsJsResponse.fromAwsResponse)
-        execute(responseSttp.asInstanceOf[F[APIGatewayProxyStructuredResultV2]], request).toJSPromise
+        execute(responseSttp.asInstanceOf[F[APIGatewayProxyStructuredResultV2]], request).recoverWith { case t: Throwable =>
+          println(s"Error in request: ${t}")
+          Future.failed(t)
+        }.toJSPromise
     }
   }
 }
