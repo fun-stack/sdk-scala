@@ -158,7 +158,7 @@ object Handler {
 
         val responseSttp: F[AwsJsResponse] = route(AwsJsRequest.toAwsRequest(jsRequest)).map(AwsJsResponse.fromAwsResponse)
         execute(responseSttp.asInstanceOf[F[APIGatewayProxyStructuredResultV2]], request).recoverWith { case t: Throwable =>
-          println("Unexpected error in handler: $t")
+          println(s"Unexpected error in handler: $t")
           t.printStackTrace()
           Future.failed(t)
         }.toJSPromise
