@@ -1,6 +1,6 @@
 package funstack.web
 
-import cats.effect.{unsafe, LiftIO}
+import cats.effect.{LiftIO, unsafe}
 import funstack.core.CanSerialize
 
 class Http(http: HttpAppConfig, auth: Option[Auth]) {

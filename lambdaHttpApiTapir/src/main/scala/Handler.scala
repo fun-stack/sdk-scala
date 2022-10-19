@@ -8,14 +8,12 @@ import funstack.lambda.http.api.tapir.helper.{DocInfo, DocServer}
 import net.exoego.facade.aws_lambda._
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.interceptor.log.DefaultServerLog
-import sttp.tapir.server.interceptor.{EndpointHandler, EndpointInterceptor, RequestHandler, RequestInterceptor, Responder}
 import sttp.tapir.serverless.aws.lambda._
 import sttp.tapir.serverless.aws.lambda.js._
 
 import scala.concurrent.Future
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
-import scala.util.Try
 
 object Handler {
   import HandlerInstances._

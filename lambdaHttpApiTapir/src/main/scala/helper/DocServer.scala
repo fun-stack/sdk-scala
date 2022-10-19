@@ -4,9 +4,9 @@ import io.circe.syntax._
 import net.exoego.facade.aws_lambda._
 import sttp.apispec.openapi.Info
 import sttp.apispec.openapi.circe._
-import sttp.tapir.{EndpointMetaOps, EndpointInfoOps}
 import sttp.tapir.docs.openapi.{OpenAPIDocsInterpreter, OpenAPIDocsOptions}
 import sttp.tapir.server.ServerEndpoint
+import sttp.tapir.{EndpointInfoOps, EndpointMetaOps}
 
 import scala.scalajs.js
 

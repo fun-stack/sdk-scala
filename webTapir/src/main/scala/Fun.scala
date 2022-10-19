@@ -1,6 +1,6 @@
 package funstack.web.tapir
 
-import funstack.web.Fun.{authOption, config, MissingModuleException}
+import funstack.web.Fun.{MissingModuleException, authOption, config}
 
 object Fun {
 

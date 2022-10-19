@@ -1,6 +1,6 @@
 package funstack.web
 
-import cats.effect.{unsafe, IO, LiftIO, Sync}
+import cats.effect.{IO, LiftIO, Sync, unsafe}
 import colibri._
 import funstack.core.{CanSerialize, SubscriptionEvent}
 import funstack.web.helper.EventSubscriber

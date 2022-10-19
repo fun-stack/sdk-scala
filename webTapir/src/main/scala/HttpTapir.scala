@@ -1,6 +1,6 @@
 package funstack.web.tapir
 
-import cats.effect.{unsafe, IO}
+import cats.effect.{IO, unsafe}
 import cats.implicits._
 import funstack.web.{Auth, HttpAppConfig}
 import sttp.client3.impl.cats.FetchCatsBackend
