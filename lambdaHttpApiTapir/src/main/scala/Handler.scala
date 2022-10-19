@@ -7,12 +7,15 @@ import funstack.lambda.apigateway
 import funstack.lambda.http.api.tapir.helper.{DocInfo, DocServer}
 import net.exoego.facade.aws_lambda._
 import sttp.tapir.server.ServerEndpoint
+import sttp.tapir.server.interceptor.log.DefaultServerLog
+import sttp.tapir.server.interceptor.{EndpointHandler, EndpointInterceptor, RequestHandler, RequestInterceptor, Responder}
 import sttp.tapir.serverless.aws.lambda._
 import sttp.tapir.serverless.aws.lambda.js._
 
 import scala.concurrent.Future
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
+import scala.util.Try
 
 object Handler {
   import HandlerInstances._
@@ -128,14 +131,35 @@ object Handler {
           isBase64Encoded = event.isBase64Encoded,
         )
 
-        val config = AwsCatsEffectServerOptions.default[F].copy(encodeResponseBody = false)
-        val route  = AwsCatsEffectServerInterpreter[F](config).toRoute(endpoints)
+        val serverLog = DefaultServerLog(
+          doLogWhenReceived = msg => Sync[F].delay(println(msg)),
+          doLogWhenHandled = (msg, errorOpt) =>
+            Sync[F].delay {
+              println(msg)
+              errorOpt.foreach(_.printStackTrace())
+            },
+          doLogAllDecodeFailures = (msg, errorOpt) =>
+            Sync[F].delay {
+              println(msg)
+              errorOpt.foreach(_.printStackTrace())
+            },
+          doLogExceptions = (msg, error) =>
+            Sync[F].delay {
+              println(msg)
+              error.printStackTrace()
+            },
+          noLog = Sync[F].unit,
+        )
+
+        val config = AwsCatsEffectServerOptions
+          .customiseInterceptors[F]
+          .copy(serverLog = Some(serverLog))
+          .options
+
+        val route = AwsCatsEffectServerInterpreter[F](config).toRoute(endpoints)
 
         val responseSttp: F[AwsJsResponse] = route(AwsJsRequest.toAwsRequest(jsRequest)).map(AwsJsResponse.fromAwsResponse)
-        execute(responseSttp.asInstanceOf[F[APIGatewayProxyStructuredResultV2]], request).recoverWith { case t: Throwable =>
-          println(s"Error in request: ${t}")
-          Future.failed(t)
-        }.toJSPromise
+        execute(responseSttp.asInstanceOf[F[APIGatewayProxyStructuredResultV2]], request).toJSPromise
     }
   }
 }
