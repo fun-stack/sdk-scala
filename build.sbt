@@ -59,7 +59,7 @@ lazy val core = project
 lazy val backend = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .in(file("backend"))
-  .dependsOn(core, wsCore)
+  .dependsOn(wsCore)
   .settings(commonSettings, jsSettings)
   .settings(
     name                 := "fun-stack-backend",
@@ -140,7 +140,7 @@ lazy val lambdaHttpApiTapir = project
 
 lazy val lambdaWsEventAuthorizer = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(core, wsCore)
+  .dependsOn(wsCore)
   .in(file("lambdaWsEventAuthorizer"))
   .settings(commonSettings, jsSettings)
   .settings(
@@ -153,34 +153,52 @@ lazy val lambdaWsEventAuthorizer = project
         Nil,
   )
 
-lazy val web = project
+lazy val clientCore = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(core, wsCore)
-  .in(file("web"))
+  .dependsOn(wsCore)
+  .in(file("clientCore"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name                       := "fun-stack-web",
+    name                       := "fun-stack-client-core",
     libraryDependencies       ++=
       Deps.sloth.value ::
         Deps.cats.effect.value ::
         Deps.colibri.core.value ::
         Deps.colibri.jsdom.value ::
         Deps.mycelium.clientJs.value ::
+        Deps.tapir.jsClient.value ::
+        Deps.tapir.catsClient.value ::
         Nil,
     Compile / npmDependencies ++=
       NpmDeps.jwtDecode ::
         Nil,
   )
 
-lazy val webTapir = project
+lazy val clientNode = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(core, web)
-  .in(file("webTapir"))
+  .dependsOn(clientCore)
+  .in(file("clientNode"))
   .settings(commonSettings, jsSettings)
   .settings(
-    name                 := "fun-stack-web-tapir",
-    libraryDependencies ++=
-      Deps.tapir.jsClient.value ::
-        Deps.tapir.catsClient.value ::
+    name                       := "fun-stack-client-node",
+    libraryDependencies       ++=
+      Deps.awsSdkJS.cognitoidentityprovider.value ::
         Nil,
+    Compile / npmDependencies ++=
+      NpmDeps.nodeFetch ::
+        NpmDeps.ws ::
+        Nil,
+  )
+
+lazy val clientWeb = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(clientCore)
+  .in(file("clientWeb"))
+  .settings(commonSettings, jsSettings)
+  .settings(
+    name                       := "fun-stack-client-web",
+    libraryDependencies       ++=
+      Nil,
+    Compile / npmDependencies ++=
+      Nil,
   )

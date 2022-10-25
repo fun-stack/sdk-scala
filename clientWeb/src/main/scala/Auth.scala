@@ -1,73 +1,17 @@
-package funstack.web
+package funstack.client.web
 
-import cats.effect.{IO, Sync, unsafe}
+import cats.effect.{unsafe, IO, Sync}
 import cats.implicits._
 import colibri._
 import colibri.jsdom.EventObservable
-import funstack.web.helper.facades.JwtDecode
+import funstack.client.core.auth._
+import funstack.client.core.helper.facades.JwtDecode
+import funstack.client.core.{AuthAppConfig, WebsiteAppConfig}
 import org.scalajs.dom
 import org.scalajs.dom.window.{localStorage, sessionStorage}
 
 import scala.concurrent.Future
 import scala.scalajs.js
-import scala.scalajs.js.annotation.JSName
-
-@js.native
-trait TokenResponse extends js.Object {
-  def id_token: String      = js.native
-  def refresh_token: String = js.native
-  def access_token: String  = js.native
-  def expires_in: Double    = js.native
-  def token_type: String    = js.native
-}
-object TokenResponse {
-  def apply(
-    id_token: String,
-    refresh_token: String,
-    access_token: String,
-    expires_in: Double,
-    token_type: String,
-  ): TokenResponse = js.Dynamic
-    .literal(
-      id_token = id_token,
-      refresh_token = refresh_token,
-      access_token = access_token,
-      expires_in = expires_in,
-      token_type = token_type,
-    )
-    .asInstanceOf[TokenResponse]
-}
-
-@js.native
-trait UserInfoResponse extends js.Object {
-  def sub: String             = js.native
-  @JSName("cognito:username")
-  def username: String        = js.native
-  def email: String           = js.native
-  def email_verified: Boolean = js.native
-}
-object UserInfoResponse {
-  def apply(
-    sub: String,
-    username: String,
-    email: String,
-    email_verified: Boolean,
-  ): UserInfoResponse = js.Dynamic
-    .literal(
-      sub = sub,
-      email = email,
-      email_verified = email_verified,
-      username = username,
-    )
-    .asInstanceOf[UserInfoResponse]
-}
-
-case class User(
-  info: UserInfoResponse,
-  token: IO[TokenResponse],
-)
-
-case class AuthTokenEndpointError(status: Int) extends Exception(s"Error from endpoint: ${status}")
 
 private sealed trait InitialAuth
 private object InitialAuth {
@@ -76,7 +20,7 @@ private object InitialAuth {
   case class Token(get: IO[TokenResponse]) extends InitialAuth
 }
 
-class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
+class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) extends funstack.client.core.auth.Auth {
 
   import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits.global
 
@@ -85,10 +29,6 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
   private val redirectUrl = dom.window.location.origin.getOrElse(website.url)
 
   private val authRequests = new AuthRequests(auth, redirectUrl)
-
-  val signupUrl = s"${auth.url}/signup?response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
-  val loginUrl  = s"${auth.url}/oauth2/authorize?response_type=code&client_id=${auth.clientId}&redirect_uri=${redirectUrl}"
-  val logoutUrl = s"${auth.url}/logout?client_id=${auth.clientId}&logout_uri=${redirectUrl}%3Flogout"
 
   private object StorageKey {
     val refreshToken = "auth.refresh_token"
@@ -114,7 +54,7 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
     if (shouldRedirect && check) {
       sessionStorage.setItem(StorageKey.redirectFlag, "")
       // needs to be in a timeout, otherwise messes with the history stack
-      dom.window.setTimeout(() => dom.window.location.href = loginUrl, 0)
+      dom.window.setTimeout(() => dom.window.location.href = authRequests.loginUrl, 0)
       true
     }
     else false
@@ -184,14 +124,18 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
 
   val isRedirecting: Boolean = initialAuthentication == InitialAuth.Redirect
 
+  def loginUrl  = authRequests.loginUrl
+  def signupUrl = authRequests.signupUrl
+  def logoutUrl = authRequests.logoutUrl
+
   val signup: IO[Unit]             = signupF[IO]
-  def signupF[F[_]: Sync]: F[Unit] = Sync[F].delay(dom.window.location.href = signupUrl)
+  def signupF[F[_]: Sync]: F[Unit] = Sync[F].delay(dom.window.location.href = authRequests.signupUrl)
 
   val login: IO[Unit]             = loginF[IO]
-  def loginF[F[_]: Sync]: F[Unit] = Sync[F].delay(dom.window.location.href = loginUrl)
+  def loginF[F[_]: Sync]: F[Unit] = Sync[F].delay(dom.window.location.href = authRequests.loginUrl)
 
   val logout: IO[Unit]             = logoutF[IO]
-  def logoutF[F[_]: Sync]: F[Unit] = Sync[F].delay(dom.window.location.href = logoutUrl)
+  def logoutF[F[_]: Sync]: F[Unit] = Sync[F].delay(dom.window.location.href = authRequests.logoutUrl)
 
   def customLogin(tokenResponse: TokenResponse): IO[Unit]             = customLoginF[IO](tokenResponse)
   def customLoginF[F[_]: Sync](tokenResponse: TokenResponse): F[Unit] = customAuthentication.onNextF[F](Some(tokenResponse))
@@ -246,45 +190,4 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) {
       cleanupLocalStorage()
       None
     }
-}
-
-private class AuthRequests(auth: AuthAppConfig, redirectUrl: String) {
-  import org.scalajs.dom.{Fetch, HttpMethod, RequestInit, Response}
-
-  private def handleResponse(response: Response): IO[js.Any] =
-    if (response.status == 200) IO.fromFuture(IO(response.json().toFuture))
-    else IO.raiseError(AuthTokenEndpointError(response.status))
-
-  def getTokenFromAuthCode(authCode: String): IO[TokenResponse] =
-    IO
-      .fromFuture(IO {
-        Fetch
-          .fetch(
-            s"${auth.url}/oauth2/token",
-            new RequestInit {
-              method = HttpMethod.POST
-              body = s"grant_type=authorization_code&client_id=${auth.clientId}&code=${authCode}&redirect_uri=${redirectUrl}"
-              headers = js.Array(js.Array("Content-Type", "application/x-www-form-urlencoded"))
-            },
-          )
-          .toFuture
-      })
-      .flatMap(handleResponse)
-      .flatMap(r => IO(r.asInstanceOf[TokenResponse]))
-
-  def getTokenFromRefreshToken(refreshToken: String): IO[TokenResponse] = IO
-    .fromFuture(IO {
-      Fetch
-        .fetch(
-          s"${auth.url}/oauth2/token",
-          new RequestInit {
-            method = HttpMethod.POST
-            body = s"grant_type=refresh_token&client_id=${auth.clientId}&refresh_token=${refreshToken}"
-            headers = js.Array(js.Array("Content-Type", "application/x-www-form-urlencoded"))
-          },
-        )
-        .toFuture
-    })
-    .flatMap(handleResponse)
-    .flatMap(r => IO(js.Object.assign(js.Dynamic.literal(refresh_token = refreshToken), r.asInstanceOf[js.Object]).asInstanceOf[TokenResponse]))
 }

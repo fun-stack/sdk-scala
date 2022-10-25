@@ -1,4 +1,4 @@
-package funstack.web.helper
+package funstack.client.core.helper
 
 import colibri._
 import funstack.core.SubscriptionEvent

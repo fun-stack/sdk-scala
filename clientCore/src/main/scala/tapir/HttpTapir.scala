@@ -1,8 +1,9 @@
-package funstack.web.tapir
+package funstack.client.core.tapir
 
-import cats.effect.{IO, unsafe}
+import cats.effect.{unsafe, IO}
 import cats.implicits._
-import funstack.web.{Auth, HttpAppConfig}
+import funstack.client.core.HttpAppConfig
+import funstack.client.core.auth.Auth
 import sttp.client3.impl.cats.FetchCatsBackend
 import sttp.model.Uri
 import sttp.tapir.PublicEndpoint

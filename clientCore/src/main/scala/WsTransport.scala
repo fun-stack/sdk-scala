@@ -1,9 +1,9 @@
-package funstack.web
+package funstack.client.core
 
 import cats.effect.IO
 import colibri.Observable
+import funstack.client.core.helper.EventSubscriber
 import funstack.core.CanSerialize
-import funstack.web.helper.EventSubscriber
 import mycelium.core.client.SendType
 import sloth.{Request, RequestTransport}
 

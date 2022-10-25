@@ -1,7 +1,8 @@
-package funstack.web
+package funstack.client.core
 
 import cats.effect.IO
 import cats.implicits._
+import funstack.client.core.auth.Auth
 import funstack.core.CanSerialize
 import org.scalajs.dom.{Fetch, HttpMethod, RequestInit}
 import sloth.{Request, RequestTransport}
@@ -29,11 +30,11 @@ private object HttpTransport {
                              js.Array(js.Array("Authorization", s"${token.token_type} ${token.access_token}"))
                            }
 
-          result <- IO.fromFuture(IO {
-                      Fetch.fetch(url, new RequestInit { method = HttpMethod.POST; body = requestBody; headers = requestHeaders }).toFuture
+          result <- IO.fromThenable(IO {
+                      Fetch.fetch(url, new RequestInit { method = HttpMethod.POST; body = requestBody; headers = requestHeaders })
                     })
 
-          text <- IO.fromFuture(IO(result.text().toFuture))
+          text <- IO.fromThenable(IO(result.text()))
 
           _ <- IO.whenA(result.status != 200)(IO.raiseError(HttpResponseError(s"Status ${result.status}: $text")))
 

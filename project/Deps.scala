@@ -65,4 +65,6 @@ object NpmDeps {
   val awsSdkVersion = "2.798.0"
   val awsSdk        = "aws-sdk"    -> awsSdkVersion
   val jwtDecode     = "jwt-decode" -> "3.1.2"
+  val nodeFetch     = "node-fetch" -> "2.6.7"
+  val ws            = "ws"         -> "8.10.0"
 }
