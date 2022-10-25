@@ -1,9 +1,10 @@
-package funstack.web
+package funstack.client.core
 
-import cats.effect.{IO, LiftIO, Sync, unsafe}
+import cats.effect.{unsafe, IO, LiftIO, Sync}
 import colibri._
+import funstack.client.core.auth.{Auth, User}
+import funstack.client.core.helper.EventSubscriber
 import funstack.core.{CanSerialize, SubscriptionEvent}
-import funstack.web.helper.EventSubscriber
 import funstack.ws.core.{ClientMessageSerdes, ServerMessageSerdes}
 import mycelium.core.client.{WebsocketClient, WebsocketClientConfig}
 import mycelium.js.client.JsWebsocketConnection
@@ -20,11 +21,13 @@ class Ws(ws: WsAppConfig, auth: Option[Auth]) {
 
   private val eventSubscriber = new EventSubscriber(x => wsClient.foreach(_.rawSend(x)))
 
-  val start: IO[Unit] = startF[IO]
+  val start: IO[Cancelable] = startF[IO]
 
-  def startF[F[_]: Sync]: F[Unit] = Sync[F].delay {
+  def startF[F[_]: Sync]: F[Cancelable] = Sync[F].delay {
     wsClientConnection.foreach(_._1.unsafeCancel())
-    wsClientConnection = Some(createWsClient())
+    val (cancelable, client) = createWsClient()
+    wsClientConnection = Some((cancelable, client))
+    cancelable
   }
 
   def transport[T: CanSerialize] = WsTransport[T]((a, b, c, d) =>

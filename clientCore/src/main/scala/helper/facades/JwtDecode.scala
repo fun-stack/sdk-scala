@@ -1,4 +1,4 @@
-package funstack.web.helper.facades
+package funstack.client.core.helper.facades
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.{JSImport, JSName}

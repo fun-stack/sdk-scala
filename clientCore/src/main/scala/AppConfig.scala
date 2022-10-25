@@ -1,4 +1,4 @@
-package funstack.web
+package funstack.client.core
 
 import scala.scalajs.js
 
