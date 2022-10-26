@@ -17,11 +17,11 @@ See local development module for mocking the AWS infrastructure locally:
 
 Get latest release:
 ```scala
-libraryDependencies += "com.github.fun-stack" %%% "fun-stack-web" % "0.5.0"
-libraryDependencies += "com.github.fun-stack" %%% "fun-stack-web-tapir" % "0.5.0"
-libraryDependencies += "com.github.fun-stack" %%% "fun-stack-lambda-http-api-tapir" % "0.5.0"
-libraryDependencies += "com.github.fun-stack" %%% "fun-stack-lambda-http-rpc" % "0.5.0"
-libraryDependencies += "com.github.fun-stack" %%% "fun-stack-lambda-ws-rpc" % "0.5.0"
-libraryDependencies += "com.github.fun-stack" %%% "fun-stack-lambda-ws-event-authorizer" % "0.5.0"
-libraryDependencies += "com.github.fun-stack" %%% "fun-stack-backend" % "0.5.0"
+libraryDependencies += "com.github.fun-stack" %%% "fun-stack-client-web" % "0.9.0"
+libraryDependencies += "com.github.fun-stack" %%% "fun-stack-client-node" % "0.9.0"
+libraryDependencies += "com.github.fun-stack" %%% "fun-stack-lambda-http-api-tapir" % "0.9.0"
+libraryDependencies += "com.github.fun-stack" %%% "fun-stack-lambda-http-rpc" % "0.9.0"
+libraryDependencies += "com.github.fun-stack" %%% "fun-stack-lambda-ws-rpc" % "0.9.0"
+libraryDependencies += "com.github.fun-stack" %%% "fun-stack-lambda-ws-event-authorizer" % "0.9.0"
+libraryDependencies += "com.github.fun-stack" %%% "fun-stack-backend" % "0.9.0"
 ```
