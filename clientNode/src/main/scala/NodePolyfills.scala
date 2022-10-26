@@ -32,18 +32,25 @@ object NodePolyfills {
   @nowarn
   val ws: js.Dynamic = js.native
 
-  def init(): Unit = {
+  private var isInitialized = false
+
+  def init(): Unit = if (!isInitialized) {
     val g = scalajs.js.Dynamic.global.globalThis
 
-    if (!g.asInstanceOf[js.Object].hasOwnProperty("fetch")) {
+    // We are overwriting existing fetch implementations, because node 18 comes
+    // with node-fetch shipped as an experimental feature. Using it, will emit
+    // a warning, that we do not want. Therefore, we always use our polyfill.
+    // if (!g.asInstanceOf[js.Object].hasOwnProperty("fetch")) {
       g.fetch = fetch
       g.Headers = Headers
       g.Request = Request
       g.Response = Response
-    }
+    // }
 
-    if (!g.asInstanceOf[js.Object].hasOwnProperty("WebSocket")) {
+    // if (!g.asInstanceOf[js.Object].hasOwnProperty("WebSocket")) {
       g.WebSocket = ws
-    }
+    // }
+
+    isInitialized = true
   }
 }
