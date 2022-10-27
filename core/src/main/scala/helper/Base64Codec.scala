@@ -8,17 +8,17 @@ private object NativeCodec {
 
   @js.native
   trait BufferFactory extends js.Any {
-    def from(@annotation.nowarn s: String, @annotation.nowarn tpe: String): Buffer = js.native
+    def from(s: String, tpe: String): Buffer = js.native
   }
 
   @js.native
   trait Buffer extends js.Any {
-    def toString(@annotation.nowarn s: String): String = js.native
+    def toString(s: String): String = js.native
   }
 
   @js.native
   trait StringFactory extends js.Any {
-    def fromCharCode(@annotation.nowarn code: Int): String = js.native
+    def fromCharCode(code: Int): String = js.native
   }
 
   def buffer = g.Buffer.asInstanceOf[BufferFactory]
