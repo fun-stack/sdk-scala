@@ -187,6 +187,7 @@ lazy val clientNode = project
     Compile / npmDependencies ++=
       NpmDeps.nodeFetch ::
         NpmDeps.ws ::
+        NpmDeps.open ::
         Nil,
   )
 

@@ -9,7 +9,8 @@ import funstack.client.core.AuthAppConfig
 import funstack.client.core.helper.facades.JwtDecode
 import funstack.client.core.auth._
 import facade.amazonaws.services.cognitoidentityprovider._
-import funstack.client.node.helper.facades.{FS, OS, Path}
+import funstack.client.node.helper.CallbackHttpServer
+import funstack.client.node.helper.facades.{FS, OS, Open, Path}
 
 import scala.concurrent.Future
 import scala.scalajs.js
@@ -24,7 +25,8 @@ private object AuthMethod {
 
 private case class TokenCredentials(time: Double, token: TokenResponse)
 
-class Auth(val auth: AuthAppConfig, redirectUrl: String, awsRegion: String) extends funstack.client.core.auth.Auth {
+class Auth(val auth: AuthAppConfig, redirectPort: Int, awsRegion: String) extends funstack.client.core.auth.Auth {
+  private val redirectUrl = s"http://localhost:${redirectPort}"
 
   private object paths {
 
@@ -43,6 +45,10 @@ class Auth(val auth: AuthAppConfig, redirectUrl: String, awsRegion: String) exte
 
   private val authSubject = Subject.publish[AuthMethod]()
 
+  def loginUrl: String  = authRequests.loginUrl
+  def signupUrl: String = authRequests.signupUrl
+  def logoutUrl: String = authRequests.logoutUrl
+
   def loginWeb: IO[Unit]                                             = authSubject.onNextIO(AuthMethod.Web)
   def loginCredentials(username: String, password: String): IO[Unit] = authSubject.onNextIO(AuthMethod.Credentials(username, password))
   def logout: IO[Unit]                                               = authSubject.onNextIO(AuthMethod.Empty)
@@ -53,7 +59,18 @@ class Auth(val auth: AuthAppConfig, redirectUrl: String, awsRegion: String) exte
       .switchMap {
         case AuthMethod.Empty                           => Observable.pure(None)
         case AuthMethod.Token(tokenCredentials)         => Observable.pure(Some(tokenCredentials))
-        case AuthMethod.Web                             => ???
+        case AuthMethod.Web                             =>
+          Observable
+            .fromEffect(
+              IO.println(loginUrl) *>
+                IO(Open(loginUrl)) *>
+                CallbackHttpServer.authCode(redirectPort).flatMap { authCode =>
+                  authRequests.getTokenFromAuthCode(authCode)
+                },
+            )
+            .map { result =>
+              Some(TokenCredentials(js.Date.now(), result))
+            }
         case AuthMethod.Credentials(username, password) =>
           Observable
             .fromEffect(loginToCognito(username, password))

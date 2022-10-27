@@ -67,4 +67,5 @@ object NpmDeps {
   val jwtDecode     = "jwt-decode" -> "3.1.2"
   val nodeFetch     = "node-fetch" -> "2.6.7"
   val ws            = "ws"         -> "8.10.0"
+  val open          = "open"       -> "8.4.0"
 }
