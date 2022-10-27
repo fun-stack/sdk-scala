@@ -16,22 +16,21 @@ class AuthRequests(auth: AuthAppConfig, redirectUrl: String) {
     if (response.status == 200) IO.fromFuture(IO(response.json().toFuture))
     else IO.raiseError(AuthTokenEndpointError(response.status))
 
-  def getTokenFromAuthCode(authCode: String): IO[TokenResponse] =
-    IO
-      .fromFuture(IO {
-        Fetch
-          .fetch(
-            s"${auth.url}/oauth2/token",
-            new RequestInit {
-              method = HttpMethod.POST
-              body = s"grant_type=authorization_code&client_id=${auth.clientId}&code=${authCode}&redirect_uri=${redirectUrl}"
-              headers = js.Array(js.Array("Content-Type", "application/x-www-form-urlencoded"))
-            },
-          )
-          .toFuture
-      })
-      .flatMap(handleResponse)
-      .flatMap(r => IO(r.asInstanceOf[TokenResponse]))
+  def getTokenFromAuthCode(authCode: String): IO[TokenResponse] = IO
+    .fromFuture(IO {
+      Fetch
+        .fetch(
+          s"${auth.url}/oauth2/token",
+          new RequestInit {
+            method = HttpMethod.POST
+            body = s"grant_type=authorization_code&client_id=${auth.clientId}&code=${authCode}&redirect_uri=${redirectUrl}"
+            headers = js.Array(js.Array("Content-Type", "application/x-www-form-urlencoded"))
+          },
+        )
+        .toFuture
+    })
+    .flatMap(handleResponse)
+    .flatMap(r => IO(r.asInstanceOf[TokenResponse]))
 
   def getTokenFromRefreshToken(refreshToken: String): IO[TokenResponse] = IO
     .fromFuture(IO {

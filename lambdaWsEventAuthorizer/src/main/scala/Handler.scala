@@ -1,7 +1,7 @@
 package funstack.lambda.ws.eventauthorizer
 
 import cats.data.Kleisli
-import cats.effect.{IO, unsafe}
+import cats.effect.{unsafe, IO}
 import facade.amazonaws.services.sns._
 import funstack.core.{CanSerialize, SubscriptionEvent}
 import funstack.ws.core.ServerMessageSerdes
