@@ -8,7 +8,9 @@ import scala.scalajs.js
 import scala.util.Try
 
 object ServerMessageSerdes {
-  case class UnknownMessage(msg: String) extends Exception
+  case class UnknownMessage(msg: String) extends Exception(s"Unknown server message: ${msg}") {
+    override def toString(): String = getMessage
+  }
 
   object serializer {
     val pong: String                              = js.JSON.stringify(js.Array[js.Any](0))
@@ -43,7 +45,9 @@ object ServerMessageSerdes {
 }
 
 object ClientMessageSerdes {
-  case class UnknownMessage(msg: String) extends Exception
+  case class UnknownMessage(msg: String) extends Exception(s"Unknown client message: ${msg}") {
+    override def toString(): String = getMessage
+  }
 
   def serialize[T: CanSerialize](msg: ClientMessage[T]): String = msg match {
     case Ping                              => js.JSON.stringify(js.Array[js.Any](0))

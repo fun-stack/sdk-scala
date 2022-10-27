@@ -11,7 +11,9 @@ import scala.scalajs.js
 
 private object HttpTransport {
 
-  case class HttpResponseError(msg: String) extends Exception(msg)
+  case class HttpResponseError(msg: String) extends Exception(s"Http response error: ${msg}") {
+    override def toString(): String = getMessage
+  }
 
   def apply[T: CanSerialize](http: HttpAppConfig, auth: Option[Auth]): RequestTransport[T, IO] =
     new RequestTransport[T, IO] {

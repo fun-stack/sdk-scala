@@ -60,4 +60,6 @@ case class User(
   token: IO[TokenResponse],
 )
 
-case class AuthTokenEndpointError(status: Int) extends Exception(s"Error from endpoint: ${status}")
+case class AuthTokenEndpointError(status: Int) extends Exception(s"Error from auth endpoint: ${status}") {
+  override def toString(): String = getMessage
+}
