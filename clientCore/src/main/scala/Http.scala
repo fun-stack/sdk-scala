@@ -1,6 +1,6 @@
 package funstack.client.core
 
-import cats.effect.{unsafe, LiftIO}
+import cats.effect.{LiftIO, unsafe}
 import funstack.client.core.auth.Auth
 import funstack.core.CanSerialize
 

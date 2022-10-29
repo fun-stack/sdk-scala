@@ -1,6 +1,6 @@
 package funstack.client.core.tapir
 
-import cats.effect.{unsafe, IO}
+import cats.effect.{IO, unsafe}
 import cats.implicits._
 import funstack.client.core.HttpAppConfig
 import funstack.client.core.auth.Auth

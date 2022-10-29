@@ -1,14 +1,13 @@
 package funstack.client.node
 
+import cats.effect.{IO, unsafe}
 import cats.implicits._
-import cats.effect.IO
-import cats.effect.unsafe
 import colibri._
 import facade.amazonaws.AWSConfig
-import funstack.client.core.AuthAppConfig
-import funstack.client.core.helper.facades.JwtDecode
-import funstack.client.core.auth._
 import facade.amazonaws.services.cognitoidentityprovider._
+import funstack.client.core.AuthAppConfig
+import funstack.client.core.auth._
+import funstack.client.core.helper.facades.JwtDecode
 import funstack.client.node.helper.CallbackHttpServer
 import funstack.client.node.helper.facades.{FS, OS, Open, Path}
 

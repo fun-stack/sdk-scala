@@ -6,7 +6,7 @@ import scala.scalajs.js.annotation.JSImport
 @js.native
 @JSImport("url", JSImport.Namespace)
 object Url extends js.Object {
-  def parse(url: String, parseQueryString: Boolean = js.native): ParsedUrl = js.native
+  def parse(url: String, @annotation.nowarn parseQueryString: Boolean = js.native): ParsedUrl = js.native
 }
 
 @js.native

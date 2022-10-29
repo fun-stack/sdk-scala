@@ -7,5 +7,5 @@ import scala.scalajs.js.annotation.{JSImport, JSName}
 @JSImport("jwt-decode", JSImport.Namespace)
 object JwtDecode extends js.Object {
   @JSName("default")
-  def apply(@annotation.nowarn token: String): js.Object = js.native
+  def apply(token: String): js.Object = js.native
 }

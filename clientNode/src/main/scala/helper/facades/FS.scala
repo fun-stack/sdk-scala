@@ -1,7 +1,7 @@
 package funstack.client.node.helper.facades
 
 import scala.scalajs.js
-import scala.scalajs.js.annotation.{JSImport, JSName}
+import scala.scalajs.js.annotation.JSImport
 
 @js.native
 @JSImport("fs", JSImport.Namespace)

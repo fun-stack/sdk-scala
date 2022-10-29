@@ -11,9 +11,9 @@ object Http extends js.Object {
 
 @js.native
 trait HttpServer extends js.Object {
-  def listen(port: Int): Unit                                                         = js.native
-  def close(): Unit                                                                   = js.native
-  def on(tpe: String, requestListener: js.Function2[HttpRequest, HttpResponse, Unit]) = js.native
+  def listen(port: Int): Unit                                                               = js.native
+  def close(): Unit                                                                         = js.native
+  def on(tpe: String, requestListener: js.Function2[HttpRequest, HttpResponse, Unit]): Unit = js.native
 }
 
 @js.native

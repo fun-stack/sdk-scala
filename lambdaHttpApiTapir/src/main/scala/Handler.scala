@@ -1,7 +1,7 @@
 package funstack.lambda.http.api.tapir
 
 import cats.data.Kleisli
-import cats.effect.{unsafe, IO, Sync}
+import cats.effect.{IO, Sync, unsafe}
 import cats.implicits._
 import funstack.lambda.apigateway
 import funstack.lambda.http.api.tapir.helper.{DocInfo, DocServer}
