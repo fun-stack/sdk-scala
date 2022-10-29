@@ -1,6 +1,6 @@
 package funstack.lambda.ws.rpc
 
-import cats.effect.{unsafe, IO}
+import cats.effect.{IO, unsafe}
 import funstack.core.{CanSerialize, SubscriptionEvent}
 import funstack.lambda.apigateway
 import funstack.lambda.apigateway.helper.facades._
