@@ -1,6 +1,6 @@
 package funstack.client.node
 
-import cats.effect.{IO, unsafe}
+import cats.effect.{unsafe, IO}
 import cats.implicits._
 import colibri._
 import facade.amazonaws.AWSConfig

@@ -1,6 +1,6 @@
 package funstack.lambda.http.rpc
 
-import cats.effect.{IO, unsafe}
+import cats.effect.{unsafe, IO}
 import funstack.core.CanSerialize
 import funstack.lambda.apigateway
 import net.exoego.facade.aws_lambda._

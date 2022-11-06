@@ -1,6 +1,6 @@
 package funstack.client.web
 
-import cats.effect.{IO, Sync, unsafe}
+import cats.effect.{unsafe, IO, Sync}
 import cats.implicits._
 import colibri._
 import colibri.jsdom.EventObservable
