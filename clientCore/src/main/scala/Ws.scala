@@ -1,6 +1,6 @@
 package funstack.client.core
 
-import cats.effect.{IO, LiftIO, Sync, unsafe}
+import cats.effect.{unsafe, IO, LiftIO, Sync}
 import colibri._
 import funstack.client.core.auth.{Auth, User}
 import funstack.client.core.helper.EventSubscriber
