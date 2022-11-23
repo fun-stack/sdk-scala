@@ -14,7 +14,7 @@ object Deps {
 
   // frp
   val colibri = new {
-    val version = "0.7.1"
+    val version = "0.7.7"
     val core    = s("com.github.cornerman" %%% "colibri" % version)
     val jsdom   = s("com.github.cornerman" %%% "colibri-jsdom" % version)
   }
@@ -35,12 +35,12 @@ object Deps {
 
   // sttp
   val apiSpec = new {
-    val version = "0.2.1"
+    val version = "0.3.1"
     val circe   = s("com.softwaremill.sttp.apispec" %%% "openapi-circe" % version)
   }
 
   val tapir = new {
-    val version    = "1.0.4"
+    val version    = "1.2.2"
     val core       = s("com.softwaremill.sttp.tapir" %%% "tapir-core" % version)
     val lambda     = s("com.softwaremill.sttp.tapir" %%% "tapir-aws-lambda" % version)
     val circe      = s("com.softwaremill.sttp.tapir" %%% "tapir-json-circe" % version)
