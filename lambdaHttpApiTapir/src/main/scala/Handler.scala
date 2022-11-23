@@ -153,6 +153,7 @@ object Handler {
           .customiseInterceptors[F]
           .copy(serverLog = Some(serverLog))
           .options
+          .copy(encodeResponseBody = false)
 
         val route = AwsCatsEffectServerInterpreter[F](config).toRoute(endpoints)
 
