@@ -9,7 +9,7 @@ object Deps {
 
   // core libraries
   val cats = new {
-    val effect = s("org.typelevel" %%% "cats-effect" % "3.4.1")
+    val effect = s("org.typelevel" %%% "cats-effect" % "3.4.2")
   }
 
   // frp
