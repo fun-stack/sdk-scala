@@ -194,7 +194,7 @@ private object HandlerInstances {
       Sync[IO].onCancel(IO.fromFuture(IO(fa)), IO.fromFuture(IO(fin))).unsafeToFuture()(unsafe.IORuntime.global)
     def rootCancelScope: kernel.CancelScope                                     = Sync[IO].rootCancelScope
     def suspend[A](hint: kernel.Sync.Type)(thunk: => A): Future[A]              = Future(thunk)
-    def uncancelable[A](body: kernel.Poll[Future] => (Future[A])): Future[A]    = Sync[IO]
+    def uncancelable[A](body: kernel.Poll[Future] => Future[A]): Future[A]      = Sync[IO]
       .uncancelable(poll =>
         IO.fromFuture(
           IO(
