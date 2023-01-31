@@ -4,6 +4,7 @@ import cats.data.Kleisli
 import cats.effect.{unsafe, IO, Sync}
 import cats.implicits._
 import funstack.lambda.apigateway
+import funstack.lambda.apigateway.helper.facades.APIGatewayAuthorizer
 import funstack.lambda.http.api.tapir.helper.{DocInfo, DocServer}
 import net.exoego.facade.aws_lambda._
 import sttp.tapir.server.ServerEndpoint
@@ -102,11 +103,12 @@ object Handler {
 
     val event     = eventAny.asInstanceOf[APIGatewayProxyEventV2]
     val auth      = event.requestContext.authorizer.toOption.flatMap { auth =>
-      val authDict = auth.asInstanceOf[js.Dictionary[js.Dictionary[String]]]
+      val authDict = auth.asInstanceOf[js.Dictionary[APIGatewayAuthorizer]]
       for {
         claims <- authDict.get("lambda")
-        sub    <- claims.get("sub")
-      } yield apigateway.AuthInfo(sub = sub)
+        sub    <- claims.sub.toOption
+        groups = claims.cognitoGroups.toOption.toSet.flatten
+      } yield apigateway.AuthInfo(sub = sub, groups = groups)
     }
     val request   = Request(event, context, auth)
     val endpoints = endpointsf(request)

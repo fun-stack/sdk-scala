@@ -3,6 +3,7 @@ package funstack.lambda.http.rpc
 import cats.effect.{unsafe, IO}
 import funstack.core.CanSerialize
 import funstack.lambda.apigateway
+import funstack.lambda.apigateway.helper.facades.APIGatewayAuthorizer
 import net.exoego.facade.aws_lambda._
 import sloth._
 
@@ -71,11 +72,12 @@ object Handler {
 
     val event = eventAny.asInstanceOf[APIGatewayProxyEventV2]
     val auth  = event.requestContext.authorizer.toOption.flatMap { auth =>
-      val authDict = auth.asInstanceOf[js.Dictionary[js.Dictionary[String]]]
+      val authDict = auth.asInstanceOf[js.Dictionary[APIGatewayAuthorizer]]
       for {
         claims <- authDict.get("lambda")
-        sub    <- claims.get("sub")
-      } yield apigateway.AuthInfo(sub = sub)
+        sub    <- claims.sub.toOption
+        groups = claims.cognitoGroups.toOption.toSet.flatten
+      } yield apigateway.AuthInfo(sub = sub, groups = groups)
     }
 
     val request = Request(event, context, auth)

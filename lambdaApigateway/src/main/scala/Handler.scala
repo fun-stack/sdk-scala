@@ -7,7 +7,7 @@ import net.exoego.facade.aws_lambda._
 import scala.concurrent.Future
 import scala.scalajs.js
 
-case class AuthInfo(sub: String)
+case class AuthInfo(sub: String, groups: Set[String])
 case class Request(event: js.Any, context: Context, auth: Option[AuthInfo])
 
 object Handler {

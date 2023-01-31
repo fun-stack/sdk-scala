@@ -75,8 +75,9 @@ object Handler {
     val event   = eventAny.asInstanceOf[APIGatewayWsEvent]
     val auth    = event.requestContext.authorizer.toOption.flatMap { claims =>
       for {
-        sub <- claims.get("sub")
-      } yield apigateway.AuthInfo(sub = sub)
+        sub <- claims.sub.toOption
+        groups = claims.cognitoGroups.toOption.toSet.flatten
+      } yield apigateway.AuthInfo(sub = sub, groups = groups)
     }
     val request = Request(event, context, auth)
     val router  = routerf(request)
