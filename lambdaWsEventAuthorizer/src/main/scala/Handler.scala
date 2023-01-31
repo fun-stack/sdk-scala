@@ -94,9 +94,9 @@ object Handler {
           sendConnection(connectionId, data)
           Future.successful(())
 
-      case _ =>
+      case (None, None) =>
         (connectionId, _) =>
-          println(s"Would send event to $connectionId")
+          println(s"No event system configured. Would send event to $connectionId")
           Future.successful(())
     }
 
