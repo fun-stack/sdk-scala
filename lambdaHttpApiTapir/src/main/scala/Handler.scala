@@ -107,7 +107,7 @@ object Handler {
       for {
         claims <- authDict.get("lambda")
         sub    <- claims.sub.toOption
-        groups = claims.cognitoGroups.toOption.toSet.flatten
+        groups  = claims.cognitoGroups.toOption.toSet.flatten
       } yield apigateway.AuthInfo(sub = sub, groups = groups)
     }
     val request   = Request(event, context, auth)

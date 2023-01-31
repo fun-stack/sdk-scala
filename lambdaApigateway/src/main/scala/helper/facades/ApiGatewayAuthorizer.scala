@@ -5,7 +5,7 @@ import scala.scalajs.js.annotation.JSName
 
 @js.native
 trait APIGatewayAuthorizer extends js.Object {
-  def sub: js.UndefOr[String] = js.native
+  def sub: js.UndefOr[String]                     = js.native
   @JSName("cognito:groups")
-  def cognitoGroups: js.UndefOr[js.Array[String]]                                  = js.native
+  def cognitoGroups: js.UndefOr[js.Array[String]] = js.native
 }

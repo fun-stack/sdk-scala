@@ -75,7 +75,7 @@ object Handler {
     val event   = eventAny.asInstanceOf[APIGatewayWsEvent]
     val auth    = event.requestContext.authorizer.toOption.flatMap { claims =>
       for {
-        sub <- claims.sub.toOption
+        sub   <- claims.sub.toOption
         groups = claims.cognitoGroups.toOption.toSet.flatten
       } yield apigateway.AuthInfo(sub = sub, groups = groups)
     }
