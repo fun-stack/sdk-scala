@@ -33,16 +33,19 @@ object TokenResponse {
 
 @js.native
 trait UserInfoResponse extends js.Object {
-  def sub: String             = js.native
+  def sub: String                          = js.native
   @JSName("cognito:username")
-  def username: String        = js.native
-  def email: String           = js.native
-  def email_verified: Boolean = js.native
+  def username: String                     = js.native
+  @JSName("cognito:groups")
+  def groups: js.UndefOr[js.Array[String]] = js.native
+  def email: String                        = js.native
+  def email_verified: Boolean              = js.native
 }
 object UserInfoResponse {
   def apply(
     sub: String,
     username: String,
+    groups: js.UndefOr[js.Array[String]],
     email: String,
     email_verified: Boolean,
   ): UserInfoResponse = js.Dynamic
@@ -51,6 +54,7 @@ object UserInfoResponse {
       email = email,
       email_verified = email_verified,
       username = username,
+      groups = groups,
     )
     .asInstanceOf[UserInfoResponse]
 }
