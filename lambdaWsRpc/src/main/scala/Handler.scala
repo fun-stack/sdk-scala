@@ -76,7 +76,7 @@ object Handler {
     val auth    = event.requestContext.authorizer.toOption.flatMap { claims =>
       for {
         sub   <- claims.sub.toOption
-        groups = claims.cognitoGroups.toOption.toSet.flatten
+        groups = claims.cognitoGroups
       } yield apigateway.AuthInfo(sub = sub, groups = groups)
     }
     val request = Request(event, context, auth)
