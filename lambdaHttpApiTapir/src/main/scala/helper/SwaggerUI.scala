@@ -41,7 +41,7 @@ object SwaggerUI {
       window.ui.initOAuth({
         appName: '${title}',
         clientId: AppConfig.auth.clientId,
-        scopes: AppConfig.auth.apiScopes
+        scopes: AppConfig.auth.apiScopes + " openid"
       });
     }
   };
