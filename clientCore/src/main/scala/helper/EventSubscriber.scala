@@ -18,7 +18,7 @@ final class EventSubscriber(send: String => Unit) extends IncidentHandler[Subscr
     send(subscribePayload(subscriptionKey))
 
   private def doUnsubscribe(subscriptionKey: String): Unit = {
-    subscriptionByKey.remove(subscriptionKey)
+    subscriptionByKey.remove(subscriptionKey): Unit
     send(unsubscribePayload(subscriptionKey))
   }
 

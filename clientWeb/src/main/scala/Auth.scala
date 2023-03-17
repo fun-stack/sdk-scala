@@ -54,7 +54,7 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) extends funstack.
     if (shouldRedirect && check) {
       sessionStorage.setItem(StorageKey.redirectFlag, "")
       // needs to be in a timeout, otherwise messes with the history stack
-      dom.window.setTimeout(() => dom.window.location.href = authRequests.loginUrl, 0)
+      dom.window.setTimeout(() => dom.window.location.href = authRequests.loginUrl, 0): Unit
       true
     }
     else false
