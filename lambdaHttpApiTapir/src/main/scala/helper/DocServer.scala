@@ -2,7 +2,8 @@ package funstack.lambda.http.api.tapir.helper
 
 import io.circe.syntax._
 import net.exoego.facade.aws_lambda._
-import sttp.apispec.openapi.Info
+import sttp.apispec.{ReferenceOr, SecurityRequirement, Tag}
+import sttp.apispec.openapi.{Info, PathItem, Server}
 import sttp.apispec.openapi.circe._
 import sttp.tapir.docs.openapi.{OpenAPIDocsInterpreter, OpenAPIDocsOptions}
 import sttp.tapir.server.ServerEndpoint
@@ -10,11 +11,18 @@ import sttp.tapir.{EndpointInfoOps, EndpointMetaOps}
 
 import scala.scalajs.js
 
-case class DocInfo(info: Info, filterEndpoints: EndpointInfoOps[_] with EndpointMetaOps => Boolean)
+case class DocInfo(
+  info: Info,
+  tags: List[Tag] = Nil,
+  servers: List[Server] = Nil,
+  webhooks: Option[Map[String, ReferenceOr[PathItem]]] = None,
+  security: List[SecurityRequirement] = Nil,
+  filterEndpoints: EndpointInfoOps[_] with EndpointMetaOps => Boolean = _ => true,
+)
 object DocInfo {
   def default = DocInfo(title = "API", version = "latest")
 
-  def apply(title: String, version: String): DocInfo = DocInfo(Info(title = title, version = version), filterEndpoints = _ => true)
+  def apply(title: String, version: String): DocInfo = DocInfo(Info(title = title, version = version))
 }
 
 object DocServer {
@@ -37,6 +45,7 @@ object DocServer {
     case List("openapi.json") =>
       val openapi = OpenAPIDocsInterpreter(OpenAPIDocsOptions.default)
         .serverEndpointsToOpenAPI[F](endpoints.filter(docInfo.filterEndpoints), docInfo.info)
+        .copy(tags = docInfo.tags, webhooks = docInfo.webhooks, servers = docInfo.servers, security = docInfo.security)
       val json    = openapi.asJson.spaces2SortKeys
       Some(result(json, "application/json"))
 
