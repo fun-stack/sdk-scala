@@ -35,6 +35,7 @@ object SwaggerUI {
     window.ui = SwaggerUIBundle({
       url: '${openApiSpecPath}',
       dom_id: '#swagger-ui',
+      tryItOutEnabled: true,
     });
 
     if (AppConfig && AppConfig.auth) {
