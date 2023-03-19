@@ -17,6 +17,7 @@ case class DocInfo(
   servers: List[Server] = Nil,
   webhooks: Option[Map[String, ReferenceOr[PathItem]]] = None,
   security: List[SecurityRequirement] = Nil,
+  swaggerUIOptions: js.Object = js.Object(),
   filterEndpoints: EndpointInfoOps[_] with EndpointMetaOps => Boolean = _ => true,
 )
 object DocInfo {
@@ -35,7 +36,7 @@ object DocServer {
 
   def serve[F[_]](path: List[String], endpoints: List[ServerEndpoint[_, F]], docInfo: DocInfo): Option[APIGatewayProxyStructuredResultV2] = path match {
     case Nil | List("index.html") =>
-      val html = SwaggerUI.html(docInfo.info.title, "openapi.json")
+      val html = SwaggerUI.html(docInfo.info.title, "openapi.json", docInfo.swaggerUIOptions)
       Some(result(html, "text/html"))
 
     case List("oauth2-redirect.html") =>

@@ -1,9 +1,11 @@
 package funstack.lambda.http.api.tapir.helper
 
+import scala.scalajs.js
+
 object SwaggerUI {
   private val version = "4"
 
-  def html(title: String, openApiSpecPath: String) = s"""
+  def html(title: String, openApiSpecPath: String, swaggerUIOptions: js.Object) = s"""
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -32,11 +34,11 @@ object SwaggerUI {
 <script src="https://unpkg.com/swagger-ui-dist@${version}/swagger-ui-bundle.js" crossorigin></script>
 <script>
   window.onload = () => {
-    window.ui = SwaggerUIBundle({
+    window.ui = SwaggerUIBundle(Object.assign({
       url: '${openApiSpecPath}',
       dom_id: '#swagger-ui',
       tryItOutEnabled: true,
-    });
+    }, ${js.JSON.stringify(swaggerUIOptions)}));
 
     if (AppConfig && AppConfig.auth) {
       window.ui.initOAuth({
