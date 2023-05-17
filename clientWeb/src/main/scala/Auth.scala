@@ -26,7 +26,7 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) extends funstack.
 
   private val authTokenInLocalStorage = website.authTokenInLocalStorage.getOrElse(true)
 
-  private val redirectUrl = dom.window.location.origin.getOrElse(website.url)
+  private val redirectUrl = dom.window.location.origin
 
   private val authRequests = new AuthRequests(auth, redirectUrl)
 
@@ -90,7 +90,7 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) extends funstack.
     val code         = Option(searchParams.get("code"))
     val logout       = Option(searchParams.get("logout"))
 
-    def resetUrl(): Unit = dom.window.history.replaceState(null, "", dom.window.location.origin.get)
+    def resetUrl(): Unit = dom.window.history.replaceState(null, "", dom.window.location.origin)
 
     if (logout.isDefined) {
       cleanupLocalStorage()

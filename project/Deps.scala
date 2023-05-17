@@ -5,16 +5,16 @@ object Deps {
   import Def.{setting => s}
 
   // testing
-  val scalatest = s("org.scalatest" %%% "scalatest" % "3.2.15")
+  val scalatest = s("org.scalatest" %%% "scalatest" % "3.2.16")
 
   // core libraries
   val cats = new {
-    val effect = s("org.typelevel" %%% "cats-effect" % "3.4.10")
+    val effect = s("org.typelevel" %%% "cats-effect" % "3.5.0")
   }
 
   // frp
   val colibri = new {
-    val version = "0.7.7"
+    val version = "0.7.8"
     val core    = s("com.github.cornerman" %%% "colibri" % version)
     val jsdom   = s("com.github.cornerman" %%% "colibri-jsdom" % version)
   }
@@ -31,16 +31,16 @@ object Deps {
   }
 
   // js utils
-  val jsTime = s("io.github.cquiroz" %%% "scala-java-time" % "2.3.0")
+  val jsTime = s("io.github.cquiroz" %%% "scala-java-time" % "2.5.0")
 
   // sttp
   val apiSpec = new {
-    val version = "0.3.1"
+    val version = "0.3.2"
     val circe   = s("com.softwaremill.sttp.apispec" %%% "openapi-circe" % version)
   }
 
   val tapir = new {
-    val version    = "1.2.2"
+    val version    = "1.3.0"
     val core       = s("com.softwaremill.sttp.tapir" %%% "tapir-core" % version)
     val lambda     = s("com.softwaremill.sttp.tapir" %%% "tapir-aws-lambda" % version)
     val circe      = s("com.softwaremill.sttp.tapir" %%% "tapir-json-circe" % version)
