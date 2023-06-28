@@ -24,13 +24,13 @@ private object AuthMethod {
 
 private case class TokenCredentials(time: Double, token: TokenResponse)
 
-class Auth(val auth: AuthAppConfig, appName: String, redirectPort: Int, awsRegion: String) extends funstack.client.core.auth.Auth {
+class Auth(val auth: AuthAppConfig, appName: String, credentialsFileName: String, redirectPort: Int, awsRegion: String) extends funstack.client.core.auth.Auth {
   private val redirectUrl = s"http://localhost:${redirectPort}"
 
   private object paths {
 
     val configDir       = Path.join(OS.homedir(), s".${appName}")
-    val credentialsFile = Path.join(configDir, "credentials")
+    val credentialsFile = Path.join(configDir, credentialsFileName)
   }
 
   private val cognitoIdentityServiceProvider = new CognitoIdentityProvider(AWSConfig(region = awsRegion))
