@@ -2,8 +2,8 @@ package funstack.lambda.http.api.tapir.helper
 
 import io.circe.syntax._
 import net.exoego.facade.aws_lambda._
-import sttp.apispec.{ReferenceOr, SecurityRequirement, Tag}
-import sttp.apispec.openapi.{Info, PathItem, Server}
+import sttp.apispec.{SecurityRequirement, Tag}
+import sttp.apispec.openapi.{Info, PathItem, ReferenceOr, Server}
 import sttp.apispec.openapi.circe._
 import sttp.tapir.docs.openapi.{OpenAPIDocsInterpreter, OpenAPIDocsOptions}
 import sttp.tapir.server.ServerEndpoint
