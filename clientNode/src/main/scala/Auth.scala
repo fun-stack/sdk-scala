@@ -120,7 +120,7 @@ class Auth(val auth: AuthAppConfig, appName: String, credentialsFileName: String
           Some(User(userInfo, tokenGetter))
       }
       .replayLatest
-      .hot
+      .unsafeHot()
       .recover { case t => // TODO: why does the recover need to be behind hot? colibri?
         println("Error in user handling: " + t)
         None
