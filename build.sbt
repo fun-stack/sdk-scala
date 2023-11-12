@@ -3,7 +3,8 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 inThisBuild(
   Seq(
     organization           := "io.github.fun-stack",
-    scalaVersion           := "2.13.12",
+    scalaVersion           := crossScalaVersions.value.last,
+    crossScalaVersions     := Seq("2.13.12", "3.3.1"),
     licenses               := Seq("MIT License" -> url("https://opensource.org/licenses/MIT")),
     homepage               := Some(url("https://github.com/fun-stack/fun-stack-scala")),
     scmInfo                := Some(
@@ -65,8 +66,8 @@ lazy val backend = project
     name                 := "fun-stack-backend",
     libraryDependencies ++=
       Deps.cats.effect.value ::
-        Deps.awsSdkJS.sns.value ::
-        Deps.awsSdkJS.cognitoidentityprovider.value ::
+        Deps.awsSdkJS.sns.value.cross(CrossVersion.for3Use2_13) ::
+        Deps.awsSdkJS.cognitoidentityprovider.value.cross(CrossVersion.for3Use2_13) ::
         Deps.sloth.value ::
         Deps.mycelium.core.value ::
         Nil,
@@ -80,7 +81,7 @@ lazy val lambdaApigateway = project
     name                 := "fun-stack-lambda-apigateway",
     libraryDependencies ++=
       Deps.cats.effect.value ::
-        Deps.awsLambdaJS.value ::
+        Deps.awsLambdaJS.value.cross(CrossVersion.for3Use2_13) ::
         Nil,
   )
 
@@ -147,8 +148,8 @@ lazy val lambdaWsEventAuthorizer = project
     name                 := "fun-stack-lambda-ws-event-authorizer",
     libraryDependencies ++=
       Deps.cats.effect.value ::
-        Deps.awsSdkJS.sns.value ::
-        Deps.awsLambdaJS.value ::
+        Deps.awsSdkJS.sns.value.cross(CrossVersion.for3Use2_13) ::
+        Deps.awsLambdaJS.value.cross(CrossVersion.for3Use2_13) ::
         Deps.sloth.value ::
         Nil,
   )
@@ -182,7 +183,7 @@ lazy val clientNode = project
   .settings(
     name                       := "fun-stack-client-node",
     libraryDependencies       ++=
-      Deps.awsSdkJS.cognitoidentityprovider.value ::
+      Deps.awsSdkJS.cognitoidentityprovider.value.cross(CrossVersion.for3Use2_13) ::
         Nil,
     Compile / npmDependencies ++=
       NpmDeps.nodeFetch ::
