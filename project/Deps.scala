@@ -25,7 +25,7 @@ object Deps {
 
   // websocket connecitivity
   val mycelium = new {
-    val version  = "0.3.1"
+    val version  = "0.4.0"
     val core     = s("com.github.cornerman" %%% "mycelium-core" % version)
     val clientJs = s("com.github.cornerman" %%% "mycelium-client-js" % version)
   }
@@ -40,7 +40,7 @@ object Deps {
   }
 
   val tapir = new {
-    val version    = "1.8.0"
+    val version    = "1.9.0"
     val core       = s("com.softwaremill.sttp.tapir" %%% "tapir-core" % version)
     val lambda     = s("com.softwaremill.sttp.tapir" %%% "tapir-aws-lambda" % version)
     val circe      = s("com.softwaremill.sttp.tapir" %%% "tapir-json-circe" % version)
@@ -51,7 +51,7 @@ object Deps {
 
   // aws-sdk-js
   val awsSdkJS    = new {
-    val version                 = s"0.32.0-v${NpmDeps.awsSdkVersion}"
+    val version                 = s"0.33.0-v${NpmDeps.awsSdkVersion}"
     val lambda                  = s("net.exoego" %%% "aws-sdk-scalajs-facade-lambda" % version)
     val dynamodb                = s("net.exoego" %%% "aws-sdk-scalajs-facade-dynamodb" % version)
     val apigatewaymanagementapi = s("net.exoego" %%% "aws-sdk-scalajs-facade-apigatewaymanagementapi" % version)
@@ -62,7 +62,7 @@ object Deps {
 }
 
 object NpmDeps {
-  val awsSdkVersion = "2.798.0"
+  val awsSdkVersion = "2.892.0"
   val awsSdk        = "aws-sdk"    -> awsSdkVersion
   val jwtDecode     = "jwt-decode" -> "3.1.2"
   val nodeFetch     = "node-fetch" -> "2.6.7"

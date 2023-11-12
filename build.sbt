@@ -26,23 +26,23 @@ inThisBuild(
   ),
 )
 
+val isDotty = Def.setting(CrossVersion.partialVersion(scalaVersion.value).exists(_._1 == 3))
+
 lazy val commonSettings = Seq(
-  addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full),
   libraryDependencies  ++=
     Deps.scalatest.value % Test ::
       Nil,
   scalacOptions --= Seq("-Wconf:any&src=src_managed/.*"),
+
+  libraryDependencies ++= (if (isDotty.value) Nil
+                           else
+                             Seq(
+                               compilerPlugin(("org.typelevel" %% "kind-projector" % "0.13.2").cross(CrossVersion.full)),
+                             )),
 )
 
 lazy val jsSettings = Seq(
   useYarn       := true,
-  scalacOptions += {
-    val githubRepo    = "fun-stack/fun-stack-scala"
-    val local         = baseDirectory.value.toURI
-    val subProjectDir = baseDirectory.value.getName
-    val remote        = s"https://raw.githubusercontent.com/${githubRepo}/${git.gitHeadCommit.value.get}"
-    s"-P:scalajs:mapSourceURI:$local->$remote/${subProjectDir}/"
-  },
 )
 
 lazy val core = project
