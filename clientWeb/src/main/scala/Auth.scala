@@ -26,7 +26,7 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) extends funstack.
 
   private val authTokenInLocalStorage = website.authTokenInLocalStorage.getOrElse(true)
 
-  private val redirectUrl = dom.window.location.origin.getOrElse(website.url)
+  private val redirectUrl = dom.window.location.origin
 
   private val authRequests = new AuthRequests(auth, redirectUrl)
 
@@ -54,7 +54,7 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) extends funstack.
     if (shouldRedirect && check) {
       sessionStorage.setItem(StorageKey.redirectFlag, "")
       // needs to be in a timeout, otherwise messes with the history stack
-      dom.window.setTimeout(() => dom.window.location.href = authRequests.loginUrl, 0): Unit
+      val _ = dom.window.setTimeout(() => dom.window.location.href = authRequests.loginUrl, 0)
       true
     }
     else false
@@ -90,7 +90,7 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) extends funstack.
     val code         = Option(searchParams.get("code"))
     val logout       = Option(searchParams.get("logout"))
 
-    def resetUrl(): Unit = dom.window.history.replaceState(null, "", dom.window.location.origin.get)
+    def resetUrl(): Unit = dom.window.history.replaceState(null, "", dom.window.location.origin)
 
     if (logout.isDefined) {
       cleanupLocalStorage()
@@ -184,7 +184,7 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) extends funstack.
         Some(User(userInfo, tokenGetter))
     }
     .replayLatest
-    .hot
+    .unsafeHot()
     .recover { case t => // TODO: why does the recover need to be behind hot? colibri?
       dom.console.error("Error in user handling: " + t)
       cleanupLocalStorage()

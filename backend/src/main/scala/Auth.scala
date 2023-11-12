@@ -8,12 +8,14 @@ import scala.scalajs.js.JSConverters._
 
 @js.native
 trait UserInfoResponse extends js.Object {
+  def sub: String            = js.native
   def email: String          = js.native
   def email_verified: String = js.native
 }
 
 trait Auth {
   def getUser(username: String): IO[UserInfoResponse]
+  def getUsernameByEmail(email: String): IO[Option[String]]
 }
 
 class AuthAws(cognitoUserPoolId: String) extends Auth {
@@ -37,15 +39,34 @@ class AuthAws(cognitoUserPoolId: String) extends Auth {
         }
         .asInstanceOf[UserInfoResponse],
     )
+
+  def getUsernameByEmail(email: String): IO[Option[String]] = IO
+    .fromFuture(
+      IO(
+        cognito.listUsersFuture(
+          ListUsersRequest(
+            UserPoolId = cognitoUserPoolId,
+            Filter = s"email=${js.JSON.stringify(email)}",
+          ),
+        ),
+      ),
+    )
+    .map(_.Users.toOption.flatMap(_.headOption.flatMap(_.Username.toOption)))
 }
 
 class AuthDev(getEmailFromUser: String => String) extends Auth {
-  def getUser(username: String): IO[UserInfoResponse] = IO {
+  // TODO: we should inline the dev environment here instead of passing it from the outside
+  def getUser(username: String): IO[UserInfoResponse] = IO.pure(
     js.Dynamic
       .literal(
+        sub = username,
         email = getEmailFromUser(username),
         email_verified = true,
       )
-      .asInstanceOf[UserInfoResponse]
-  }
+      .asInstanceOf[UserInfoResponse],
+  )
+
+  def getUsernameByEmail(email: String): IO[Option[String]] = IO.pure(
+    Some(email) collect { case s"$name@localhost" => name },
+  )
 }

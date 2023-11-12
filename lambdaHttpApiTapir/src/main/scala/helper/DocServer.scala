@@ -2,8 +2,8 @@ package funstack.lambda.http.api.tapir.helper
 
 import io.circe.syntax._
 import net.exoego.facade.aws_lambda._
-import sttp.apispec.{ReferenceOr, SecurityRequirement, Tag}
-import sttp.apispec.openapi.{Info, PathItem, Server}
+import sttp.apispec.{SecurityRequirement, Tag}
+import sttp.apispec.openapi.{Info, PathItem, ReferenceOr, Server}
 import sttp.apispec.openapi.circe._
 import sttp.tapir.docs.openapi.{OpenAPIDocsInterpreter, OpenAPIDocsOptions}
 import sttp.tapir.server.ServerEndpoint
@@ -13,6 +13,7 @@ import scala.scalajs.js
 
 case class DocInfo(
   info: Info,
+  options: OpenAPIDocsOptions = OpenAPIDocsOptions.default,
   tags: List[Tag] = Nil,
   servers: List[Server] = Nil,
   webhooks: Option[Map[String, ReferenceOr[PathItem]]] = None,
@@ -44,7 +45,7 @@ object DocServer {
       Some(result(html, "text/html"))
 
     case List("openapi.json") =>
-      val openapi = OpenAPIDocsInterpreter(OpenAPIDocsOptions.default)
+      val openapi = OpenAPIDocsInterpreter(docInfo.options)
         .serverEndpointsToOpenAPI[F](endpoints.filter(docInfo.filterEndpoints), docInfo.info)
         .copy(tags = docInfo.tags, webhooks = docInfo.webhooks, servers = docInfo.servers, security = docInfo.security)
       val json    = openapi.asJson.spaces2SortKeys
