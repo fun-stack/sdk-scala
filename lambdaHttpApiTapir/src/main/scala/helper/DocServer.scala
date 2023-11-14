@@ -20,6 +20,7 @@ case class DocInfo(
   security: List[SecurityRequirement] = Nil,
   swaggerUIOptions: js.Object = js.Object(),
   filterEndpoints: EndpointInfoOps[_] with EndpointMetaOps => Boolean = _ => true,
+  openApiVersion: Option[String] = None,
 )
 object DocInfo {
   def default = DocInfo(title = "API", version = "latest")
@@ -45,9 +46,12 @@ object DocServer {
       Some(result(html, "text/html"))
 
     case List("openapi.json") =>
-      val openapi = OpenAPIDocsInterpreter(docInfo.options)
+      val openapiBase = OpenAPIDocsInterpreter(docInfo.options)
         .serverEndpointsToOpenAPI[F](endpoints.filter(docInfo.filterEndpoints), docInfo.info)
         .copy(tags = docInfo.tags, webhooks = docInfo.webhooks, servers = docInfo.servers, security = docInfo.security)
+
+      val openapi = docInfo.openApiVersion.fold(openapiBase)(version => openapiBase.copy(openapi = version))
+
       val json    = openapi.asJson.spaces2SortKeys
       Some(result(json, "application/json"))
 
