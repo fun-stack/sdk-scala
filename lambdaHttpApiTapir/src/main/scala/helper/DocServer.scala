@@ -1,10 +1,10 @@
 package funstack.lambda.http.api.tapir.helper
 
+import io.circe.Encoder
 import io.circe.syntax._
 import net.exoego.facade.aws_lambda._
 import sttp.apispec.{SecurityRequirement, Tag}
-import sttp.apispec.openapi.{Info, PathItem, ReferenceOr, Server}
-import sttp.apispec.openapi.circe._
+import sttp.apispec.openapi.{Info, OpenAPI, PathItem, ReferenceOr, Server}
 import sttp.tapir.docs.openapi.{OpenAPIDocsInterpreter, OpenAPIDocsOptions}
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.{EndpointInfoOps, EndpointMetaOps}
@@ -30,6 +30,11 @@ object DocInfo {
 
 object DocServer {
 
+  private def openApiEncoder(version: String): Encoder[OpenAPI] = version match {
+    case "3.0.3" => sttp.apispec.openapi.circe_openapi_3_0_3.encoderOpenAPI
+    case _ => sttp.apispec.openapi.circe.encoderOpenAPI
+  }
+
   private def result(body: String, contentType: String): APIGatewayProxyStructuredResultV2 = APIGatewayProxyStructuredResultV2(
     statusCode = 200,
     body = body,
@@ -52,7 +57,7 @@ object DocServer {
 
       val openapi = docInfo.openApiVersion.fold(openapiBase)(version => openapiBase.copy(openapi = version))
 
-      val json    = openapi.asJson.spaces2SortKeys
+      val json    = openapi.asJson(openApiEncoder(openapi.openapi)).spaces2SortKeys
       Some(result(json, "application/json"))
 
     case _ => None
