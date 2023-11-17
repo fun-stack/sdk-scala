@@ -32,7 +32,7 @@ object DocServer {
 
   private def openApiEncoder(version: String): Encoder[OpenAPI] = version match {
     case "3.0.3" => sttp.apispec.openapi.circe_openapi_3_0_3.encoderOpenAPI
-    case _ => sttp.apispec.openapi.circe.encoderOpenAPI
+    case _       => sttp.apispec.openapi.circe.encoderOpenAPI
   }
 
   private def result(body: String, contentType: String): APIGatewayProxyStructuredResultV2 = APIGatewayProxyStructuredResultV2(
@@ -57,7 +57,7 @@ object DocServer {
 
       val openapi = docInfo.openApiVersion.fold(openapiBase)(version => openapiBase.copy(openapi = version))
 
-      val json    = openapi.asJson(openApiEncoder(openapi.openapi)).spaces2SortKeys
+      val json = openapi.asJson(openApiEncoder(openapi.openapi)).spaces2SortKeys
       Some(result(json, "application/json"))
 
     case _ => None
