@@ -111,7 +111,7 @@ object Handler {
       val router  = routerf(request)
 
       val result: Future[Boolean] = ServerMessageSerdes.deserialize(record.Sns.Message) match {
-        case Right(n: Notification[SubscriptionEvent@unchecked]) =>
+        case Right(n: Notification[SubscriptionEvent @unchecked]) =>
           val (a, b, arg) = n.event.subscriptionKey.split("/") match {
             case Array(a, b)      => (a, b, "")
             case Array(a, b, arg) => (a, b, arg)
@@ -129,8 +129,8 @@ object Handler {
               }
             case Left(error) => Future.failed(new Exception(s"Deserialization Error - ${error}"))
           }
-        case Right(s)                                  => Future.failed(new Exception(s"Unexpected event body: $s"))
-        case Left(error)                               => Future.failed(new Exception(s"Deserialization Error - ${error}"))
+        case Right(s)                                             => Future.failed(new Exception(s"Unexpected event body: $s"))
+        case Left(error)                                          => Future.failed(new Exception(s"Deserialization Error - ${error}"))
       }
 
       result.flatMap {

@@ -34,8 +34,7 @@ lazy val commonSettings = Seq(
     Deps.scalatest.value % Test ::
       Nil,
   scalacOptions --= Seq("-Wconf:any&src=src_managed/.*"),
-
-  libraryDependencies ++= (if (isDotty.value) Nil
+  libraryDependencies  ++= (if (isDotty.value) Nil
                            else
                              Seq(
                                compilerPlugin(("org.typelevel" %% "kind-projector" % "0.13.2").cross(CrossVersion.full)),
@@ -43,7 +42,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val jsSettings = Seq(
-  useYarn       := true,
+  useYarn := true,
 )
 
 lazy val core = project
