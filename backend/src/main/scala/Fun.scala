@@ -1,14 +1,20 @@
 package funstack.backend
 
+import cats.implicits._
 import funstack.core.MissingModuleException
 
 object Fun {
   val config = Config.load()
 
   val authOption =
-    config.fun.cognitoUserPoolId
-      .map(new AuthAws(_))
-      .orElse(config.fun.devEnvironment.flatMap(_.getEmail.toOption).map(new AuthDev(_)))
+    (config.fun.authUrl, config.fun.cognitoUserPoolId)
+      .mapN(new AuthAws(_, _))
+      .orElse {
+        config.fun.devEnvironment.flatMap { dev =>
+          (dev.authUrl.toOption, dev.getEmail.toOption)
+            .mapN(new AuthDev(_, _))
+        }
+      }
 
   val wsOption =
     config.fun.eventsSnsTopic

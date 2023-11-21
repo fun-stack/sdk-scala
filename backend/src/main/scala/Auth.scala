@@ -14,11 +14,12 @@ trait UserInfoResponse extends js.Object {
 }
 
 trait Auth {
+  def authUrl: String
   def getUser(username: String): IO[UserInfoResponse]
   def getUsernameByEmail(email: String): IO[Option[String]]
 }
 
-class AuthAws(cognitoUserPoolId: String) extends Auth {
+class AuthAws(val authUrl: String, cognitoUserPoolId: String) extends Auth {
   private val cognito = new CognitoIdentityProvider()
 
   def getUser(username: String): IO[UserInfoResponse] = IO
@@ -54,7 +55,7 @@ class AuthAws(cognitoUserPoolId: String) extends Auth {
     .map(_.Users.toOption.flatMap(_.headOption.flatMap(_.Username.toOption)))
 }
 
-class AuthDev(getEmailFromUser: String => String) extends Auth {
+class AuthDev(val authUrl: String, getEmailFromUser: String => String) extends Auth {
   // TODO: we should inline the dev environment here instead of passing it from the outside
   def getUser(username: String): IO[UserInfoResponse] = IO.pure(
     js.Dynamic
