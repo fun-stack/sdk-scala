@@ -86,7 +86,6 @@ jobs:
       - name: Cache SBT
         uses: coursier/cache-action@v6
 
-      - uses: olafurpg/setup-gpg@v3
       - name: Publish
         run: sbt version "git status" ci-release "git status"
         env:
