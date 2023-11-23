@@ -131,7 +131,7 @@ object Handler {
           isBase64Encoded = event.isBase64Encoded,
         )
 
-        val serverLog = DefaultServerLog(
+        val serverLog = DefaultServerLog[F](
           doLogWhenReceived = msg => Sync[F].delay(println(msg)),
           doLogWhenHandled = (msg, errorOpt) =>
             Sync[F].delay {
@@ -153,7 +153,7 @@ object Handler {
 
         val config = AwsCatsEffectServerOptions
           .customiseInterceptors[F]
-          .copy(serverLog = Some(serverLog))
+          .serverLog(serverLog)
           .options
           .copy(encodeResponseBody = false)
 

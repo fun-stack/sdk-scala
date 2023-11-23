@@ -35,12 +35,12 @@ object Deps {
 
   // sttp
   val apiSpec = new {
-    val version = "0.7.1"
+    val version = "0.7.2"
     val circe   = s("com.softwaremill.sttp.apispec" %%% "openapi-circe" % version)
   }
 
   val tapir = new {
-    val version    = "1.9.0"
+    val version    = "1.9.2"
     val core       = s("com.softwaremill.sttp.tapir" %%% "tapir-core" % version)
     val lambda     = s("com.softwaremill.sttp.tapir" %%% "tapir-aws-lambda" % version)
     val circe      = s("com.softwaremill.sttp.tapir" %%% "tapir-json-circe" % version)
