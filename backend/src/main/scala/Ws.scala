@@ -34,7 +34,6 @@ private class WsOperationsAWS(eventsSnsTopic: String) extends WsOperations {
     )
 
     IO.fromFuture(IO(snsClient.publishFuture(params)))
-      .flatTap(r => IO(js.Dynamic.global.console.log("PUBLISHED", r)))
       .void
   }
 }
