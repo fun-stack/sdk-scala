@@ -117,9 +117,13 @@ object Handler {
         Future.successful(APIGatewayProxyStructuredResultV2(statusCode = 404))
     }
 
-    result.recover { case t =>
-      println(s"Error handling request: $t")
-      APIGatewayProxyStructuredResultV2(statusCode = 500)
+    result.recover {
+      case HttpResponseError(message, statusCode) =>
+        println(s"Http error handling request (statusCode: $statusCode): $message")
+        APIGatewayProxyStructuredResultV2(statusCode = statusCode, body = message)
+      case t                                      =>
+        println(s"Generic error handling request: $t")
+        APIGatewayProxyStructuredResultV2(statusCode = 500)
     }.toJSPromise
   }
 }
