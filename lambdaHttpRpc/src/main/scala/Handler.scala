@@ -1,7 +1,7 @@
 package funstack.lambda.http.rpc
 
 import cats.effect.{unsafe, IO}
-import funstack.core.CanSerialize
+import funstack.core.{CanSerialize, HttpResponseError}
 import funstack.lambda.apigateway
 import funstack.lambda.apigateway.helper.facades.APIGatewayAuthorizer
 import net.exoego.facade.aws_lambda._
@@ -90,17 +90,20 @@ object Handler {
         CanSerialize[T].deserialize(body) match {
           case Right(payload) =>
             router(sloth.Request(path, payload)) match {
-              case Right(result)                            =>
+              case Right(result)                                                            =>
                 execute(result, request).map { value =>
                   APIGatewayProxyStructuredResultV2(body = CanSerialize[T].serialize(value), statusCode = 200)
                 }
-              case Left(ServerFailure.PathNotFound(p))      =>
+              case Left(ServerFailure.PathNotFound(p))                                      =>
                 println(s"Path not found: $p")
                 Future.successful(APIGatewayProxyStructuredResultV2(statusCode = 404))
-              case Left(ServerFailure.HandlerError(e))      =>
+              case Left(ServerFailure.HandlerError(HttpResponseError(message, statusCode))) =>
+                println(s"Handler http error (statusCode: $statusCode): $message")
+                Future.successful(APIGatewayProxyStructuredResultV2(statusCode = statusCode, body = message))
+              case Left(ServerFailure.HandlerError(e))                                      =>
                 println(s"Handler error: $e")
                 Future.successful(APIGatewayProxyStructuredResultV2(statusCode = 500))
-              case Left(ServerFailure.DeserializerError(e)) =>
+              case Left(ServerFailure.DeserializerError(e))                                 =>
                 println(s"Deserializer error: $e")
                 Future.successful(APIGatewayProxyStructuredResultV2(statusCode = 400))
             }

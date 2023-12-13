@@ -3,17 +3,13 @@ package funstack.client.core
 import cats.effect.IO
 import cats.implicits._
 import funstack.client.core.auth.Auth
-import funstack.core.CanSerialize
+import funstack.core.{CanSerialize, HttpResponseError}
 import org.scalajs.dom.{Fetch, HttpMethod, RequestInit}
 import sloth.{Request, RequestTransport}
 
 import scala.scalajs.js
 
 private object HttpTransport {
-
-  case class HttpResponseError(msg: String) extends Exception(s"Http response error: ${msg}") {
-    override def toString(): String = getMessage
-  }
 
   def apply[T: CanSerialize](http: HttpAppConfig, auth: Option[Auth]): RequestTransport[T, IO] =
     new RequestTransport[T, IO] {
@@ -38,7 +34,7 @@ private object HttpTransport {
 
           text <- IO.fromThenable(IO(result.text()))
 
-          _ <- IO.whenA(result.status != 200)(IO.raiseError(HttpResponseError(s"Status ${result.status}: $text")))
+          _ <- IO.whenA(result.status != 200)(IO.raiseError(HttpResponseError(text, result.status)))
 
           deserialized <- IO.fromEither(CanSerialize[T].deserialize(text))
         } yield deserialized
