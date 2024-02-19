@@ -33,8 +33,7 @@ private class WsOperationsAWS(eventsSnsTopic: String) extends WsOperations {
       TopicArn = eventsSnsTopic,
     )
 
-    IO.fromFuture(IO(snsClient.publishFuture(params)))
-      .void
+    IO.fromFuture(IO(snsClient.publishFuture(params))).void
   }
 }
 
