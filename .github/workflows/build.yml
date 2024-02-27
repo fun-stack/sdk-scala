@@ -10,7 +10,7 @@ jobs:
   build:
     strategy:
       matrix:
-        scalaVersion: ["2.13.12"]
+        scalaVersion: ["2.13.13"]
     runs-on: ubuntu-20.04
 
     steps:
@@ -71,7 +71,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-20.04]
-        scala: [2.13.12]
+        scala: [2.13.13]
         java: [adopt@1.8]
     runs-on: ${{ matrix.os }}
     steps:
