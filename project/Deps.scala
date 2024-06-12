@@ -21,7 +21,7 @@ object Deps {
 
   // rpc
   val sloth     = s("com.github.cornerman" %%% "sloth" % "0.7.1")
-  val chameleon = s("com.github.cornerman" %%% "chameleon" % "0.3.8")
+  val chameleon = s("com.github.cornerman" %%% "chameleon" % "0.4.1")
 
   // websocket connecitivity
   val mycelium = new {
