@@ -185,9 +185,10 @@ class Auth(val auth: AuthAppConfig, website: WebsiteAppConfig) extends funstack.
     }
     .replayLatest
     .unsafeHot()
-    .recover { case t => // TODO: why does the recover need to be behind hot? colibri?
-      dom.console.error("Error in user handling: " + t)
-      cleanupLocalStorage()
-      None
+    .recover {
+      case t => // TODO: why does the recover need to be behind hot? colibri?
+        dom.console.error("Error in user handling: " + t)
+        cleanupLocalStorage()
+        None
     }
 }
