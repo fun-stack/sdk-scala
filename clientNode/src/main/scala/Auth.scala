@@ -121,9 +121,10 @@ class Auth(val auth: AuthAppConfig, appName: String, credentialsFileName: String
       }
       .replayLatest
       .unsafeHot()
-      .recover { case t => // TODO: why does the recover need to be behind hot? colibri?
-        println("Error in user handling: " + t)
-        None
+      .recover {
+        case t => // TODO: why does the recover need to be behind hot? colibri?
+          println("Error in user handling: " + t)
+          None
       }
 
   private def loginToCognito(username: String, password: String): IO[InitiateAuthResponse] = IO
